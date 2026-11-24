@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Tracker</title>
+
+  <!-- Firebase SDK (CDN — no npm needed) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+  <style>
+    /* ── Reset & Variables ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f0f2f5;
+      --surface: #ffffff;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --overdue: #fef2f2;
+      --overdue-border: #fca5a5;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,.12);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: var(--shadow);
+    }
+    header h1 { font-size: 1.5rem; font-weight: 700; }
+    header .stats {
+      display: flex;
+      gap: 16px;
+      font-size: 0.85rem;
+      opacity: 0.9;
+    }
+    header .stats span { font-weight: 600; }
+    .sync-status {
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.2);
+    }
+    .sync-status.connected { background: rgba(34,197,94,0.3); }
+    .sync-status.disconnected { background: rgba(239,68,68,0.3); }
+
+    /* ── Main Layout ── */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    /* ── Add Task Form ── */
+    .add-task-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 28px;
+    }
+    .add-task-card h2 {
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      color: var(--primary);
+    }
+    .form-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      min-width: 160px;
+    }
+    .form-group label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+    .form-group input, .form-group select {
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--primary);
+    }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      align-self: flex-end;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      padding: 6px 10px;
+      font-size: 0.8rem;
+    }
+    .btn-danger:hover { background: #fef2f2; }
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 0.8rem;
+      border-radius: 6px;
+    }
+
+    /* ── Filter Bar ── */
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+    .filter-bar select, .filter-bar input {
+      padding: 8px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: var(--surface);
+      outline: none;
+    }
+    .filter-bar select:focus, .filter-bar input:focus {
+      border-color: var(--primary);
+    }
+    .filter-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* ── Board Columns ── */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 800px) {
+      .board { grid-template-columns: 1fr; }
+    }
+    .column {
+      background: var(--bg);
+      border-radius: var(--radius);
+      padding: 16px;
+      min-height: 200px;
+    }
+    .column-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--border);
+    }
+    .column-header h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .column-header .count {
+      background: var(--border);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .column.todo .column-header { border-bottom-color: var(--primary); }
+    .column.inprogress .column-header { border-bottom-color: var(--warning); }
+    .column.done .column-header { border-bottom-color: var(--success); }
+
+    /* ── Task Card ── */
+    .task-card {
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid transparent;
+      transition: box-shadow .2s, border-color .2s;
+      position: relative;
+    }
+    .task-card:hover { box-shadow: var(--shadow-lg); }
+    .task-card.overdue {
+      background: var(--overdue);
+      border-left-color: var(--danger);
+    }
+    .task-card .task-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+      word-break: break-word;
+    }
+    .task-card .task-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .task-card .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-person {
+      background: #ede9fe;
+      color: #6d28d9;
+    }
+    .badge-date {
+      background: #f0f9ff;
+      color: #0369a1;
+    }
+    .badge-overdue {
+      background: #fef2f2;
+      color: var(--danger);
+    }
+    .badge-followup {
+      background: #fefce8;
+      color: #a16207;
+    }
+    .task-actions {
+      display: flex;
+      gap: 4px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .task-actions .btn-sm {
+      background: #f1f5f9;
+      color: var(--text);
+      border: none;
+    }
+    .task-actions .btn-sm:hover {
+      background: #e2e8f0;
+    }
+    .task-actions .btn-sm.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* ── Empty State ── */
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 24px 12px;
+      font-size: 0.9rem;
+    }
+
+    /* ── Modal (for edit) ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 28px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: var(--shadow-lg);
+    }
+    .modal h2 {
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+      color: var(--primary);
+    }
+    .modal .form-group { margin-bottom: 14px; }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--text);
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <h1>📋 Task Tracker</h1>
+    <div class="stats">
+      <div>Total: <span id="stat-total">0</span></div>
+      <div>Overdue: <span id="stat-overdue" style="color:#fca5a5">0</span></div>
+      <div>Done: <span id="stat-done">0</span></div>
+      <span class="sync-status" id="sync-status">⏳ Connecting…</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Add Task -->
+    <div class="add-task-card">
+      <h2>➕ New Task</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Task Name</label>
+          <input type="text" id="task-title" placeholder="What needs to be done?" />
+        </div>
+        <div class="form-group">
+          <label>Assigned To</label>
+          <select id="task-person">
+            <option value="">-- Select Person --</option>
+            <option>Karishma Singh</option>
+            <option>Sukriti Murarka</option>
+            <option>Vijendra Singh</option>
+            <option>Sujith AP</option>
+            <option>Pradeep Karnataki</option>
+            <option>Vinita Roche</option>
+            <option>Prakash Adimulam</option>
+            <option>Shruti</option>
+            <option>Nikita</option>
+            <option>Sandeep Gaikwad</option>
+            <option>Hayden Pereira</option>
+            <option>Manasi Bidikar</option>
+            <option>Anit</option>
+            <option>Saad Kazi</option>
+            <option>Shreya Bose</option>
+            <option>Kiran Wanhere</option>
+            <option>Shreya Nair</option>
+            <option>Maithali</option>
+            <option>Hashim Omer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Due Date</label>
+          <input type="date" id="task-date" />
+        </div>
+        <div class="form-group">
+          <label>Follow-up Date</label>
+          <input type="date" id="task-followup" />
+        </div>
+        <button class="btn btn-primary" onclick="addTask()">Add Task</button>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <span class="filter-label">Filter:</span>
+      <select id="filter-person" onchange="renderBoard()">
+        <option value="">All People</option>
+        <option>Karishma Singh</option>
+        <option>Sukriti Murarka</option>
+        <option>Vijendra Singh</option>
+        <option>Sujith AP</option>
+        <option>Pradeep Karnataki</option>
+        <option>Vinita Roche</option>
+        <option>Prakash Adimulam</option>
+        <option>Shruti</option>
+        <option>Nikita</option>
+        <option>Sandeep Gaikwad</option>
+        <option>Hayden Pereira</option>
+        <option>Manasi Bidikar</option>
+        <option>Anit</option>
+        <option>Saad Kazi</option>
+        <option>Shreya Bose</option>
+        <option>Kiran Wanhere</option>
+        <option>Shreya Nair</option>
+        <option>Maithali</option>
+        <option>Hashim Omer</option>
+      </select>
+      <select id="filter-overdue" onchange="renderBoard()">
+        <option value="">All Tasks</option>
+        <option value="overdue">Overdue Only</option>
+      </select>
+      <input type="text" id="filter-search" placeholder="Search tasks…" oninput="renderBoard()" />
+    </div>
+
+    <!-- Kanban Board -->
+    <div class="board">
+      <div class="column todo">
+        <div class="column-header">
+          <h3>📌 To Do <span class="count" id="count-todo">0</span></h3>
+        </div>
+        <div id="col-todo"></div>
+      </div>
+      <div class="column inprogress">
+        <div class="column-header">
+          <h3>🔧 In Progress <span class="count" id="count-inprogress">0</span></h3>
+        </div>
+        <div id="col-inprogress"></div>
+      </div>
+      <div class="column done">
+        <div class="column-header">
+          <h3>✅ Done <span class="count" id="count-done">0</span></h3>
+        </div>
+        <div id="col-done"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Edit Modal -->
+  <div class="modal-overlay hidden" id="edit-modal">
+    <div class="modal">
+      <h2>✏️ Edit Task</h2>
+      <input type="hidden" id="edit-id" />
+      <div class="form-group">
+        <label>Task Name</label>
+        <input type="text" id="edit-title" />
+      </div>
+      <div class="form-group">
+        <label>Assigned To</label>
+        <select id="edit-person">
+          <option value="">-- Select Person --</option>
+          <option>Karishma Singh</option>
+          <option>Sukriti Murarka</option>
+          <option>Vijendra Singh</option>
+          <option>Sujith AP</option>
+          <option>Pradeep Karnataki</option>
+          <option>Vinita Roche</option>
+          <option>Prakash Adimulam</option>
+          <option>Shruti</option>
+          <option>Nikita</option>
+          <option>Sandeep Gaikwad</option>
+          <option>Hayden Pereira</option>
+          <option>Manasi Bidikar</option>
+          <option>Anit</option>
+          <option>Saad Kazi</option>
+          <option>Shreya Bose</option>
+          <option>Kiran Wanhere</option>
+          <option>Shreya Nair</option>
+          <option>Maithali</option>
+          <option>Hashim Omer</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Due Date</label>
+        <input type="date" id="edit-date" />
+      </div>
+      <div class="form-group">
+        <label>Follow-up Date</label>
+        <input type="date" id="edit-followup" />
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="edit-status">
+          <option value="todo">To Do</option>
+          <option value="inprogress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="deleteTaskFromModal()">Delete</button>
+        <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ══════════════════════════════════════
+    // ── Firebase Setup ──
+    // ══════════════════════════════════════
+    const firebaseConfig = {
+      apiKey: "AIzaSyB6n_Q4AfuJNqLqa6on7fSFglWNBggALNc",
+      authDomain: "task-tracker-c83ed.firebaseapp.com",
+      databaseURL: "https://task-tracker-c83ed-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "task-tracker-c83ed",
+      storageBucket: "task-tracker-c83ed.firebasestorage.app",
+      messagingSenderId: "896706293913",
+      appId: "1:896706293913:web:61d483ad63f510cf0c4808"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const tasksRef = db.ref('tasks');
+
+    // ── Connection status indicator ──
+    const syncEl = document.getElementById('sync-status');
+    db.ref('.info/connected').on('value', snap => {
+      if (snap.val() === true) {
+        syncEl.textContent = '🟢 Synced';
+        syncEl.className = 'sync-status connected';
+      } else {
+        syncEl.textContent = '🔴 Offline';
+        syncEl.className = 'sync-status disconnected';
+      }
+    });
+
+    // ══════════════════════════════════════
+    // ── Live Data ──
+    // ══════════════════════════════════════
+    let allTasks = [];
+
+    // Listen for real-time changes from Firebase
+    tasksRef.on('value', snapshot => {
+      allTasks = [];
+      snapshot.forEach(child => {
+        allTasks.push({ id: child.key, ...child.val() });
+      });
+      renderBoard();
+    });
+
+    // ── Helpers ──
+    function isOverdue(dateStr, status) {
+      if (status === 'done' || !dateStr) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return new Date(dateStr) < today;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return 'No date';
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    // ══════════════════════════════════════
+    // ── Add Task ──
+    // ══════════════════════════════════════
+    function addTask() {
+      const title = document.getElementById('task-title').value.trim();
+      const person = document.getElementById('task-person').value;
+      const date = document.getElementById('task-date').value;
+      const followup = document.getElementById('task-followup').value;
+
+      if (!title) {
+        document.getElementById('task-title').focus();
+        return;
+      }
+
+      // Push to Firebase (auto-generates a unique key)
+      tasksRef.push({
+        title,
+        person,
+        date,
+        followup,
+        status: 'todo',
+        createdAt: new Date().toISOString()
+      });
+
+      // Clear form
+      document.getElementById('task-title').value = '';
+      document.getElementById('task-person').value = '';
+      document.getElementById('task-date').value = '';
+      document.getElementById('task-followup').value = '';
+      document.getElementById('task-title').focus();
+
+      // Set default date to today for the next task
+      document.getElementById('task-date').valueAsDate = new Date();
+    }
+
+    // Allow Enter key to add task
+    document.querySelectorAll('.add-task-card input').forEach(input => {
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') addTask();
+      });
+    });
+
+    // ══════════════════════════════════════
+    // ── Move / Delete (Firebase) ──
+    // ══════════════════════════════════════
+    function moveTask(id, newStatus) {
+      tasksRef.child(id).update({ status: newStatus });
+    }
+
+    function deleteTask(id) {
+      if (!confirm('Delete this task?')) return;
+      tasksRef.child(id).remove();
+    }
+
+    // ══════════════════════════════════════
+    // ── Edit Modal ──
+    // ══════════════════════════════════════
+    function openEditModal(id) {
+      const task = allTasks.find(t => t.id === id);
+      if (!task) return;
+
+      document.getElementById('edit-id').value = id;
+      document.getElementById('edit-title').value = task.title;
+      document.getElementById('edit-person').value = task.person;
+      document.getElementById('edit-date').value = task.date;
+      document.getElementById('edit-followup').value = task.followup || '';
+      document.getElementById('edit-status').value = task.status;
+      document.getElementById('edit-modal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-modal').classList.add('hidden');
+    }
+
+    function saveEdit() {
+      const id = document.getElementById('edit-id').value;
+
+      tasksRef.child(id).update({
+        title: document.getElementById('edit-title').value.trim(),
+        person: document.getElementById('edit-person').value,
+        date: document.getElementById('edit-date').value,
+        followup: document.getElementById('edit-followup').value,
+        status: document.getElementById('edit-status').value
+      });
+
+      closeEditModal();
+    }
+
+    function deleteTaskFromModal() {
+      const id = document.getElementById('edit-id').value;
+      closeEditModal();
+      deleteTask(id);
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('edit-modal').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeEditModal();
+    });
+
+    // ══════════════════════════════════════
+    // ── Render Board ──
+    // ══════════════════════════════════════
+    function renderBoard() {
+      const tasks = allTasks;
+      const filterPerson = document.getElementById('filter-person').value;
+      const filterOverdue = document.getElementById('filter-overdue').value;
+      const searchTerm = document.getElementById('filter-search').value.toLowerCase();
+
+      // Filter tasks
+      const filtered = tasks.filter(t => {
+        if (filterPerson && t.person !== filterPerson) return false;
+        if (filterOverdue === 'overdue' && !isOverdue(t.date, t.status)) return false;
+        if (searchTerm && !t.title.toLowerCase().includes(searchTerm) && !(t.person || '').toLowerCase().includes(searchTerm)) return false;
+        return true;
+      });
+
+      // Sort: overdue first, then by date
+      filtered.sort((a, b) => {
+        const aOver = isOverdue(a.date, a.status) ? 0 : 1;
+        const bOver = isOverdue(b.date, b.status) ? 0 : 1;
+        if (aOver !== bOver) return aOver - bOver;
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return new Date(a.date) - new Date(b.date);
+      });
+
+      const groups = { todo: [], inprogress: [], done: [] };
+      filtered.forEach(t => {
+        if (groups[t.status]) groups[t.status].push(t);
+      });
+
+      // Render each column
+      ['todo', 'inprogress', 'done'].forEach(status => {
+        const col = document.getElementById('col-' + status);
+        const count = document.getElementById('count-' + status);
+        count.textContent = groups[status].length;
+
+        if (groups[status].length === 0) {
+          col.innerHTML = '<div class="empty-state">No tasks</div>';
+          return;
+        }
+
+        col.innerHTML = groups[status].map(t => {
+          const overdue = isOverdue(t.date, t.status);
+          const statusButtons = ['todo', 'inprogress', 'done']
+            .filter(s => s !== t.status)
+            .map(s => {
+              const labels = { todo: '📌 To Do', inprogress: '🔧 In Progress', done: '✅ Done' };
+              return `<button class="btn btn-sm" onclick="moveTask('${t.id}','${s}')">${labels[s]}</button>`;
+            }).join('');
+
+          return `
+            <div class="task-card ${overdue ? 'overdue' : ''}">
+              <div class="task-title">${escapeHtml(t.title)}</div>
+              <div class="task-meta">
+                ${t.person ? `<span class="badge badge-person">👤 ${escapeHtml(t.person)}</span>` : ''}
+                ${t.date ? `<span class="badge ${overdue ? 'badge-overdue' : 'badge-date'}">${overdue ? '⚠️ ' : '📅 '}${formatDate(t.date)}</span>` : ''}
+                ${t.followup ? `<span class="badge badge-followup">🔔 Follow-up: ${formatDate(t.followup)}</span>` : ''}
+              </div>
+              <div class="task-actions">
+                ${statusButtons}
+                <button class="btn btn-sm" onclick="openEditModal('${t.id}')">✏️ Edit</button>
+                <button class="btn btn-sm" onclick="deleteTask('${t.id}')" style="color:var(--danger)">🗑️</button>
+              </div>
+            </div>`;
+        }).join('');
+      });
+
+      // Stats
+      document.getElementById('stat-total').textContent = tasks.length;
+      document.getElementById('stat-overdue').textContent = tasks.filter(t => isOverdue(t.date, t.status)).length;
+      document.getElementById('stat-done').textContent = tasks.filter(t => t.status === 'done').length;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // ── Init ──
+    document.getElementById('task-date').valueAsDate = new Date();
+  </script>
+</body>
+</html>
