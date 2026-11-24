@@ -422,10 +422,6 @@
           <label>Due Date</label>
           <input type="date" id="task-date" />
         </div>
-        <div class="form-group">
-          <label>Follow-up Date</label>
-          <input type="date" id="task-followup" />
-        </div>
         <button class="btn btn-primary" onclick="addTask()">Add Task</button>
       </div>
     </div>
@@ -608,7 +604,6 @@
       const title = document.getElementById('task-title').value.trim();
       const person = document.getElementById('task-person').value;
       const date = document.getElementById('task-date').value;
-      const followup = document.getElementById('task-followup').value;
 
       if (!title) {
         document.getElementById('task-title').focus();
@@ -620,7 +615,7 @@
         title,
         person,
         date,
-        followup,
+        followup: '',
         status: 'todo',
         createdAt: new Date().toISOString()
       });
@@ -629,7 +624,6 @@
       document.getElementById('task-title').value = '';
       document.getElementById('task-person').value = '';
       document.getElementById('task-date').value = '';
-      document.getElementById('task-followup').value = '';
       document.getElementById('task-title').focus();
 
       // Set default date to today for the next task
