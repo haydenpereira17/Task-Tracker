@@ -272,6 +272,10 @@
       background: #fefce8;
       color: #a16207;
     }
+    .badge-created {
+      background: #f1f5f9;
+      color: #64748b;
+    }
     .tile-followup-row {
       display: flex;
       align-items: center;
@@ -597,6 +601,13 @@
       return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
+    function formatCreated(isoStr) {
+      if (!isoStr) return '';
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
     // ══════════════════════════════════════
     // ── Add Task ──
     // ══════════════════════════════════════
@@ -755,7 +766,8 @@
               <div class="task-title">${escapeHtml(t.title)}</div>
               <div class="task-meta">
                 ${t.person ? `<span class="badge badge-person">👤 ${escapeHtml(t.person)}</span>` : ''}
-                ${t.date ? `<span class="badge ${overdue ? 'badge-overdue' : 'badge-date'}">${overdue ? '⚠️ ' : '📅 '}${formatDate(t.date)}</span>` : ''}
+                ${t.date ? `<span class="badge ${overdue ? 'badge-overdue' : 'badge-date'}">${overdue ? '⚠️ Due: ' : '📅 Due: '}${formatDate(t.date)}</span>` : ''}
+                ${t.createdAt ? `<span class="badge badge-created" title="Date task was entered">📝 Entered: ${formatCreated(t.createdAt)}</span>` : ''}
               </div>
               <div class="tile-followup-row">
                 <label for="fup-${t.id}">🔔 Follow-up:</label>
