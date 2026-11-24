@@ -481,6 +481,265 @@
       background: rgba(244, 63, 94, 0.2);
     }
 
+    /* ── 14-Day Calendar Heatmap (Current & Next Week) ── */
+    .heatmap-panel {
+      background: var(--nx-card);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-lg);
+      padding: 18px 22px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .heatmap-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 91, 55, 0.4), transparent);
+    }
+
+    .heatmap-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .heatmap-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .heatmap-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .heatmap-range-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.69rem;
+      font-weight: 600;
+      color: var(--nx-muted);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--nx-border);
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+    }
+
+    .heatmap-legend {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.7rem;
+      color: var(--nx-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .legend-scale {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .legend-box {
+      width: 11px;
+      height: 11px;
+      border-radius: 3px;
+    }
+
+    .legend-box.l0 { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .legend-box.l1 { background: rgba(255, 91, 55, 0.22); border: 1px solid rgba(255, 91, 55, 0.45); }
+    .legend-box.l2 { background: rgba(255, 91, 55, 0.5); border: 1px solid rgba(255, 91, 55, 0.7); }
+    .legend-box.l3 { background: #ff5b37; box-shadow: 0 0 6px var(--nx-orange-glow); }
+
+    .heatmap-weeks-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .heatmap-week-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .heatmap-week-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--nx-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .heatmap-week-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .heatmap-days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+    }
+
+    @media (max-width: 640px) {
+      .heatmap-days-grid {
+        gap: 5px;
+      }
+    }
+
+    .heatmap-day-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 9px 4px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+      user-select: none;
+      position: relative;
+      text-align: center;
+    }
+
+    .heatmap-day-cell:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    }
+
+    .heatmap-day-cell.is-selected {
+      outline: 2px solid #ffffff;
+      outline-offset: 2px;
+    }
+
+    .heatmap-day-cell.is-today::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--nx-emerald);
+      box-shadow: 0 0 6px var(--nx-emerald);
+    }
+
+    /* Heat intensity levels */
+    .heatmap-day-cell.heat-0 {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--nx-muted);
+    }
+
+    .heatmap-day-cell.heat-0:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .heatmap-day-cell.heat-1 {
+      background: rgba(255, 91, 55, 0.15);
+      border: 1px solid rgba(255, 91, 55, 0.32);
+      color: #ffd6cc;
+    }
+
+    .heatmap-day-cell.heat-1:hover {
+      background: rgba(255, 91, 55, 0.24);
+      border-color: rgba(255, 91, 55, 0.55);
+    }
+
+    .heatmap-day-cell.heat-2 {
+      background: rgba(255, 91, 55, 0.34);
+      border: 1px solid rgba(255, 91, 55, 0.58);
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(255, 91, 55, 0.18);
+    }
+
+    .heatmap-day-cell.heat-2:hover {
+      background: rgba(255, 91, 55, 0.45);
+      border-color: rgba(255, 91, 55, 0.75);
+    }
+
+    .heatmap-day-cell.heat-3 {
+      background: linear-gradient(135deg, #ff5b37 0%, #ff7b5a 100%);
+      border: 1px solid #ff8f73;
+      color: #ffffff;
+      box-shadow: 0 4px 16px var(--nx-orange-glow);
+    }
+
+    .heatmap-day-cell.heat-3:hover {
+      filter: brightness(1.1);
+    }
+
+    .cell-weekday {
+      font-size: 0.63rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      opacity: 0.8;
+      margin-bottom: 2px;
+    }
+
+    .cell-date-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .cell-task-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      font-weight: 600;
+      margin-top: 3px;
+      padding: 1px 6px;
+      border-radius: var(--radius-pill);
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    .active-filter-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      background: var(--nx-orange-bg);
+      border: 1px solid var(--nx-orange-border);
+      color: var(--nx-orange);
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .btn-clear-date-filter {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-size: 0.85rem;
+      line-height: 1;
+      padding: 0 2px;
+    }
+
     /* ── Nexflow Filter Shelf ── */
     .filter-bar {
       display: flex;
@@ -1081,6 +1340,35 @@
   </header>
 
   <main>
+    <!-- 14-Day Calendar Heatmap (Current & Next Week) -->
+    <section class="heatmap-panel" aria-label="14-Day Task Heatmap">
+      <div class="heatmap-header">
+        <div class="heatmap-title-group">
+          <h2 class="heatmap-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>14-Day Task Heatmap</span>
+          </h2>
+          <span class="heatmap-range-pill" id="heatmap-range-label">14 Days</span>
+          <span id="active-heatmap-filter"></span>
+        </div>
+
+        <div class="heatmap-legend">
+          <span>Density:</span>
+          <div class="legend-scale">
+            <span class="legend-box l0" title="0 tasks"></span>
+            <span class="legend-box l1" title="1-2 tasks"></span>
+            <span class="legend-box l2" title="3-4 tasks"></span>
+            <span class="legend-box l3" title="5+ tasks"></span>
+          </div>
+          <span>High</span>
+        </div>
+      </div>
+
+      <div class="heatmap-weeks-container" id="heatmap-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
     <!-- Assignment Deck (Add Task) -->
     <section class="nex-card" aria-labelledby="form-heading">
       <div class="card-topbar">
@@ -1542,6 +1830,132 @@
     });
 
     // ══════════════════════════════════════
+    // ── 14-Day Calendar Heatmap Engine ──
+    // ══════════════════════════════════════
+    let selectedHeatmapDate = null;
+
+    function get14DaysWindow() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const dayOfWeek = today.getDay(); // 0 is Sun, 1 is Mon...
+      const distanceToMonday = (dayOfWeek === 0) ? -6 : 1 - dayOfWeek;
+
+      const monday = new Date(today);
+      monday.setDate(today.getDate() + distanceToMonday);
+
+      const days = [];
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const dateStr = `${yyyy}-${mm}-${dd}`;
+
+        const isToday = (d.getTime() === today.getTime());
+
+        days.push({
+          dateStr,
+          dayName: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+          dayNum: d.getDate(),
+          monthName: d.toLocaleDateString('en-US', { month: 'short' }),
+          isToday,
+          isCurrentWeek: i < 7
+        });
+      }
+      return days;
+    }
+
+    function filterByHeatmapDay(dateStr) {
+      if (selectedHeatmapDate === dateStr) {
+        selectedHeatmapDate = null;
+      } else {
+        selectedHeatmapDate = dateStr;
+      }
+      renderBoard();
+    }
+
+    function clearHeatmapFilter() {
+      selectedHeatmapDate = null;
+      renderBoard();
+    }
+
+    function renderHeatmap(tasks) {
+      const days = get14DaysWindow();
+      const container = document.getElementById('heatmap-container');
+      const filterIndicator = document.getElementById('active-heatmap-filter');
+      const rangeLabel = document.getElementById('heatmap-range-label');
+
+      if (!container) return;
+
+      const firstDay = days[0];
+      const lastDay = days[13];
+      if (rangeLabel) {
+        rangeLabel.textContent = `${firstDay.monthName} ${firstDay.dayNum} – ${lastDay.monthName} ${lastDay.dayNum}`;
+      }
+
+      if (filterIndicator) {
+        if (selectedHeatmapDate) {
+          const matchedDay = days.find(d => d.dateStr === selectedHeatmapDate);
+          const label = matchedDay ? `${matchedDay.dayName} ${matchedDay.monthName} ${matchedDay.dayNum}` : selectedHeatmapDate;
+          filterIndicator.innerHTML = `
+            <span class="active-filter-indicator">
+              Filtered: ${label}
+              <button class="btn-clear-date-filter" onclick="clearHeatmapFilter()" title="Show all dates">&times;</button>
+            </span>
+          `;
+        } else {
+          filterIndicator.innerHTML = '';
+        }
+      }
+
+      const week1 = days.slice(0, 7);
+      const week2 = days.slice(7, 14);
+
+      function renderWeekGrid(weekDays, weekTitle) {
+        const cellsHtml = weekDays.map(d => {
+          const dayTasks = tasks.filter(t => t.date === d.dateStr);
+          const count = dayTasks.length;
+
+          let heatLevel = 'heat-0';
+          if (count >= 5) heatLevel = 'heat-3';
+          else if (count >= 3) heatLevel = 'heat-2';
+          else if (count >= 1) heatLevel = 'heat-1';
+
+          const isSelected = (selectedHeatmapDate === d.dateStr);
+
+          return `
+            <div class="heatmap-day-cell ${heatLevel} ${d.isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}"
+                 onclick="filterByHeatmapDay('${d.dateStr}')"
+                 title="${d.dayName}, ${d.monthName} ${d.dayNum}: ${count} task${count !== 1 ? 's' : ''}${d.isToday ? ' (Today)' : ''}">
+              <span class="cell-weekday">${d.dayName}</span>
+              <span class="cell-date-num">${d.dayNum}</span>
+              <span class="cell-task-badge">${count}</span>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="heatmap-week-row">
+            <div class="heatmap-week-label">
+              <span>${weekTitle}</span>
+            </div>
+            <div class="heatmap-days-grid">
+              ${cellsHtml}
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = `
+        ${renderWeekGrid(week1, 'Current Week')}
+        ${renderWeekGrid(week2, 'Next Week')}
+      `;
+    }
+
+    // ══════════════════════════════════════
     // ── Render Board Engine ──
     // ══════════════════════════════════════
     function renderBoard() {
@@ -1550,8 +1964,12 @@
       const filterOverdue = document.getElementById('filter-overdue').value;
       const searchTerm = document.getElementById('filter-search').value.toLowerCase();
 
+      // Render Heatmap with current task density
+      renderHeatmap(tasks);
+
       // Filter tasks
       const filtered = tasks.filter(t => {
+        if (selectedHeatmapDate && t.date !== selectedHeatmapDate) return false;
         if (filterPerson && t.person !== filterPerson) return false;
         if (filterOverdue === 'overdue' && !isOverdue(t.date, t.status)) return false;
         if (searchTerm && !t.title.toLowerCase().includes(searchTerm) && !(t.person || '').toLowerCase().includes(searchTerm)) return false;
