@@ -3,19 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Task Register · Studio Workflow</title>
+  <title>Nexflow Task Tracker · Project Workspace</title>
 
-  <!-- Google Fonts: Editorial Serif + Precision Sans + Tabular Mono -->
+  <!-- Inter Font (Nexflow standard) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
   <!-- Firebase SDK (CDN — no build step) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
   <style>
-    /* ── Editorial Design System: Warm Minimalist Studio ── */
+    /* ══════════════════════════════════════════════════════════════════
+       ── Nexflow Design System (nexflow.solutions) ──
+       Deep Midnight Canvas, Coral Orange (#ff5b37), High-Contrast Glass
+       ══════════════════════════════════════════════════════════════════ */
     *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
@@ -23,487 +26,574 @@
     }
 
     :root {
-      --bg: #f9f8f5;
-      --bg-alt: #f3f1ec;
-      --surface: #ffffff;
-      --surface-elevated: #ffffff;
-      --surface-subtle: #fbfaf8;
+      --nx-bg: #0c0e14;
+      --nx-bg-subtle: #090b10;
+      --nx-card: rgba(255, 255, 255, 0.035);
+      --nx-card-hover: rgba(255, 255, 255, 0.06);
+      --nx-card-elevated: #131722;
 
-      --ink-primary: #191816;
-      --ink-secondary: #59554e;
-      --ink-muted: #8c867e;
-      --ink-faint: #b8b2a8;
+      --nx-border: rgba(255, 255, 255, 0.08);
+      --nx-border-strong: rgba(255, 255, 255, 0.16);
 
-      --border-subtle: #ece8e1;
-      --border-strong: #d9d4cc;
-      --border-focus: #191816;
+      --nx-text: #ffffff;
+      --nx-muted: #94a3b8;
+      --nx-faint: rgba(255, 255, 255, 0.35);
 
-      --accent-ink: #191816;
-      --accent-ink-hover: #2e2b27;
+      --nx-orange: #ff5b37;
+      --nx-orange-hover: #f14d2a;
+      --nx-orange-bg: rgba(255, 91, 55, 0.12);
+      --nx-orange-border: rgba(255, 91, 55, 0.3);
+      --nx-orange-glow: rgba(255, 91, 55, 0.25);
 
-      --status-overdue-bg: #fff5f5;
-      --status-overdue-border: #fecaca;
-      --status-overdue-ink: #991b1b;
+      --nx-purple: #8b5cf6;
+      --nx-purple-bg: rgba(139, 92, 246, 0.12);
+      --nx-purple-border: rgba(139, 92, 246, 0.28);
 
-      --status-followup-bg: #fefce8;
-      --status-followup-border: #fef08a;
-      --status-followup-ink: #854d0e;
+      --nx-emerald: #10b981;
+      --nx-emerald-bg: rgba(16, 185, 129, 0.12);
+      --nx-emerald-border: rgba(16, 185, 129, 0.28);
 
-      --status-live: #16a34a;
+      --nx-blue: #3b82f6;
+      --nx-blue-bg: rgba(59, 130, 246, 0.12);
 
-      --radius-sm: 6px;
-      --radius-md: 10px;
-      --radius-lg: 14px;
+      --nx-rose: #f43f5e;
+      --nx-rose-bg: rgba(244, 63, 94, 0.12);
+      --nx-rose-border: rgba(244, 63, 94, 0.3);
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
       --radius-pill: 9999px;
 
-      --shadow-subtle: 0 1px 3px rgba(25, 24, 22, 0.04), 0 1px 2px rgba(25, 24, 22, 0.02);
-      --shadow-card: 0 1px 4px rgba(25, 24, 22, 0.04), 0 4px 12px rgba(25, 24, 22, 0.03);
-      --shadow-hover: 0 4px 16px rgba(25, 24, 22, 0.08), 0 1px 3px rgba(25, 24, 22, 0.04);
-      --shadow-modal: 0 20px 48px rgba(25, 24, 22, 0.16), 0 4px 12px rgba(25, 24, 22, 0.08);
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
+      --shadow-glow: 0 0 28px -4px var(--nx-orange-glow);
+      --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1);
 
-      --ease-tactile: cubic-bezier(0.16, 1, 0.3, 1);
-      --duration: 0.18s;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: var(--bg);
-      color: var(--ink-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--nx-bg);
+      color: var(--nx-text);
       min-height: 100vh;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
+      position: relative;
     }
 
-    /* ── Typography Utilities ── */
-    .font-serif { font-family: 'Newsreader', Georgia, serif; }
-    .font-mono { font-family: 'JetBrains Mono', monospace; font-feature-settings: "tnum" 1; }
+    /* Nexflow Signature Ambient Atmospheric Glow */
+    .ambient-glow {
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 760px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(255, 91, 55, 0.13) 0%, rgba(139, 92, 246, 0.05) 50%, transparent 75%);
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+    }
 
-    /* ── Masthead ── */
+    /* Nexflow Micro Dot Grid Overlay */
+    .dot-grid {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: radial-gradient(ellipse 65% 55% at 50% 20%, #000 25%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse 65% 55% at 50% 20%, #000 25%, transparent 75%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Sticky Frosted Header (Nexflow Style) ── */
     header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border-subtle);
       position: sticky;
       top: 0;
       z-index: 50;
-      backdrop-filter: blur(12px);
-      background-color: rgba(255, 255, 255, 0.94);
+      background: rgba(12, 14, 20, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--nx-border);
     }
 
     .header-inner {
       max-width: 1280px;
       margin: 0 auto;
-      padding: 18px 24px;
+      padding: 16px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 20px;
       flex-wrap: wrap;
+      position: relative;
+      z-index: 10;
     }
 
-    .brand-mark {
+    /* Nexflow Brand Logo */
+    .brand-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #ff5b37 0%, #ff7b5a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px var(--nx-orange-glow);
+    }
+
+    .brand-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: #ffffff;
+    }
+
+    .brand-meta {
       display: flex;
       flex-direction: column;
-      gap: 2px;
     }
 
-    .brand-eyebrow {
-      font-family: 'JetBrains Mono', monospace;
+    .brand-logo-text {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 1px;
+    }
+
+    .brand-logo-text span {
+      color: var(--nx-orange);
+    }
+
+    .brand-subline {
       font-size: 0.7rem;
+      color: var(--nx-muted);
       font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--ink-muted);
-    }
-
-    .brand-title {
-      font-family: 'Newsreader', Georgia, serif;
-      font-size: 1.6rem;
-      font-weight: 400;
-      letter-spacing: -0.02em;
-      color: var(--ink-primary);
-      line-height: 1.15;
-    }
-
-    .brand-title em {
-      font-style: italic;
-      color: var(--ink-secondary);
-    }
-
-    .header-aside {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-    }
-
-    /* Metrics Strip */
-    .metrics-bar {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem;
-      color: var(--ink-secondary);
-    }
-
-    .metric-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .metric-label {
-      color: var(--ink-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .metric-value {
-      font-weight: 600;
-      color: var(--ink-primary);
-    }
-
-    .metric-value.overdue {
-      color: var(--status-overdue-ink);
-    }
-
-    .metric-divider {
-      color: var(--border-strong);
-      user-select: none;
-    }
-
-    /* Pulsing Sync Capsule */
-    .sync-capsule {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 5px 12px;
-      border-radius: var(--radius-pill);
-      border: 1px solid var(--border-subtle);
-      background: var(--surface-subtle);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem;
-      font-weight: 500;
-      color: var(--ink-secondary);
       letter-spacing: 0.02em;
     }
 
-    .sync-dot {
+    /* Header Controls */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Nexflow Counters Capsule */
+    .stats-shelf {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-pill);
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .stat-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--nx-muted);
+      padding: 2px 6px;
+    }
+
+    .stat-badge strong {
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+    }
+
+    .stat-badge.overdue strong {
+      color: var(--nx-rose);
+    }
+
+    .stat-divider {
+      color: var(--nx-border);
+      user-select: none;
+    }
+
+    /* Live Cloud Status Chip */
+    .sync-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      background: var(--nx-emerald-bg);
+      border: 1px solid var(--nx-emerald-border);
+      color: var(--nx-emerald);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+      transition: all 0.2s var(--ease);
+    }
+
+    .sync-pulse-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: var(--ink-muted);
-      transition: background var(--duration) var(--ease-tactile);
+      background: currentColor;
+      box-shadow: 0 0 6px currentColor;
+      animation: pulse-ring 2s infinite ease-in-out;
     }
 
-    .sync-capsule.connected .sync-dot {
-      background: var(--status-live);
-      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
-      animation: pulse-glow 2.4s infinite var(--ease-tactile);
+    .sync-status-pill.disconnected {
+      background: var(--nx-rose-bg);
+      border-color: var(--nx-rose-border);
+      color: var(--nx-rose);
+      box-shadow: 0 0 12px rgba(244, 63, 94, 0.15);
     }
 
-    .sync-capsule.disconnected .sync-dot {
-      background: var(--status-overdue-ink);
-      box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.15);
-    }
-
-    @keyframes pulse-glow {
+    @keyframes pulse-ring {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.65; transform: scale(0.9); }
+      50% { opacity: 0.5; transform: scale(0.85); }
     }
 
-    /* ── Main Container ── */
+    /* ── Main Layout ── */
     main {
       max-width: 1280px;
       margin: 0 auto;
-      padding: 32px 24px 64px;
+      padding: 32px 24px 80px;
+      position: relative;
+      z-index: 10;
     }
 
-    /* ── Assignment Deck (Add Task) ── */
-    .deck-card {
-      background: var(--surface);
-      border: 1px solid var(--border-subtle);
+    /* ── Nexflow Action Card (New Task Deck) ── */
+    .nex-card {
+      background: var(--nx-card);
+      border: 1px solid var(--nx-border);
       border-radius: var(--radius-lg);
-      padding: 24px 28px;
+      padding: 24px;
       box-shadow: var(--shadow-card);
-      margin-bottom: 32px;
-      transition: border-color var(--duration) var(--ease-tactile);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      margin-bottom: 28px;
+      transition: border-color 0.2s var(--ease);
+      position: relative;
+      overflow: hidden;
     }
 
-    .deck-card:focus-within {
-      border-color: var(--border-strong);
+    .nex-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 91, 55, 0.35), transparent);
     }
 
-    .deck-header {
+    .nex-card:focus-within {
+      border-color: var(--nx-border-strong);
+    }
+
+    .card-topbar {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       justify-content: space-between;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
-    .deck-title {
-      font-family: 'Newsreader', Georgia, serif;
-      font-size: 1.25rem;
-      font-weight: 400;
-      letter-spacing: -0.01em;
-      color: var(--ink-primary);
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .deck-hint {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem;
-      color: var(--ink-muted);
-      letter-spacing: 0.04em;
+    .card-pill-tag {
+      font-size: 0.68rem;
+      font-weight: 600;
       text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 9px;
+      border-radius: var(--radius-pill);
+      background: var(--nx-orange-bg);
+      border: 1px solid var(--nx-orange-border);
+      color: var(--nx-orange);
     }
 
     .form-grid {
       display: grid;
-      grid-template-columns: 2.2fr 1.5fr 1.2fr auto;
-      gap: 16px;
+      grid-template-columns: 2.3fr 1.5fr 1.2fr auto;
+      gap: 14px;
       align-items: flex-end;
     }
 
     @media (max-width: 960px) {
-      .form-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-      .form-grid .btn-submit-cell {
-        grid-column: span 2;
-      }
+      .form-grid { grid-template-columns: 1fr 1fr; }
+      .submit-cell { grid-column: span 2; }
     }
 
     @media (max-width: 600px) {
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-      .form-grid .btn-submit-cell {
-        grid-column: span 1;
-      }
+      .form-grid { grid-template-columns: 1fr; }
+      .submit-cell { grid-column: span 1; }
     }
 
-    .input-group {
+    .field-group {
       display: flex;
       flex-direction: column;
       gap: 6px;
     }
 
-    .input-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.69rem;
-      font-weight: 500;
+    .field-label {
+      font-size: 0.72rem;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--ink-secondary);
+      letter-spacing: 0.05em;
+      color: var(--nx-muted);
     }
 
-    .input-control {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 0.92rem;
-      color: var(--ink-primary);
-      background: var(--surface-subtle);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
+    .nx-input, .nx-select {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-md);
       padding: 10px 14px;
       outline: none;
-      transition: all var(--duration) var(--ease-tactile);
+      transition: all 0.2s var(--ease);
       width: 100%;
     }
 
-    .input-control:hover {
-      border-color: var(--border-strong);
+    .nx-input::placeholder {
+      color: var(--nx-faint);
     }
 
-    .input-control:focus {
-      background: var(--surface);
-      border-color: var(--border-focus);
-      box-shadow: 0 0 0 3px rgba(25, 24, 22, 0.06);
+    .nx-input:hover, .nx-select:hover {
+      border-color: var(--nx-border-strong);
+      background: rgba(255, 255, 255, 0.06);
     }
 
-    select.input-control {
+    .nx-input:focus, .nx-select:focus {
+      border-color: var(--nx-orange);
+      background: rgba(255, 255, 255, 0.07);
+      box-shadow: 0 0 0 3px var(--nx-orange-glow);
+    }
+
+    select.nx-select {
       cursor: pointer;
       appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2359554e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 14px center;
       padding-right: 36px;
     }
 
-    input[type="date"].input-control {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.86rem;
+    select.nx-select option {
+      background: #131722;
+      color: #ffffff;
     }
 
-    /* Tactile Buttons */
-    .btn {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+    input[type="date"].nx-input {
+      color-scheme: dark;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+    }
+
+    /* ── Nexflow Vibrant Buttons ── */
+    .btn-nx-primary {
+      font-family: 'Inter', sans-serif;
       font-size: 0.88rem;
-      font-weight: 600;
+      font-weight: 700;
+      color: #ffffff;
+      background: var(--nx-orange);
+      border: none;
+      border-radius: var(--radius-md);
       padding: 11px 22px;
-      border-radius: var(--radius-sm);
-      border: 1px solid transparent;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      transition: all var(--duration) var(--ease-tactile);
+      gap: 7px;
+      box-shadow: 0 4px 18px var(--nx-orange-glow);
+      transition: all 0.2s var(--ease);
       white-space: nowrap;
       user-select: none;
     }
 
-    .btn:active {
-      transform: scale(0.98);
-    }
-
-    .btn-dark {
-      background: var(--accent-ink);
-      color: #ffffff;
-      box-shadow: 0 1px 2px rgba(25, 24, 22, 0.1);
-    }
-
-    .btn-dark:hover {
-      background: var(--accent-ink-hover);
-      box-shadow: 0 2px 6px rgba(25, 24, 22, 0.16);
+    .btn-nx-primary:hover {
+      background: var(--nx-orange-hover);
+      box-shadow: 0 6px 24px rgba(255, 91, 55, 0.4);
       transform: translateY(-1px);
     }
 
-    .btn-secondary {
-      background: var(--surface);
-      color: var(--ink-secondary);
-      border-color: var(--border-subtle);
+    .btn-nx-primary:active {
+      transform: scale(0.98);
     }
 
-    .btn-secondary:hover {
-      background: var(--bg-alt);
-      color: var(--ink-primary);
-      border-color: var(--border-strong);
+    .btn-nx-secondary {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--nx-muted);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-sm);
+      padding: 9px 18px;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
     }
 
-    .btn-danger-ghost {
-      background: transparent;
-      color: var(--status-overdue-ink);
-      border-color: transparent;
+    .btn-nx-secondary:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--nx-border-strong);
     }
 
-    .btn-danger-ghost:hover {
-      background: var(--status-overdue-bg);
-      border-color: var(--status-overdue-border);
+    .btn-nx-danger {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--nx-rose);
+      background: var(--nx-rose-bg);
+      border: 1px solid var(--nx-rose-border);
+      border-radius: var(--radius-sm);
+      padding: 9px 18px;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
     }
 
-    /* ── Filter Shelf ── */
-    .filter-shelf {
+    .btn-nx-danger:hover {
+      background: rgba(244, 63, 94, 0.2);
+    }
+
+    /* ── Nexflow Filter Shelf ── */
+    .filter-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
+      gap: 14px;
       margin-bottom: 24px;
       flex-wrap: wrap;
     }
 
-    .filter-group {
+    .filter-left {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
     }
 
-    .filter-tagline {
-      font-family: 'JetBrains Mono', monospace;
+    .filter-tag {
       font-size: 0.72rem;
-      font-weight: 500;
-      color: var(--ink-muted);
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
+      color: var(--nx-muted);
     }
 
-    .filter-shelf select, .filter-shelf input {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 0.85rem;
-      background: var(--surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
+    .filter-bar select, .filter-bar input {
+      font-size: 0.82rem;
       padding: 7px 12px;
-      color: var(--ink-primary);
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid var(--nx-border);
+      color: #ffffff;
       outline: none;
-      transition: all var(--duration) var(--ease-tactile);
+      transition: all 0.2s var(--ease);
     }
 
-    .filter-shelf select:hover, .filter-shelf input:hover {
-      border-color: var(--border-strong);
+    .filter-bar select:hover, .filter-bar input:hover {
+      border-color: var(--nx-border-strong);
     }
 
-    .filter-shelf select:focus, .filter-shelf input:focus {
-      border-color: var(--border-focus);
-      box-shadow: 0 0 0 2px rgba(25, 24, 22, 0.05);
+    .filter-bar select:focus, .filter-bar input:focus {
+      border-color: var(--nx-orange);
+      box-shadow: 0 0 0 2px var(--nx-orange-glow);
     }
 
     .filter-search-box {
-      min-width: 240px;
+      min-width: 260px;
     }
 
-    /* ── Kanban Architectural Columns ── */
+    /* ── Kanban Columns (Nexflow Workspaces Style) ── */
     .board-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
+      gap: 20px;
     }
 
     @media (max-width: 960px) {
       .board-grid {
         grid-template-columns: 1fr;
-        gap: 28px;
+        gap: 24px;
       }
     }
 
     .column {
-      background: var(--bg-alt);
-      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--nx-border);
       border-radius: var(--radius-lg);
-      padding: 18px 16px;
-      min-height: 400px;
+      padding: 16px;
+      min-height: 440px;
       display: flex;
       flex-direction: column;
     }
 
     .column-header {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       justify-content: space-between;
       padding-bottom: 14px;
-      margin-bottom: 16px;
-      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--nx-border);
     }
 
-    .column-heading {
+    .column-tag {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       gap: 8px;
     }
 
-    .column-number {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem;
-      font-weight: 500;
-      color: var(--ink-muted);
+    .column-status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
     }
 
+    .col-todo .column-status-indicator { background: var(--nx-orange); box-shadow: 0 0 8px var(--nx-orange-glow); }
+    .col-inprogress .column-status-indicator { background: var(--nx-blue); box-shadow: 0 0 8px rgba(59, 130, 246, 0.4); }
+    .col-done .column-status-indicator { background: var(--nx-emerald); box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+
     .column-title {
-      font-family: 'Newsreader', Georgia, serif;
-      font-size: 1.12rem;
-      font-weight: 500;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #ffffff;
       letter-spacing: -0.01em;
-      color: var(--ink-primary);
+      text-transform: uppercase;
     }
 
     .column-count {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 600;
-      color: var(--ink-secondary);
-      background: var(--surface);
-      border: 1px solid var(--border-subtle);
+      color: var(--nx-muted);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--nx-border);
       padding: 2px 8px;
       border-radius: var(--radius-pill);
     }
@@ -515,118 +605,118 @@
       flex: 1;
     }
 
-    /* ── Task Card (High Craft) ── */
+    /* ── Nexflow Modern Task Card ── */
     .task-card {
-      background: var(--surface);
-      border: 1px solid var(--border-subtle);
+      background: var(--nx-card);
+      border: 1px solid var(--nx-border);
       border-radius: var(--radius-md);
-      padding: 16px 18px;
-      box-shadow: var(--shadow-subtle);
-      transition: all var(--duration) var(--ease-tactile);
-      position: relative;
+      padding: 15px 16px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s var(--ease);
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
+      position: relative;
     }
 
     .task-card:hover {
-      box-shadow: var(--shadow-hover);
-      border-color: var(--border-strong);
-      transform: translateY(-1.5px);
+      background: var(--nx-card-hover);
+      border-color: rgba(255, 91, 55, 0.4);
+      box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 91, 55, 0.15);
+      transform: translateY(-2px);
     }
 
     .task-card.is-overdue {
-      border-left: 3px solid var(--status-overdue-ink);
-      background: linear-gradient(to right, rgba(254, 242, 242, 0.45), var(--surface));
+      border-left: 3px solid var(--nx-rose);
+      background: linear-gradient(90deg, rgba(244, 63, 94, 0.07), var(--nx-card));
     }
 
-    .task-card-title {
-      font-size: 0.96rem;
+    .task-title {
+      font-size: 0.94rem;
       font-weight: 600;
+      color: #ffffff;
       line-height: 1.4;
-      color: var(--ink-primary);
-      letter-spacing: -0.01em;
       word-break: break-word;
     }
 
-    /* Card Metadata Chips */
-    .task-meta-row {
+    /* Metadata Chips */
+    .meta-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px 10px;
+      gap: 6px 8px;
       align-items: center;
-      font-size: 0.78rem;
     }
 
-    .chip {
+    .nx-badge {
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      padding: 3px 9px;
+      padding: 3px 8px;
       border-radius: var(--radius-pill);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.73rem;
+      font-size: 0.72rem;
       font-weight: 500;
       line-height: 1.3;
       border: 1px solid transparent;
     }
 
-    .chip-person {
-      background: var(--surface-subtle);
-      border-color: var(--border-subtle);
-      color: var(--ink-primary);
+    .badge-person {
+      background: var(--nx-purple-bg);
+      border-color: var(--nx-purple-border);
+      color: #c4b5fd;
     }
 
-    .chip-avatar {
-      width: 15px;
-      height: 15px;
+    .badge-person .avatar {
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
-      background: var(--ink-primary);
+      background: var(--nx-purple);
       color: #ffffff;
-      font-size: 0.55rem;
+      font-size: 0.52rem;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
     }
 
-    .chip-date {
-      background: var(--surface-subtle);
-      border-color: var(--border-subtle);
-      color: var(--ink-secondary);
+    .badge-date {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--nx-border);
+      color: var(--nx-muted);
+      font-family: 'JetBrains Mono', monospace;
     }
 
-    .chip-overdue {
-      background: var(--status-overdue-bg);
-      border-color: var(--status-overdue-border);
-      color: var(--status-overdue-ink);
+    .badge-overdue {
+      background: var(--nx-rose-bg);
+      border-color: var(--nx-rose-border);
+      color: var(--nx-rose);
       font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
     }
 
-    .chip-created {
-      color: var(--ink-muted);
-      font-size: 0.7rem;
+    .badge-created {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--nx-faint);
       margin-left: auto;
     }
 
-    /* Interactive Tile Follow-up Dock */
-    .tile-followup-dock {
+    /* ── Follow-up Glass Dock ── */
+    .followup-dock {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-sm);
+      padding: 9px 11px;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      padding: 9px 12px;
-      background: var(--surface-subtle);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      transition: all var(--duration) var(--ease-tactile);
+      transition: border-color 0.2s var(--ease);
     }
 
-    .tile-followup-dock:focus-within {
-      border-color: var(--border-strong);
-      background: var(--surface);
+    .followup-dock:focus-within {
+      border-color: var(--nx-orange-border);
     }
 
-    .tile-followup-row {
+    .followup-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -634,189 +724,168 @@
       flex-wrap: wrap;
     }
 
-    .tile-followup-label {
-      font-family: 'JetBrains Mono', monospace;
+    .followup-tag {
       font-size: 0.7rem;
-      font-weight: 500;
-      color: var(--ink-muted);
+      font-weight: 600;
+      color: var(--nx-muted);
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      white-space: nowrap;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
     }
 
-    .tile-followup-input {
+    .followup-date-input {
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.78rem;
-      color: var(--ink-primary);
-      background: transparent;
-      border: 1px solid var(--border-subtle);
-      border-radius: 4px;
-      padding: 3px 6px;
+      color-scheme: dark;
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--nx-border);
+      border-radius: 6px;
+      padding: 3px 8px;
       outline: none;
       cursor: pointer;
     }
 
-    .tile-followup-input:focus {
-      border-color: var(--border-focus);
-      background: var(--surface);
+    .followup-date-input:focus {
+      border-color: var(--nx-orange);
     }
 
-    .btn-followed-up {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+    /* Nexflow Followed Up Pill Button */
+    .btn-followup-check {
+      font-family: 'Inter', sans-serif;
       font-size: 0.72rem;
-      font-weight: 600;
-      padding: 4px 10px;
+      font-weight: 700;
+      padding: 4px 11px;
       border-radius: var(--radius-pill);
-      background: var(--ink-primary);
+      background: var(--nx-orange);
       color: #ffffff;
       border: none;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      transition: all var(--duration) var(--ease-tactile);
+      box-shadow: 0 2px 10px var(--nx-orange-glow);
+      transition: all 0.2s var(--ease);
     }
 
-    .btn-followed-up:hover {
-      background: var(--accent-ink-hover);
+    .btn-followup-check:hover {
+      background: var(--nx-orange-hover);
       transform: translateY(-1px);
     }
 
-    .next-followup-box {
+    /* Next Follow-up Prompt Box */
+    .next-prompt-box {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      padding: 6px 2px;
-      animation: fadeIn 0.18s var(--ease-tactile);
+      animation: fadeIn 0.18s var(--ease);
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-3px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .next-followup-header {
+    .next-prompt-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem;
-      color: var(--status-live);
+      font-size: 0.73rem;
       font-weight: 600;
+      color: var(--nx-emerald);
     }
 
-    .next-followup-presets {
+    .next-prompt-presets {
       display: flex;
       align-items: center;
       gap: 5px;
       flex-wrap: wrap;
     }
 
-    .btn-preset-pill {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.68rem;
-      font-weight: 500;
-      padding: 3px 8px;
+    .preset-chip {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 9px;
       border-radius: var(--radius-pill);
-      background: var(--surface);
-      border: 1px solid var(--border-strong);
-      color: var(--ink-primary);
-      cursor: pointer;
-      transition: all var(--duration) var(--ease-tactile);
-    }
-
-    .btn-preset-pill:hover {
-      background: var(--ink-primary);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--nx-border);
       color: #ffffff;
-      border-color: var(--ink-primary);
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
     }
 
-    .btn-dismiss-text {
+    .preset-chip:hover {
+      background: var(--nx-orange);
+      border-color: var(--nx-orange);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .btn-dismiss {
       background: none;
       border: none;
-      color: var(--ink-muted);
-      font-size: 0.68rem;
+      color: var(--nx-muted);
+      font-size: 0.7rem;
       cursor: pointer;
-      padding: 2px 4px;
       text-decoration: underline;
     }
 
-    .btn-dismiss-text:hover {
-      color: var(--ink-primary);
+    .btn-dismiss:hover {
+      color: #ffffff;
     }
 
-    .followup-history-row {
+    /* History Log Components */
+    .history-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      margin-top: 4px;
-      font-family: 'JetBrains Mono', monospace;
       font-size: 0.7rem;
-    }
-
-    .followup-history-text {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.69rem;
-      color: var(--ink-secondary);
+      color: var(--nx-muted);
+      border-top: 1px dashed var(--nx-border);
+      padding-top: 6px;
+      margin-top: 2px;
     }
 
-    .btn-toggle-history {
+    .btn-toggle-log {
       background: none;
       border: none;
-      color: var(--ink-primary);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.68rem;
+      color: var(--nx-orange);
+      font-size: 0.7rem;
       font-weight: 600;
       cursor: pointer;
-      padding: 2px 5px;
-      border-radius: var(--radius-sm);
-      transition: all var(--duration) var(--ease-tactile);
-      text-decoration: underline;
       display: inline-flex;
       align-items: center;
       gap: 3px;
+      text-decoration: none;
     }
 
-    .btn-toggle-history:hover {
-      background: var(--bg-alt);
+    .btn-toggle-log:hover {
+      text-decoration: underline;
     }
 
-    .history-timeline-drawer {
-      margin-top: 8px;
-      padding: 10px 12px;
-      background: var(--surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      animation: fadeIn 0.16s var(--ease-tactile);
-    }
-
-    .history-timeline-title {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.67rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--ink-muted);
-      border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 4px;
-    }
-
-    .history-timeline-list {
+    .history-drawer {
+      margin-top: 6px;
+      padding: 8px 10px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--nx-border);
+      border-radius: 6px;
       display: flex;
       flex-direction: column;
       gap: 6px;
-      max-height: 180px;
-      overflow-y: auto;
+      animation: fadeIn 0.16s var(--ease);
     }
 
-    .history-timeline-item {
+    .history-title {
+      font-size: 0.67rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--nx-muted);
+      border-bottom: 1px solid var(--nx-border);
+      padding-bottom: 3px;
+    }
+
+    .history-item {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -825,13 +894,13 @@
       padding: 2px 0;
     }
 
-    .history-timeline-bullet {
-      width: 17px;
-      height: 17px;
+    .history-node {
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
-      background: var(--surface-subtle);
-      border: 1px solid var(--border-strong);
-      color: var(--ink-primary);
+      background: var(--nx-orange-bg);
+      border: 1px solid var(--nx-orange-border);
+      color: var(--nx-orange);
       font-size: 0.6rem;
       font-weight: 700;
       display: inline-flex;
@@ -840,96 +909,94 @@
       flex-shrink: 0;
     }
 
-    .history-timestamp {
-      color: var(--ink-primary);
+    .history-time {
+      color: #ffffff;
       font-weight: 500;
     }
 
-    /* Actions Bar */
-    .card-actions-bar {
+    /* Actions Footer */
+    .card-footer {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 6px;
       padding-top: 8px;
-      border-top: 1px solid var(--border-subtle);
+      border-top: 1px solid var(--nx-border);
     }
 
-    .card-nav-buttons {
+    .flow-actions {
       display: flex;
       gap: 4px;
       flex-wrap: wrap;
     }
 
-    .btn-action-pill {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+    .btn-flow {
+      font-family: 'Inter', sans-serif;
       font-size: 0.72rem;
       font-weight: 600;
-      padding: 4px 9px;
+      padding: 4px 10px;
       border-radius: var(--radius-pill);
-      background: var(--surface-subtle);
-      color: var(--ink-secondary);
-      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--nx-muted);
+      border: 1px solid var(--nx-border);
       cursor: pointer;
-      transition: all var(--duration) var(--ease-tactile);
+      transition: all 0.2s var(--ease);
     }
 
-    .btn-action-pill:hover {
-      background: var(--ink-primary);
-      color: #ffffff;
-      border-color: var(--ink-primary);
+    .btn-flow:hover {
+      background: #ffffff;
+      color: var(--nx-bg);
+      border-color: #ffffff;
     }
 
-    .card-tool-buttons {
+    .card-tools {
       display: flex;
       align-items: center;
-      gap: 2px;
+      gap: 4px;
     }
 
-    .btn-icon-subtle {
+    .btn-tool {
       background: transparent;
       border: none;
-      color: var(--ink-muted);
+      color: var(--nx-muted);
       padding: 4px 6px;
-      border-radius: var(--radius-sm);
+      border-radius: 4px;
       cursor: pointer;
-      font-size: 0.76rem;
+      font-size: 0.75rem;
       font-weight: 500;
-      transition: all var(--duration) var(--ease-tactile);
+      transition: all 0.2s var(--ease);
     }
 
-    .btn-icon-subtle:hover {
-      color: var(--ink-primary);
-      background: var(--bg-alt);
+    .btn-tool:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
     }
 
-    .btn-icon-subtle.delete:hover {
-      color: var(--status-overdue-ink);
-      background: var(--status-overdue-bg);
+    .btn-tool.delete:hover {
+      color: var(--nx-rose);
+      background: var(--nx-rose-bg);
     }
 
-    /* Empty state */
     .empty-state {
       text-align: center;
       padding: 48px 16px;
-      color: var(--ink-muted);
-      font-family: 'Newsreader', Georgia, serif;
-      font-style: italic;
-      font-size: 0.98rem;
+      color: var(--nx-muted);
+      font-size: 0.88rem;
+      font-weight: 500;
     }
 
-    /* ── Modal Dialog (Tactile Studio Style) ── */
+    /* ── Nexflow Modal Dialog ── */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(25, 24, 22, 0.45);
-      backdrop-filter: blur(8px);
+      background: rgba(6, 8, 12, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 1000;
       padding: 20px;
-      transition: opacity var(--duration) var(--ease-tactile);
     }
 
     .modal-backdrop.hidden {
@@ -937,28 +1004,27 @@
     }
 
     .modal-window {
-      background: var(--surface);
-      border: 1px solid var(--border-strong);
-      border-radius: var(--radius-lg);
-      padding: 32px;
+      background: var(--nx-card-elevated);
+      border: 1px solid var(--nx-border-strong);
+      border-radius: var(--radius-xl);
+      padding: 30px;
       width: 100%;
-      max-width: 460px;
+      max-width: 480px;
       box-shadow: var(--shadow-modal);
-      animation: modal-enter 0.22s var(--ease-tactile);
+      animation: modal-pop 0.22s var(--ease);
     }
 
-    @keyframes modal-enter {
-      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    @keyframes modal-pop {
+      from { opacity: 0; transform: scale(0.96) translateY(10px); }
       to { opacity: 1; transform: scale(1) translateY(0); }
     }
 
-    .modal-headline {
-      font-family: 'Newsreader', Georgia, serif;
-      font-size: 1.35rem;
-      font-weight: 400;
-      color: var(--ink-primary);
-      margin-bottom: 24px;
-      letter-spacing: -0.01em;
+    .modal-header {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+      margin-bottom: 22px;
     }
 
     .modal-actions {
@@ -966,74 +1032,74 @@
       justify-content: flex-end;
       align-items: center;
       gap: 12px;
-      margin-top: 28px;
-      padding-top: 20px;
-      border-top: 1px solid var(--border-subtle);
+      margin-top: 26px;
+      padding-top: 18px;
+      border-top: 1px solid var(--nx-border);
     }
 
-    /* Reduced Motion */
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-      }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
 
-  <!-- Masthead -->
+  <!-- Background Ambience (Nexflow signature glow + dot grid) -->
+  <div class="ambient-glow"></div>
+  <div class="dot-grid"></div>
+
+  <!-- Header -->
   <header>
     <div class="header-inner">
-      <div class="brand-mark">
-        <span class="brand-eyebrow">Studio Task Register</span>
-        <h1 class="brand-title">Editorial Workflow &amp; <em>Delivery Deck</em></h1>
+      <div class="brand-container">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="brand-meta">
+          <div class="brand-logo-text">Nex<span>flow</span> <small style="font-size:0.75rem; font-weight:500; margin-left:6px; color:var(--nx-muted);">Tasks</small></div>
+          <span class="brand-subline">Unified Team Workspace</span>
+        </div>
       </div>
 
-      <div class="header-aside">
-        <div class="metrics-bar">
-          <div class="metric-item">
-            <span class="metric-label">Total</span>
-            <span class="metric-value" id="stat-total">0</span>
-          </div>
-          <span class="metric-divider">/</span>
-          <div class="metric-item">
-            <span class="metric-label">Overdue</span>
-            <span class="metric-value overdue" id="stat-overdue">0</span>
-          </div>
-          <span class="metric-divider">/</span>
-          <div class="metric-item">
-            <span class="metric-label">Done</span>
-            <span class="metric-value" id="stat-done">0</span>
-          </div>
+      <div class="header-right">
+        <div class="stats-shelf">
+          <div class="stat-badge">Total: <strong id="stat-total">00</strong></div>
+          <span class="stat-divider">/</span>
+          <div class="stat-badge overdue">Overdue: <strong id="stat-overdue">00</strong></div>
+          <span class="stat-divider">/</span>
+          <div class="stat-badge">Done: <strong id="stat-done">00</strong></div>
         </div>
 
-        <div class="sync-capsule" id="sync-capsule" title="Firebase Realtime Cloud Database Status">
-          <span class="sync-dot"></span>
-          <span id="sync-status">Connecting…</span>
+        <div class="sync-status-pill" id="sync-pill" title="Firebase Realtime Sync">
+          <span class="sync-pulse-dot"></span>
+          <span id="sync-status">Live Synced</span>
         </div>
       </div>
     </div>
   </header>
 
   <main>
-    <!-- Assignment Deck (New Task Form) -->
-    <section class="deck-card" aria-labelledby="deck-heading">
-      <div class="deck-header">
-        <h2 id="deck-heading" class="deck-title">Record New Assignment</h2>
-        <span class="deck-hint">Immediate Cloud Sync</span>
+    <!-- Assignment Deck (Add Task) -->
+    <section class="nex-card" aria-labelledby="form-heading">
+      <div class="card-topbar">
+        <h2 id="form-heading" class="card-title">
+          <span>Create Task</span>
+        </h2>
+        <span class="card-pill-tag">Realtime Workspace</span>
       </div>
 
       <div class="form-grid">
-        <div class="input-group">
-          <label class="input-label" for="task-title">Task Specification</label>
-          <input type="text" id="task-title" class="input-control" placeholder="Describe the deliverable or milestone…" />
+        <div class="field-group">
+          <label class="field-label" for="task-title">Task Title</label>
+          <input type="text" id="task-title" class="nx-input" placeholder="What needs to be done?" />
         </div>
 
-        <div class="input-group">
-          <label class="input-label" for="task-person">Assignee</label>
-          <select id="task-person" class="input-control">
+        <div class="field-group">
+          <label class="field-label" for="task-person">Assignee</label>
+          <select id="task-person" class="nx-select">
             <option value="">Select team member…</option>
             <option>Karishma Singh</option>
             <option>Sukriti Murarka</option>
@@ -1057,23 +1123,26 @@
           </select>
         </div>
 
-        <div class="input-group">
-          <label class="input-label" for="task-date">Due Date</label>
-          <input type="date" id="task-date" class="input-control" />
+        <div class="field-group">
+          <label class="field-label" for="task-date">Due Date</label>
+          <input type="date" id="task-date" class="nx-input" />
         </div>
 
-        <div class="btn-submit-cell">
-          <button class="btn btn-dark" onclick="addTask()">Add Assignment &rarr;</button>
+        <div class="submit-cell">
+          <button class="btn-nx-primary" onclick="addTask()">
+            <span>Add Task</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
         </div>
       </div>
     </section>
 
     <!-- Filter Shelf -->
-    <section class="filter-shelf" aria-label="Task Filters">
-      <div class="filter-group">
-        <span class="filter-tagline">Filter</span>
+    <section class="filter-bar" aria-label="Task Filters">
+      <div class="filter-left">
+        <span class="filter-tag">Filter</span>
         <select id="filter-person" onchange="renderBoard()">
-          <option value="">All Team Members</option>
+          <option value="">All Assignees</option>
           <option>Karishma Singh</option>
           <option>Sukriti Murarka</option>
           <option>Vijendra Singh</option>
@@ -1096,50 +1165,50 @@
         </select>
 
         <select id="filter-overdue" onchange="renderBoard()">
-          <option value="">All Deadlines</option>
+          <option value="">All Tasks</option>
           <option value="overdue">Overdue Only</option>
         </select>
       </div>
 
       <div class="filter-search-box">
-        <input type="text" id="filter-search" placeholder="Search tasks or assignees…" oninput="renderBoard()" style="width: 100%;" />
+        <input type="text" id="filter-search" class="nx-input" placeholder="Search tasks or assignees…" oninput="renderBoard()" />
       </div>
     </section>
 
-    <!-- Kanban Architectural Columns -->
+    <!-- Kanban Columns -->
     <section class="board-grid" aria-label="Task Board">
       <!-- Column: To Do -->
-      <div class="column" id="col-container-todo">
+      <div class="column col-todo">
         <div class="column-header">
-          <div class="column-heading">
-            <span class="column-number">01</span>
-            <h3 class="column-title">Backlog &amp; To Do</h3>
+          <div class="column-tag">
+            <span class="column-status-indicator"></span>
+            <h3 class="column-title">To Do</h3>
           </div>
-          <span class="column-count" id="count-todo">0</span>
+          <span class="column-count" id="count-todo">00</span>
         </div>
         <div class="task-list" id="col-todo"></div>
       </div>
 
       <!-- Column: In Progress -->
-      <div class="column" id="col-container-inprogress">
+      <div class="column col-inprogress">
         <div class="column-header">
-          <div class="column-heading">
-            <span class="column-number">02</span>
+          <div class="column-tag">
+            <span class="column-status-indicator"></span>
             <h3 class="column-title">In Progress</h3>
           </div>
-          <span class="column-count" id="count-inprogress">0</span>
+          <span class="column-count" id="count-inprogress">00</span>
         </div>
         <div class="task-list" id="col-inprogress"></div>
       </div>
 
       <!-- Column: Completed -->
-      <div class="column" id="col-container-done">
+      <div class="column col-done">
         <div class="column-header">
-          <div class="column-heading">
-            <span class="column-number">03</span>
+          <div class="column-tag">
+            <span class="column-status-indicator"></span>
             <h3 class="column-title">Completed</h3>
           </div>
-          <span class="column-count" id="count-done">0</span>
+          <span class="column-count" id="count-done">00</span>
         </div>
         <div class="task-list" id="col-done"></div>
       </div>
@@ -1149,17 +1218,17 @@
   <!-- Edit Modal Window -->
   <div class="modal-backdrop hidden" id="edit-modal">
     <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <h2 class="modal-headline" id="modal-title">Edit Assignment</h2>
+      <h2 class="modal-header" id="modal-title">Edit Task</h2>
       <input type="hidden" id="edit-id" />
 
-      <div class="input-group" style="margin-bottom: 16px;">
-        <label class="input-label" for="edit-title">Task Specification</label>
-        <input type="text" id="edit-title" class="input-control" />
+      <div class="field-group" style="margin-bottom: 16px;">
+        <label class="field-label" for="edit-title">Task Title</label>
+        <input type="text" id="edit-title" class="nx-input" />
       </div>
 
-      <div class="input-group" style="margin-bottom: 16px;">
-        <label class="input-label" for="edit-person">Assignee</label>
-        <select id="edit-person" class="input-control">
+      <div class="field-group" style="margin-bottom: 16px;">
+        <label class="field-label" for="edit-person">Assignee</label>
+        <select id="edit-person" class="nx-select">
           <option value="">Select team member…</option>
           <option>Karishma Singh</option>
           <option>Sukriti Murarka</option>
@@ -1183,29 +1252,29 @@
         </select>
       </div>
 
-      <div class="input-group" style="margin-bottom: 16px;">
-        <label class="input-label" for="edit-date">Due Date</label>
-        <input type="date" id="edit-date" class="input-control" />
+      <div class="field-group" style="margin-bottom: 16px;">
+        <label class="field-label" for="edit-date">Due Date</label>
+        <input type="date" id="edit-date" class="nx-input" />
       </div>
 
-      <div class="input-group" style="margin-bottom: 16px;">
-        <label class="input-label" for="edit-followup">Follow-up Date</label>
-        <input type="date" id="edit-followup" class="input-control" />
+      <div class="field-group" style="margin-bottom: 16px;">
+        <label class="field-label" for="edit-followup">Follow-up Date</label>
+        <input type="date" id="edit-followup" class="nx-input" />
       </div>
 
-      <div class="input-group" style="margin-bottom: 16px;">
-        <label class="input-label" for="edit-status">Status Column</label>
-        <select id="edit-status" class="input-control">
-          <option value="todo">Backlog &amp; To Do</option>
+      <div class="field-group" style="margin-bottom: 16px;">
+        <label class="field-label" for="edit-status">Status</label>
+        <select id="edit-status" class="nx-select">
+          <option value="todo">To Do</option>
           <option value="inprogress">In Progress</option>
           <option value="done">Completed</option>
         </select>
       </div>
 
       <div class="modal-actions">
-        <button class="btn btn-danger-ghost" onclick="deleteTaskFromModal()">Delete</button>
-        <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
-        <button class="btn btn-dark" onclick="saveEdit()">Save Changes</button>
+        <button class="btn-nx-danger" onclick="deleteTaskFromModal()">Delete</button>
+        <button class="btn-nx-secondary" onclick="closeEditModal()">Cancel</button>
+        <button class="btn-nx-primary" onclick="saveEdit()">Save Changes</button>
       </div>
     </div>
   </div>
@@ -1228,16 +1297,16 @@
     const db = firebase.database();
     const tasksRef = db.ref('tasks');
 
-    // ── Connection Status Indicator ──
+    // ── Connection Status ──
     const syncStatusEl = document.getElementById('sync-status');
-    const syncCapsuleEl = document.getElementById('sync-capsule');
+    const syncPillEl = document.getElementById('sync-pill');
     db.ref('.info/connected').on('value', snap => {
       if (snap.val() === true) {
         syncStatusEl.textContent = 'Live Synced';
-        syncCapsuleEl.className = 'sync-capsule connected';
+        syncPillEl.className = 'sync-status-pill';
       } else {
         syncStatusEl.textContent = 'Offline';
-        syncCapsuleEl.className = 'sync-capsule disconnected';
+        syncPillEl.className = 'sync-status-pill disconnected';
       }
     });
 
@@ -1254,7 +1323,7 @@
       renderBoard();
     });
 
-    // ── Date Formatting Helpers ──
+    // ── Helpers ──
     function isOverdue(dateStr, status) {
       if (status === 'done' || !dateStr) return false;
       const today = new Date();
@@ -1290,6 +1359,20 @@
       });
     }
 
+    function getInitials(name) {
+      if (!name) return '?';
+      return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+    }
+
+    function setDefaultDueDate() {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const yyyy = tomorrow.getFullYear();
+      const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+      const dd = String(tomorrow.getDate()).padStart(2, '0');
+      document.getElementById('task-date').value = `${yyyy}-${mm}-${dd}`;
+    }
+
     const openHistoryDrawers = new Set();
     function toggleHistory(id) {
       if (openHistoryDrawers.has(id)) {
@@ -1314,20 +1397,6 @@
       return [];
     }
 
-    function getInitials(name) {
-      if (!name) return '?';
-      return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
-    }
-
-    function setDefaultDueDate() {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const yyyy = tomorrow.getFullYear();
-      const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
-      const dd = String(tomorrow.getDate()).padStart(2, '0');
-      document.getElementById('task-date').value = `${yyyy}-${mm}-${dd}`;
-    }
-
     // ══════════════════════════════════════
     // ── Add Task ──
     // ══════════════════════════════════════
@@ -1350,15 +1419,13 @@
         createdAt: new Date().toISOString()
       });
 
-      // Clear form
       document.getElementById('task-title').value = '';
       document.getElementById('task-person').value = '';
       setDefaultDueDate();
       document.getElementById('task-title').focus();
     }
 
-    // Allow Enter key to submit task
-    document.querySelectorAll('.deck-card input').forEach(input => {
+    document.querySelectorAll('.nex-card input').forEach(input => {
       input.addEventListener('keydown', e => {
         if (e.key === 'Enter') addTask();
       });
@@ -1427,7 +1494,7 @@
     }
 
     function deleteTask(id) {
-      if (!confirm('Are you sure you want to delete this assignment?')) return;
+      if (!confirm('Are you sure you want to delete this task?')) return;
       tasksRef.child(id).remove();
     }
 
@@ -1514,7 +1581,7 @@
         count.textContent = String(groups[status].length).padStart(2, '0');
 
         if (groups[status].length === 0) {
-          col.innerHTML = '<div class="empty-state">No assignments in this stage</div>';
+          col.innerHTML = '<div class="empty-state">No tasks in this lane</div>';
           return;
         }
 
@@ -1531,99 +1598,95 @@
                 inprogress: 'In Progress &rarr;',
                 done: '&check; Complete'
               };
-              return `<button class="btn-action-pill" onclick="moveTask('${t.id}','${s}')">${labels[s]}</button>`;
+              return `<button class="btn-flow" onclick="moveTask('${t.id}','${s}')">${labels[s]}</button>`;
             }).join('');
 
           const historyMarkup = (taskHistory.length > 0) ? `
-            <div class="followup-history-row">
-              <span class="followup-history-text">
-                ${taskHistory.length} past follow-up${taskHistory.length > 1 ? 's' : ''}
-              </span>
-              <button type="button" class="btn-toggle-history" onclick="toggleHistory('${t.id}')">
-                ${isHistoryOpen ? 'Hide Log &blacktriangle;' : 'View All (' + taskHistory.length + ') &blacktriangledown;'}
+            <div class="history-bar">
+              <span>${taskHistory.length} past follow-up${taskHistory.length > 1 ? 's' : ''}</span>
+              <button type="button" class="btn-toggle-log" onclick="toggleHistory('${t.id}')">
+                ${isHistoryOpen ? 'Hide History &blacktriangle;' : 'View All (' + taskHistory.length + ') &blacktriangledown;'}
               </button>
             </div>
             ${isHistoryOpen ? `
-              <div class="history-timeline-drawer">
-                <div class="history-timeline-title">Past Follow-ups (${taskHistory.length})</div>
-                <div class="history-timeline-list">
-                  ${taskHistory.slice().reverse().map(h => `
-                    <div class="history-timeline-item">
-                      <span class="history-timeline-bullet">#${h.number || ''}</span>
-                      <span class="history-timestamp">${formatFullDateTime(h.completedAt)}</span>
-                    </div>
-                  `).join('')}
-                </div>
+              <div class="history-drawer">
+                <div class="history-title">Follow-up Log (${taskHistory.length})</div>
+                ${taskHistory.slice().reverse().map(h => `
+                  <div class="history-item">
+                    <span class="history-node">#${h.number || ''}</span>
+                    <span class="history-time">${formatFullDateTime(h.completedAt)}</span>
+                  </div>
+                `).join('')}
               </div>
             ` : ''}
           ` : '';
 
           return `
             <article class="task-card ${overdue ? 'is-overdue' : ''}">
-              <div class="task-card-title">${escapeHtml(t.title)}</div>
+              <div class="task-title">${escapeHtml(t.title)}</div>
 
-              <div class="task-meta-row">
+              <div class="meta-row">
                 ${t.person ? `
-                  <span class="chip chip-person">
-                    <span class="chip-avatar">${getInitials(t.person)}</span>
+                  <span class="nx-badge badge-person">
+                    <span class="avatar">${getInitials(t.person)}</span>
                     ${escapeHtml(t.person)}
                   </span>
                 ` : ''}
 
                 ${t.date ? `
-                  <span class="chip ${overdue ? 'chip-overdue' : 'chip-date'}">
+                  <span class="nx-badge ${overdue ? 'badge-overdue' : 'badge-date'}">
                     ${overdue ? '&bull; Overdue' : '&bull; Due'} ${formatDate(t.date)}
                   </span>
                 ` : ''}
 
                 ${t.createdAt ? `
-                  <span class="chip-created" title="Entry timestamp">
+                  <span class="badge-created" title="Captured date">
                     Entered ${formatCreated(t.createdAt)}
                   </span>
                 ` : ''}
               </div>
 
               ${t.promptNextFollowup ? `
-                <div class="tile-followup-dock">
-                  <div class="next-followup-box">
-                    <div class="next-followup-header">
+                <div class="followup-dock">
+                  <div class="next-prompt-box">
+                    <div class="next-prompt-header">
                       <span>&check; Follow-up logged! Schedule Next:</span>
-                      <button class="btn-dismiss-text" onclick="dismissNextFollowup('${t.id}')">Dismiss</button>
+                      <button class="btn-dismiss" onclick="dismissNextFollowup('${t.id}')">Dismiss</button>
                     </div>
-                    <div class="next-followup-presets">
-                      <button class="btn-preset-pill" onclick="scheduleNextFollowup('${t.id}', 1)">+1d (Tomorrow)</button>
-                      <button class="btn-preset-pill" onclick="scheduleNextFollowup('${t.id}', 3)">+3d</button>
-                      <button class="btn-preset-pill" onclick="scheduleNextFollowup('${t.id}', 7)">+1 Week</button>
+                    <div class="next-prompt-presets">
+                      <button class="preset-chip" onclick="scheduleNextFollowup('${t.id}', 1)">+1d (Tomorrow)</button>
+                      <button class="preset-chip" onclick="scheduleNextFollowup('${t.id}', 3)">+3d</button>
+                      <button class="preset-chip" onclick="scheduleNextFollowup('${t.id}', 7)">+1 Week</button>
                     </div>
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px;">
-                      <span style="font-family:'JetBrains Mono',monospace; font-size:0.69rem; color:var(--ink-muted);">Or pick date:</span>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:2px;">
+                      <span style="font-size:0.7rem; color:var(--nx-muted);">Or custom date:</span>
                       <input
                         type="date"
-                        class="tile-followup-input"
+                        class="followup-date-input"
                         onchange="updateFollowup('${t.id}', this.value)"
-                        title="Set custom next follow-up date"
+                        title="Set next date"
                       />
                     </div>
                   </div>
                   ${historyMarkup}
                 </div>
               ` : `
-                <div class="tile-followup-dock">
-                  <div class="tile-followup-row">
-                    <label class="tile-followup-label" for="fup-${t.id}">
+                <div class="followup-dock">
+                  <div class="followup-row">
+                    <label class="followup-tag" for="fup-${t.id}">
                       <span>Follow-up</span>
                     </label>
                     <div style="display:flex; align-items:center; gap:6px;">
                       <input
                         type="date"
-                        class="tile-followup-input"
+                        class="followup-date-input"
                         id="fup-${t.id}"
                         value="${t.followup || ''}"
                         onchange="updateFollowup('${t.id}', this.value)"
-                        title="Set or change follow-up date"
+                        title="Set follow-up date"
                       />
                       ${t.followup ? `
-                        <button class="btn-followed-up" onclick="markFollowedUp('${t.id}')" title="Log this follow-up as done and choose next date">
+                        <button class="btn-followup-check" onclick="markFollowedUp('${t.id}')" title="Log follow-up and schedule next">
                           &check; Followed Up
                         </button>
                       ` : ''}
@@ -1633,13 +1696,13 @@
                 </div>
               `}
 
-              <footer class="card-actions-bar">
-                <div class="card-nav-buttons">
+              <footer class="card-footer">
+                <div class="flow-actions">
                   ${statusButtons}
                 </div>
-                <div class="card-tool-buttons">
-                  <button class="btn-icon-subtle" onclick="openEditModal('${t.id}')" title="Edit assignment details">Edit</button>
-                  <button class="btn-icon-subtle delete" onclick="deleteTask('${t.id}')" title="Remove assignment">&times;</button>
+                <div class="card-tools">
+                  <button class="btn-tool" onclick="openEditModal('${t.id}')" title="Edit task details">Edit</button>
+                  <button class="btn-tool delete" onclick="deleteTask('${t.id}')" title="Delete task">&times;</button>
                 </div>
               </footer>
             </article>`;
