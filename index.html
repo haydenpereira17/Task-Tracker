@@ -1258,6 +1258,10 @@
       padding: 20px;
     }
 
+    .hidden {
+      display: none !important;
+    }
+
     .modal-backdrop.hidden {
       display: none;
     }
@@ -1300,6 +1304,177 @@
       from { opacity: 0; transform: translateY(-4px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* ── Password Gate (Nexflow Lock Screen) ── */
+    #auth-gate {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(12, 14, 20, 0.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 390px;
+      background: rgba(19, 23, 34, 0.88);
+      border: 1px solid var(--nx-border-strong);
+      border-radius: var(--radius-xl);
+      padding: 34px 28px 30px;
+      box-shadow: var(--shadow-modal);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      position: relative;
+      overflow: hidden;
+      animation: modal-pop 0.25s var(--ease);
+    }
+
+    .auth-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 91, 55, 0.55), transparent);
+    }
+
+    .auth-card.shake {
+      animation: authShake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    @keyframes authShake {
+      10%, 90% { transform: translateX(-2px); }
+      20%, 80% { transform: translateX(4px); }
+      30%, 50%, 70% { transform: translateX(-6px); }
+      40%, 60% { transform: translateX(6px); }
+    }
+
+    .auth-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .auth-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, #ff5b37 0%, #ff7b5a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      box-shadow: 0 6px 20px var(--nx-orange-glow);
+      margin-bottom: 14px;
+    }
+
+    .auth-icon svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .auth-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .auth-subtitle {
+      font-size: 0.82rem;
+      color: var(--nx-muted);
+    }
+
+    .auth-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .auth-input {
+      padding: 12px 44px 12px 14px;
+      font-size: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.2em;
+      text-align: center;
+    }
+
+    .auth-input::placeholder {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.86rem;
+      letter-spacing: normal;
+    }
+
+    .btn-eye {
+      position: absolute;
+      right: 10px;
+      background: transparent;
+      border: none;
+      color: var(--nx-muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s var(--ease);
+    }
+
+    .btn-eye:hover {
+      color: #ffffff;
+    }
+
+    .auth-error {
+      color: var(--nx-rose);
+      font-size: 0.78rem;
+      font-weight: 500;
+      min-height: 18px;
+      text-align: center;
+      margin-top: 8px;
+      opacity: 0;
+      transition: opacity 0.15s var(--ease);
+    }
+
+    .auth-error.visible {
+      opacity: 1;
+    }
+
+    .auth-submit {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px 20px;
+    }
+
+    .btn-lock-app {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--nx-border);
+      color: var(--nx-muted);
+      padding: 5px 11px;
+      border-radius: var(--radius-pill);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s var(--ease);
+    }
+
+    .btn-lock-app:hover {
+      color: #ffffff;
+      border-color: var(--nx-border-strong);
+      background: rgba(255, 255, 255, 0.08);
+    }
   </style>
 </head>
 <body>
@@ -1307,6 +1482,52 @@
   <!-- Background Ambience (Nexflow signature glow + dot grid) -->
   <div class="ambient-glow"></div>
   <div class="dot-grid"></div>
+
+  <!-- Password Gate -->
+  <div id="auth-gate" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <div class="auth-card" id="auth-card">
+      <div class="auth-header">
+        <div class="auth-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <h1 class="auth-title" id="auth-title">Tasks</h1>
+        <p class="auth-subtitle">Enter password to access workspace</p>
+      </div>
+
+      <form id="auth-form" onsubmit="verifyPassword(event)" novalidate>
+        <div class="field-group">
+          <label class="field-label" for="auth-password">Password</label>
+          <div class="auth-input-wrap">
+            <input
+              type="password"
+              id="auth-password"
+              class="nx-input auth-input"
+              placeholder="Enter password"
+              inputmode="numeric"
+              autocomplete="current-password"
+              autofocus
+            />
+            <button type="button" class="btn-eye" id="toggle-eye" onclick="togglePasswordVisibility()" aria-label="Show password" title="Show or hide password">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="auth-error" id="auth-error" role="alert">Incorrect password. Please try again.</div>
+
+        <button type="submit" class="btn-nx-primary auth-submit">
+          <span>Unlock Workspace</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Protected App Shell -->
+  <div id="app-shell" class="hidden">
 
   <!-- Header -->
   <header>
@@ -1335,6 +1556,14 @@
           <span class="sync-pulse-dot"></span>
           <span id="sync-status">Live Synced</span>
         </div>
+
+        <button type="button" class="btn-lock-app" onclick="lockApp()" title="Lock workspace">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <span>Lock</span>
+        </button>
       </div>
     </div>
   </header>
@@ -1566,6 +1795,8 @@
     </div>
   </div>
 
+  </div><!-- /#app-shell -->
+
   <script>
     // ══════════════════════════════════════
     // ── Firebase Configuration ──
@@ -1584,31 +1815,123 @@
     const db = firebase.database();
     const tasksRef = db.ref('tasks');
 
-    // ── Connection Status ──
     const syncStatusEl = document.getElementById('sync-status');
     const syncPillEl = document.getElementById('sync-pill');
-    db.ref('.info/connected').on('value', snap => {
-      if (snap.val() === true) {
-        syncStatusEl.textContent = 'Live Synced';
-        syncPillEl.className = 'sync-status-pill';
-      } else {
-        syncStatusEl.textContent = 'Offline';
-        syncPillEl.className = 'sync-status-pill disconnected';
-      }
-    });
 
     // ══════════════════════════════════════
-    // ── Live Tasks Cache ──
+    // ── Live Tasks Cache & Listeners ──
     // ══════════════════════════════════════
     let allTasks = [];
+    let firebaseListenersActive = false;
 
-    tasksRef.on('value', snapshot => {
-      allTasks = [];
-      snapshot.forEach(child => {
-        allTasks.push({ id: child.key, ...child.val() });
+    function attachFirebaseListeners() {
+      if (firebaseListenersActive) return;
+      firebaseListenersActive = true;
+
+      db.ref('.info/connected').on('value', snap => {
+        if (snap.val() === true) {
+          syncStatusEl.textContent = 'Live Synced';
+          syncPillEl.className = 'sync-status-pill';
+        } else {
+          syncStatusEl.textContent = 'Offline';
+          syncPillEl.className = 'sync-status-pill disconnected';
+        }
       });
+
+      tasksRef.on('value', snapshot => {
+        allTasks = [];
+        snapshot.forEach(child => {
+          allTasks.push({ id: child.key, ...child.val() });
+        });
+        renderBoard();
+      });
+    }
+
+    function detachFirebaseListeners() {
+      if (!firebaseListenersActive) return;
+      firebaseListenersActive = false;
+      db.ref('.info/connected').off('value');
+      tasksRef.off('value');
+    }
+
+    // ══════════════════════════════════════
+    // ── Password Gate ──
+    // ══════════════════════════════════════
+    const PASS_HASH = '95b78002';
+    let isUnlocked = false;
+
+    function hashPassword(str) {
+      let h = 2166136261;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return (h >>> 0).toString(16).padStart(8, '0');
+    }
+
+    function verifyPassword(event) {
+      if (event) event.preventDefault();
+      const input = document.getElementById('auth-password');
+      const errorEl = document.getElementById('auth-error');
+      const card = document.getElementById('auth-card');
+      const entered = input.value.trim();
+
+      if (hashPassword(entered) === PASS_HASH) {
+        unlockApp();
+      } else {
+        errorEl.classList.add('visible');
+        card.classList.remove('shake');
+        void card.offsetWidth;
+        card.classList.add('shake');
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    function clearAuthError() {
+      document.getElementById('auth-error').classList.remove('visible');
+    }
+
+    function togglePasswordVisibility() {
+      const input = document.getElementById('auth-password');
+      const btn = document.getElementById('toggle-eye');
+      const isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+      btn.innerHTML = isHidden
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+      input.focus();
+    }
+
+    function unlockApp() {
+      if (isUnlocked) return;
+      isUnlocked = true;
+      document.getElementById('auth-gate').classList.add('hidden');
+      document.getElementById('app-shell').classList.remove('hidden');
+      document.getElementById('auth-password').value = '';
+      clearAuthError();
+      attachFirebaseListeners();
+      setDefaultDueDate();
       renderBoard();
-    });
+    }
+
+    function lockApp() {
+      isUnlocked = false;
+      detachFirebaseListeners();
+      allTasks = [];
+      closeEditModal();
+      document.getElementById('app-shell').classList.add('hidden');
+      document.getElementById('auth-gate').classList.remove('hidden');
+      const input = document.getElementById('auth-password');
+      input.value = '';
+      input.type = 'password';
+      const btn = document.getElementById('toggle-eye');
+      btn.setAttribute('aria-label', 'Show password');
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+      clearAuthError();
+      setTimeout(() => input.focus(), 50);
+    }
 
     // ── Helpers ──
     function isOverdue(dateStr, status) {
@@ -2139,7 +2462,8 @@
     }
 
     // ── Initial State ──
-    setDefaultDueDate();
+    document.getElementById('auth-password').addEventListener('input', clearAuthError);
+    document.getElementById('auth-password').focus();
   </script>
 </body>
 </html>
