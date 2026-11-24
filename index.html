@@ -3,404 +3,845 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Task Tracker</title>
+  <title>Task Register · Studio Workflow</title>
 
-  <!-- Firebase SDK (CDN — no npm needed) -->
+  <!-- Google Fonts: Editorial Serif + Precision Sans + Tabular Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDK (CDN — no build step) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
   <style>
-    /* ── Reset & Variables ── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    /* ── Editorial Design System: Warm Minimalist Studio ── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     :root {
-      --bg: #f0f2f5;
+      --bg: #f9f8f5;
+      --bg-alt: #f3f1ec;
       --surface: #ffffff;
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
-      --danger: #ef4444;
-      --danger-hover: #dc2626;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --overdue: #fef2f2;
-      --overdue-border: #fca5a5;
-      --text: #1e293b;
-      --text-muted: #64748b;
-      --border: #e2e8f0;
-      --radius: 12px;
-      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
-      --shadow-lg: 0 10px 25px rgba(0,0,0,.12);
+      --surface-elevated: #ffffff;
+      --surface-subtle: #fbfaf8;
+
+      --ink-primary: #191816;
+      --ink-secondary: #59554e;
+      --ink-muted: #8c867e;
+      --ink-faint: #b8b2a8;
+
+      --border-subtle: #ece8e1;
+      --border-strong: #d9d4cc;
+      --border-focus: #191816;
+
+      --accent-ink: #191816;
+      --accent-ink-hover: #2e2b27;
+
+      --status-overdue-bg: #fff5f5;
+      --status-overdue-border: #fecaca;
+      --status-overdue-ink: #991b1b;
+
+      --status-followup-bg: #fefce8;
+      --status-followup-border: #fef08a;
+      --status-followup-ink: #854d0e;
+
+      --status-live: #16a34a;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-pill: 9999px;
+
+      --shadow-subtle: 0 1px 3px rgba(25, 24, 22, 0.04), 0 1px 2px rgba(25, 24, 22, 0.02);
+      --shadow-card: 0 1px 4px rgba(25, 24, 22, 0.04), 0 4px 12px rgba(25, 24, 22, 0.03);
+      --shadow-hover: 0 4px 16px rgba(25, 24, 22, 0.08), 0 1px 3px rgba(25, 24, 22, 0.04);
+      --shadow-modal: 0 20px 48px rgba(25, 24, 22, 0.16), 0 4px 12px rgba(25, 24, 22, 0.08);
+
+      --ease-tactile: cubic-bezier(0.16, 1, 0.3, 1);
+      --duration: 0.18s;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--ink-primary);
       min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
     }
 
-    /* ── Header ── */
+    /* ── Typography Utilities ── */
+    .font-serif { font-family: 'Newsreader', Georgia, serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; font-feature-settings: "tnum" 1; }
+
+    /* ── Masthead ── */
     header {
-      background: var(--primary);
-      color: white;
-      padding: 20px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+      background-color: rgba(255, 255, 255, 0.94);
+    }
+
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 18px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-      box-shadow: var(--shadow);
-    }
-    header h1 { font-size: 1.5rem; font-weight: 700; }
-    header .stats {
-      display: flex;
-      gap: 16px;
-      font-size: 0.85rem;
-      opacity: 0.9;
-    }
-    header .stats span { font-weight: 600; }
-    .sync-status {
-      font-size: 0.75rem;
-      padding: 3px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.2);
-    }
-    .sync-status.connected { background: rgba(34,197,94,0.3); }
-    .sync-status.disconnected { background: rgba(239,68,68,0.3); }
-
-    /* ── Main Layout ── */
-    main {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 24px 16px;
-    }
-
-    /* ── Add Task Form ── */
-    .add-task-card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      padding: 24px;
-      box-shadow: var(--shadow);
-      margin-bottom: 28px;
-    }
-    .add-task-card h2 {
-      font-size: 1.1rem;
-      margin-bottom: 16px;
-      color: var(--primary);
-    }
-    .form-row {
-      display: flex;
-      gap: 12px;
+      gap: 20px;
       flex-wrap: wrap;
     }
-    .form-group {
+
+    .brand-mark {
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      flex: 1;
-      min-width: 160px;
+      gap: 2px;
     }
-    .form-group label {
-      font-size: 0.78rem;
-      font-weight: 600;
+
+    .brand-eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 500;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
+      letter-spacing: 0.12em;
+      color: var(--ink-muted);
     }
-    .form-group input, .form-group select {
-      padding: 10px 12px;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color .2s;
+
+    .brand-title {
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: 1.6rem;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      color: var(--ink-primary);
+      line-height: 1.15;
     }
-    .form-group input:focus, .form-group select:focus {
-      border-color: var(--primary);
+
+    .brand-title em {
+      font-style: italic;
+      color: var(--ink-secondary);
     }
-    .btn {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background .2s, transform .1s;
-      display: inline-flex;
+
+    .header-aside {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    /* Metrics Strip */
+    .metrics-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--ink-secondary);
+    }
+
+    .metric-item {
+      display: flex;
       align-items: center;
       gap: 6px;
     }
-    .btn:active { transform: scale(0.97); }
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-      align-self: flex-end;
-    }
-    .btn-primary:hover { background: var(--primary-hover); }
-    .btn-danger {
-      background: transparent;
-      color: var(--danger);
-      padding: 6px 10px;
-      font-size: 0.8rem;
-    }
-    .btn-danger:hover { background: #fef2f2; }
-    .btn-sm {
-      padding: 5px 10px;
-      font-size: 0.8rem;
-      border-radius: 6px;
+
+    .metric-label {
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
-    /* ── Filter Bar ── */
-    .filter-bar {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 20px;
-      align-items: center;
-    }
-    .filter-bar select, .filter-bar input {
-      padding: 8px 12px;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      font-size: 0.9rem;
-      background: var(--surface);
-      outline: none;
-    }
-    .filter-bar select:focus, .filter-bar input:focus {
-      border-color: var(--primary);
-    }
-    .filter-label {
-      font-size: 0.82rem;
+    .metric-value {
       font-weight: 600;
-      color: var(--text-muted);
+      color: var(--ink-primary);
     }
 
-    /* ── Board Columns ── */
-    .board {
+    .metric-value.overdue {
+      color: var(--status-overdue-ink);
+    }
+
+    .metric-divider {
+      color: var(--border-strong);
+      user-select: none;
+    }
+
+    /* Pulsing Sync Capsule */
+    .sync-capsule {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-subtle);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--ink-secondary);
+      letter-spacing: 0.02em;
+    }
+
+    .sync-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ink-muted);
+      transition: background var(--duration) var(--ease-tactile);
+    }
+
+    .sync-capsule.connected .sync-dot {
+      background: var(--status-live);
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+      animation: pulse-glow 2.4s infinite var(--ease-tactile);
+    }
+
+    .sync-capsule.disconnected .sync-dot {
+      background: var(--status-overdue-ink);
+      box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.15);
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.65; transform: scale(0.9); }
+    }
+
+    /* ── Main Container ── */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    /* ── Assignment Deck (Add Task) ── */
+    .deck-card {
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      box-shadow: var(--shadow-card);
+      margin-bottom: 32px;
+      transition: border-color var(--duration) var(--ease-tactile);
+    }
+
+    .deck-card:focus-within {
+      border-color: var(--border-strong);
+    }
+
+    .deck-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .deck-title {
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: 1.25rem;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      color: var(--ink-primary);
+    }
+
+    .deck-hint {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--ink-muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .form-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
+      grid-template-columns: 2.2fr 1.5fr 1.2fr auto;
+      gap: 16px;
+      align-items: flex-end;
     }
-    @media (max-width: 800px) {
-      .board { grid-template-columns: 1fr; }
+
+    @media (max-width: 960px) {
+      .form-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .form-grid .btn-submit-cell {
+        grid-column: span 2;
+      }
     }
-    .column {
-      background: var(--bg);
-      border-radius: var(--radius);
-      padding: 16px;
-      min-height: 200px;
+
+    @media (max-width: 600px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      .form-grid .btn-submit-cell {
+        grid-column: span 1;
+      }
     }
-    .column-header {
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.69rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-secondary);
+    }
+
+    .input-control {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.92rem;
+      color: var(--ink-primary);
+      background: var(--surface-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      outline: none;
+      transition: all var(--duration) var(--ease-tactile);
+      width: 100%;
+    }
+
+    .input-control:hover {
+      border-color: var(--border-strong);
+    }
+
+    .input-control:focus {
+      background: var(--surface);
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(25, 24, 22, 0.06);
+    }
+
+    select.input-control {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2359554e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+
+    input[type="date"].input-control {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.86rem;
+    }
+
+    /* Tactile Buttons */
+    .btn {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 11px 22px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all var(--duration) var(--ease-tactile);
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-dark {
+      background: var(--accent-ink);
+      color: #ffffff;
+      box-shadow: 0 1px 2px rgba(25, 24, 22, 0.1);
+    }
+
+    .btn-dark:hover {
+      background: var(--accent-ink-hover);
+      box-shadow: 0 2px 6px rgba(25, 24, 22, 0.16);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--ink-secondary);
+      border-color: var(--border-subtle);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-alt);
+      color: var(--ink-primary);
+      border-color: var(--border-strong);
+    }
+
+    .btn-danger-ghost {
+      background: transparent;
+      color: var(--status-overdue-ink);
+      border-color: transparent;
+    }
+
+    .btn-danger-ghost:hover {
+      background: var(--status-overdue-bg);
+      border-color: var(--status-overdue-border);
+    }
+
+    /* ── Filter Shelf ── */
+    .filter-shelf {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 14px;
-      padding-bottom: 10px;
-      border-bottom: 2px solid var(--border);
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
     }
-    .column-header h3 {
-      font-size: 0.95rem;
-      font-weight: 700;
+
+    .filter-group {
       display: flex;
       align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-tagline {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .filter-shelf select, .filter-shelf input {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.85rem;
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 7px 12px;
+      color: var(--ink-primary);
+      outline: none;
+      transition: all var(--duration) var(--ease-tactile);
+    }
+
+    .filter-shelf select:hover, .filter-shelf input:hover {
+      border-color: var(--border-strong);
+    }
+
+    .filter-shelf select:focus, .filter-shelf input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 2px rgba(25, 24, 22, 0.05);
+    }
+
+    .filter-search-box {
+      min-width: 240px;
+    }
+
+    /* ── Kanban Architectural Columns ── */
+    .board-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    @media (max-width: 960px) {
+      .board-grid {
+        grid-template-columns: 1fr;
+        gap: 28px;
+      }
+    }
+
+    .column {
+      background: var(--bg-alt);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 18px 16px;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .column-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .column-heading {
+      display: flex;
+      align-items: baseline;
       gap: 8px;
     }
-    .column-header .count {
-      background: var(--border);
-      color: var(--text-muted);
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 999px;
-    }
-    .column.todo .column-header { border-bottom-color: var(--primary); }
-    .column.inprogress .column-header { border-bottom-color: var(--warning); }
-    .column.done .column-header { border-bottom-color: var(--success); }
 
-    /* ── Task Card ── */
+    .column-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--ink-muted);
+    }
+
+    .column-title {
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: 1.12rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--ink-primary);
+    }
+
+    .column-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--ink-secondary);
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+    }
+
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+    }
+
+    /* ── Task Card (High Craft) ── */
     .task-card {
       background: var(--surface);
-      border-radius: 10px;
-      padding: 14px 16px;
-      margin-bottom: 10px;
-      box-shadow: var(--shadow);
-      border-left: 4px solid transparent;
-      transition: box-shadow .2s, border-color .2s;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      box-shadow: var(--shadow-subtle);
+      transition: all var(--duration) var(--ease-tactile);
       position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
-    .task-card:hover { box-shadow: var(--shadow-lg); }
-    .task-card.overdue {
-      background: var(--overdue);
-      border-left-color: var(--danger);
+
+    .task-card:hover {
+      box-shadow: var(--shadow-hover);
+      border-color: var(--border-strong);
+      transform: translateY(-1.5px);
     }
-    .task-card .task-title {
+
+    .task-card.is-overdue {
+      border-left: 3px solid var(--status-overdue-ink);
+      background: linear-gradient(to right, rgba(254, 242, 242, 0.45), var(--surface));
+    }
+
+    .task-card-title {
+      font-size: 0.96rem;
       font-weight: 600;
-      font-size: 0.95rem;
-      margin-bottom: 8px;
+      line-height: 1.4;
+      color: var(--ink-primary);
+      letter-spacing: -0.01em;
       word-break: break-word;
     }
-    .task-card .task-meta {
+
+    /* Card Metadata Chips */
+    .task-meta-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px 10px;
       align-items: center;
-      font-size: 0.8rem;
-      color: var(--text-muted);
+      font-size: 0.78rem;
     }
-    .task-card .badge {
+
+    .chip {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      padding: 3px 8px;
-      border-radius: 999px;
-      font-size: 0.75rem;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: var(--radius-pill);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.73rem;
+      font-weight: 500;
+      line-height: 1.3;
+      border: 1px solid transparent;
+    }
+
+    .chip-person {
+      background: var(--surface-subtle);
+      border-color: var(--border-subtle);
+      color: var(--ink-primary);
+    }
+
+    .chip-avatar {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: var(--ink-primary);
+      color: #ffffff;
+      font-size: 0.55rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    .chip-date {
+      background: var(--surface-subtle);
+      border-color: var(--border-subtle);
+      color: var(--ink-secondary);
+    }
+
+    .chip-overdue {
+      background: var(--status-overdue-bg);
+      border-color: var(--status-overdue-border);
+      color: var(--status-overdue-ink);
       font-weight: 600;
     }
-    .badge-person {
-      background: #ede9fe;
-      color: #6d28d9;
+
+    .chip-created {
+      color: var(--ink-muted);
+      font-size: 0.7rem;
+      margin-left: auto;
     }
-    .badge-date {
-      background: #f0f9ff;
-      color: #0369a1;
-    }
-    .badge-overdue {
-      background: #fef2f2;
-      color: var(--danger);
-    }
-    .badge-followup {
-      background: #fefce8;
-      color: #a16207;
-    }
-    .badge-created {
-      background: #f1f5f9;
-      color: #64748b;
-    }
-    .tile-followup-row {
+
+    /* Interactive Tile Follow-up Dock */
+    .tile-followup-dock {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-top: 10px;
-      padding: 6px 10px;
-      background: #fefce8;
-      border: 1.5px solid #fef08a;
-      border-radius: 8px;
-      font-size: 0.8rem;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 7px 10px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      transition: border-color var(--duration) var(--ease-tactile);
     }
-    .tile-followup-row label {
-      font-weight: 600;
-      color: #854d0e;
+
+    .tile-followup-dock:focus-within {
+      border-color: var(--border-strong);
+      background: var(--surface);
+    }
+
+    .tile-followup-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
       white-space: nowrap;
       display: flex;
       align-items: center;
       gap: 4px;
     }
-    .tile-followup-row input[type="date"] {
-      padding: 4px 8px;
-      border: 1px solid #fde047;
-      border-radius: 6px;
-      font-size: 0.82rem;
-      background: #ffffff;
-      color: var(--text);
+
+    .tile-followup-input {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--ink-primary);
+      background: transparent;
+      border: none;
       outline: none;
-      flex: 1;
-      min-width: 0;
+      padding: 0;
+      cursor: pointer;
+      text-align: right;
     }
-    .tile-followup-row input[type="date"]:focus {
-      border-color: #ca8a04;
+
+    /* Actions Bar */
+    .card-actions-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-subtle);
     }
-    .task-actions {
+
+    .card-nav-buttons {
       display: flex;
       gap: 4px;
-      margin-top: 10px;
       flex-wrap: wrap;
     }
-    .task-actions .btn-sm {
-      background: #f1f5f9;
-      color: var(--text);
-      border: none;
-    }
-    .task-actions .btn-sm:hover {
-      background: #e2e8f0;
-    }
-    .task-actions .btn-sm.active {
-      background: var(--primary);
-      color: white;
+
+    .btn-action-pill {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: var(--radius-pill);
+      background: var(--surface-subtle);
+      color: var(--ink-secondary);
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: all var(--duration) var(--ease-tactile);
     }
 
-    /* ── Empty State ── */
+    .btn-action-pill:hover {
+      background: var(--ink-primary);
+      color: #ffffff;
+      border-color: var(--ink-primary);
+    }
+
+    .card-tool-buttons {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .btn-icon-subtle {
+      background: transparent;
+      border: none;
+      color: var(--ink-muted);
+      padding: 4px 6px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.76rem;
+      font-weight: 500;
+      transition: all var(--duration) var(--ease-tactile);
+    }
+
+    .btn-icon-subtle:hover {
+      color: var(--ink-primary);
+      background: var(--bg-alt);
+    }
+
+    .btn-icon-subtle.delete:hover {
+      color: var(--status-overdue-ink);
+      background: var(--status-overdue-bg);
+    }
+
+    /* Empty state */
     .empty-state {
       text-align: center;
-      color: var(--text-muted);
-      padding: 24px 12px;
-      font-size: 0.9rem;
+      padding: 48px 16px;
+      color: var(--ink-muted);
+      font-family: 'Newsreader', Georgia, serif;
+      font-style: italic;
+      font-size: 0.98rem;
     }
 
-    /* ── Modal (for edit) ── */
-    .modal-overlay {
+    /* ── Modal Dialog (Tactile Studio Style) ── */
+    .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.4);
+      background: rgba(25, 24, 22, 0.45);
+      backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 1000;
-      padding: 16px;
+      padding: 20px;
+      transition: opacity var(--duration) var(--ease-tactile);
     }
-    .modal-overlay.hidden { display: none; }
-    .modal {
+
+    .modal-backdrop.hidden {
+      display: none;
+    }
+
+    .modal-window {
       background: var(--surface);
-      border-radius: var(--radius);
-      padding: 28px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      padding: 32px;
       width: 100%;
-      max-width: 440px;
-      box-shadow: var(--shadow-lg);
+      max-width: 460px;
+      box-shadow: var(--shadow-modal);
+      animation: modal-enter 0.22s var(--ease-tactile);
     }
-    .modal h2 {
-      font-size: 1.1rem;
-      margin-bottom: 20px;
-      color: var(--primary);
+
+    @keyframes modal-enter {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
     }
-    .modal .form-group { margin-bottom: 14px; }
+
+    .modal-headline {
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: 1.35rem;
+      font-weight: 400;
+      color: var(--ink-primary);
+      margin-bottom: 24px;
+      letter-spacing: -0.01em;
+    }
+
     .modal-actions {
       display: flex;
-      gap: 10px;
       justify-content: flex-end;
-      margin-top: 20px;
+      align-items: center;
+      gap: 12px;
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-subtle);
     }
-    .btn-secondary {
-      background: #f1f5f9;
-      color: var(--text);
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
     }
-    .btn-secondary:hover { background: #e2e8f0; }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
+  <!-- Masthead -->
   <header>
-    <h1>📋 Task Tracker</h1>
-    <div class="stats">
-      <div>Total: <span id="stat-total">0</span></div>
-      <div>Overdue: <span id="stat-overdue" style="color:#fca5a5">0</span></div>
-      <div>Done: <span id="stat-done">0</span></div>
-      <span class="sync-status" id="sync-status">⏳ Connecting…</span>
+    <div class="header-inner">
+      <div class="brand-mark">
+        <span class="brand-eyebrow">Studio Task Register</span>
+        <h1 class="brand-title">Editorial Workflow &amp; <em>Delivery Deck</em></h1>
+      </div>
+
+      <div class="header-aside">
+        <div class="metrics-bar">
+          <div class="metric-item">
+            <span class="metric-label">Total</span>
+            <span class="metric-value" id="stat-total">0</span>
+          </div>
+          <span class="metric-divider">/</span>
+          <div class="metric-item">
+            <span class="metric-label">Overdue</span>
+            <span class="metric-value overdue" id="stat-overdue">0</span>
+          </div>
+          <span class="metric-divider">/</span>
+          <div class="metric-item">
+            <span class="metric-label">Done</span>
+            <span class="metric-value" id="stat-done">0</span>
+          </div>
+        </div>
+
+        <div class="sync-capsule" id="sync-capsule" title="Firebase Realtime Cloud Database Status">
+          <span class="sync-dot"></span>
+          <span id="sync-status">Connecting…</span>
+        </div>
+      </div>
     </div>
   </header>
 
   <main>
-    <!-- Add Task -->
-    <div class="add-task-card">
-      <h2>➕ New Task</h2>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Task Name</label>
-          <input type="text" id="task-title" placeholder="What needs to be done?" />
+    <!-- Assignment Deck (New Task Form) -->
+    <section class="deck-card" aria-labelledby="deck-heading">
+      <div class="deck-header">
+        <h2 id="deck-heading" class="deck-title">Record New Assignment</h2>
+        <span class="deck-hint">Immediate Cloud Sync</span>
+      </div>
+
+      <div class="form-grid">
+        <div class="input-group">
+          <label class="input-label" for="task-title">Task Specification</label>
+          <input type="text" id="task-title" class="input-control" placeholder="Describe the deliverable or milestone…" />
         </div>
-        <div class="form-group">
-          <label>Assigned To</label>
-          <select id="task-person">
-            <option value="">-- Select Person --</option>
+
+        <div class="input-group">
+          <label class="input-label" for="task-person">Assignee</label>
+          <select id="task-person" class="input-control">
+            <option value="">Select team member…</option>
             <option>Karishma Singh</option>
             <option>Sukriti Murarka</option>
             <option>Vijendra Singh</option>
@@ -422,82 +863,111 @@
             <option>Hashim Omer</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Due Date</label>
-          <input type="date" id="task-date" />
-        </div>
-        <button class="btn btn-primary" onclick="addTask()">Add Task</button>
-      </div>
-    </div>
 
-    <!-- Filter Bar -->
-    <div class="filter-bar">
-      <span class="filter-label">Filter:</span>
-      <select id="filter-person" onchange="renderBoard()">
-        <option value="">All People</option>
-        <option>Karishma Singh</option>
-        <option>Sukriti Murarka</option>
-        <option>Vijendra Singh</option>
-        <option>Sujith AP</option>
-        <option>Pradeep Karnataki</option>
-        <option>Vinita Roche</option>
-        <option>Prakash Adimulam</option>
-        <option>Shruti</option>
-        <option>Nikita</option>
-        <option>Sandeep Gaikwad</option>
-        <option>Hayden Pereira</option>
-        <option>Manasi Bidikar</option>
-        <option>Anit</option>
-        <option>Saad Kazi</option>
-        <option>Shreya Bose</option>
-        <option>Kiran Wanhere</option>
-        <option>Shreya Nair</option>
-        <option>Maithali</option>
-        <option>Hashim Omer</option>
-      </select>
-      <select id="filter-overdue" onchange="renderBoard()">
-        <option value="">All Tasks</option>
-        <option value="overdue">Overdue Only</option>
-      </select>
-      <input type="text" id="filter-search" placeholder="Search tasks…" oninput="renderBoard()" />
-    </div>
+        <div class="input-group">
+          <label class="input-label" for="task-date">Due Date</label>
+          <input type="date" id="task-date" class="input-control" />
+        </div>
 
-    <!-- Kanban Board -->
-    <div class="board">
-      <div class="column todo">
-        <div class="column-header">
-          <h3>📌 To Do <span class="count" id="count-todo">0</span></h3>
+        <div class="btn-submit-cell">
+          <button class="btn btn-dark" onclick="addTask()">Add Assignment &rarr;</button>
         </div>
-        <div id="col-todo"></div>
       </div>
-      <div class="column inprogress">
+    </section>
+
+    <!-- Filter Shelf -->
+    <section class="filter-shelf" aria-label="Task Filters">
+      <div class="filter-group">
+        <span class="filter-tagline">Filter</span>
+        <select id="filter-person" onchange="renderBoard()">
+          <option value="">All Team Members</option>
+          <option>Karishma Singh</option>
+          <option>Sukriti Murarka</option>
+          <option>Vijendra Singh</option>
+          <option>Sujith AP</option>
+          <option>Pradeep Karnataki</option>
+          <option>Vinita Roche</option>
+          <option>Prakash Adimulam</option>
+          <option>Shruti</option>
+          <option>Nikita</option>
+          <option>Sandeep Gaikwad</option>
+          <option>Hayden Pereira</option>
+          <option>Manasi Bidikar</option>
+          <option>Anit</option>
+          <option>Saad Kazi</option>
+          <option>Shreya Bose</option>
+          <option>Kiran Wanhere</option>
+          <option>Shreya Nair</option>
+          <option>Maithali</option>
+          <option>Hashim Omer</option>
+        </select>
+
+        <select id="filter-overdue" onchange="renderBoard()">
+          <option value="">All Deadlines</option>
+          <option value="overdue">Overdue Only</option>
+        </select>
+      </div>
+
+      <div class="filter-search-box">
+        <input type="text" id="filter-search" placeholder="Search tasks or assignees…" oninput="renderBoard()" style="width: 100%;" />
+      </div>
+    </section>
+
+    <!-- Kanban Architectural Columns -->
+    <section class="board-grid" aria-label="Task Board">
+      <!-- Column: To Do -->
+      <div class="column" id="col-container-todo">
         <div class="column-header">
-          <h3>🔧 In Progress <span class="count" id="count-inprogress">0</span></h3>
+          <div class="column-heading">
+            <span class="column-number">01</span>
+            <h3 class="column-title">Backlog &amp; To Do</h3>
+          </div>
+          <span class="column-count" id="count-todo">0</span>
         </div>
-        <div id="col-inprogress"></div>
+        <div class="task-list" id="col-todo"></div>
       </div>
-      <div class="column done">
+
+      <!-- Column: In Progress -->
+      <div class="column" id="col-container-inprogress">
         <div class="column-header">
-          <h3>✅ Done <span class="count" id="count-done">0</span></h3>
+          <div class="column-heading">
+            <span class="column-number">02</span>
+            <h3 class="column-title">In Progress</h3>
+          </div>
+          <span class="column-count" id="count-inprogress">0</span>
         </div>
-        <div id="col-done"></div>
+        <div class="task-list" id="col-inprogress"></div>
       </div>
-    </div>
+
+      <!-- Column: Completed -->
+      <div class="column" id="col-container-done">
+        <div class="column-header">
+          <div class="column-heading">
+            <span class="column-number">03</span>
+            <h3 class="column-title">Completed</h3>
+          </div>
+          <span class="column-count" id="count-done">0</span>
+        </div>
+        <div class="task-list" id="col-done"></div>
+      </div>
+    </section>
   </main>
 
-  <!-- Edit Modal -->
-  <div class="modal-overlay hidden" id="edit-modal">
-    <div class="modal">
-      <h2>✏️ Edit Task</h2>
+  <!-- Edit Modal Window -->
+  <div class="modal-backdrop hidden" id="edit-modal">
+    <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <h2 class="modal-headline" id="modal-title">Edit Assignment</h2>
       <input type="hidden" id="edit-id" />
-      <div class="form-group">
-        <label>Task Name</label>
-        <input type="text" id="edit-title" />
+
+      <div class="input-group" style="margin-bottom: 16px;">
+        <label class="input-label" for="edit-title">Task Specification</label>
+        <input type="text" id="edit-title" class="input-control" />
       </div>
-      <div class="form-group">
-        <label>Assigned To</label>
-        <select id="edit-person">
-          <option value="">-- Select Person --</option>
+
+      <div class="input-group" style="margin-bottom: 16px;">
+        <label class="input-label" for="edit-person">Assignee</label>
+        <select id="edit-person" class="input-control">
+          <option value="">Select team member…</option>
           <option>Karishma Singh</option>
           <option>Sukriti Murarka</option>
           <option>Vijendra Singh</option>
@@ -519,33 +989,37 @@
           <option>Hashim Omer</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>Due Date</label>
-        <input type="date" id="edit-date" />
+
+      <div class="input-group" style="margin-bottom: 16px;">
+        <label class="input-label" for="edit-date">Due Date</label>
+        <input type="date" id="edit-date" class="input-control" />
       </div>
-      <div class="form-group">
-        <label>Follow-up Date</label>
-        <input type="date" id="edit-followup" />
+
+      <div class="input-group" style="margin-bottom: 16px;">
+        <label class="input-label" for="edit-followup">Follow-up Date</label>
+        <input type="date" id="edit-followup" class="input-control" />
       </div>
-      <div class="form-group">
-        <label>Status</label>
-        <select id="edit-status">
-          <option value="todo">To Do</option>
+
+      <div class="input-group" style="margin-bottom: 16px;">
+        <label class="input-label" for="edit-status">Status Column</label>
+        <select id="edit-status" class="input-control">
+          <option value="todo">Backlog &amp; To Do</option>
           <option value="inprogress">In Progress</option>
-          <option value="done">Done</option>
+          <option value="done">Completed</option>
         </select>
       </div>
+
       <div class="modal-actions">
+        <button class="btn btn-danger-ghost" onclick="deleteTaskFromModal()">Delete</button>
         <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
-        <button class="btn btn-danger" onclick="deleteTaskFromModal()">Delete</button>
-        <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+        <button class="btn btn-dark" onclick="saveEdit()">Save Changes</button>
       </div>
     </div>
   </div>
 
   <script>
     // ══════════════════════════════════════
-    // ── Firebase Setup ──
+    // ── Firebase Configuration ──
     // ══════════════════════════════════════
     const firebaseConfig = {
       apiKey: "AIzaSyB6n_Q4AfuJNqLqa6on7fSFglWNBggALNc",
@@ -561,24 +1035,24 @@
     const db = firebase.database();
     const tasksRef = db.ref('tasks');
 
-    // ── Connection status indicator ──
-    const syncEl = document.getElementById('sync-status');
+    // ── Connection Status Indicator ──
+    const syncStatusEl = document.getElementById('sync-status');
+    const syncCapsuleEl = document.getElementById('sync-capsule');
     db.ref('.info/connected').on('value', snap => {
       if (snap.val() === true) {
-        syncEl.textContent = '🟢 Synced';
-        syncEl.className = 'sync-status connected';
+        syncStatusEl.textContent = 'Live Synced';
+        syncCapsuleEl.className = 'sync-capsule connected';
       } else {
-        syncEl.textContent = '🔴 Offline';
-        syncEl.className = 'sync-status disconnected';
+        syncStatusEl.textContent = 'Offline';
+        syncCapsuleEl.className = 'sync-capsule disconnected';
       }
     });
 
     // ══════════════════════════════════════
-    // ── Live Data ──
+    // ── Live Tasks Cache ──
     // ══════════════════════════════════════
     let allTasks = [];
 
-    // Listen for real-time changes from Firebase
     tasksRef.on('value', snapshot => {
       allTasks = [];
       snapshot.forEach(child => {
@@ -587,7 +1061,7 @@
       renderBoard();
     });
 
-    // ── Helpers ──
+    // ── Date Formatting Helpers ──
     function isOverdue(dateStr, status) {
       if (status === 'done' || !dateStr) return false;
       const today = new Date();
@@ -605,7 +1079,21 @@
       if (!isoStr) return '';
       const d = new Date(isoStr);
       if (isNaN(d.getTime())) return '';
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function getInitials(name) {
+      if (!name) return '?';
+      return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+    }
+
+    function setDefaultDueDate() {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const yyyy = tomorrow.getFullYear();
+      const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+      const dd = String(tomorrow.getDate()).padStart(2, '0');
+      document.getElementById('task-date').value = `${yyyy}-${mm}-${dd}`;
     }
 
     // ══════════════════════════════════════
@@ -621,7 +1109,6 @@
         return;
       }
 
-      // Push to Firebase (auto-generates a unique key)
       tasksRef.push({
         title,
         person,
@@ -634,22 +1121,19 @@
       // Clear form
       document.getElementById('task-title').value = '';
       document.getElementById('task-person').value = '';
-      document.getElementById('task-date').value = '';
-      document.getElementById('task-title').focus();
-
-      // Set default date to tomorrow for the next task
       setDefaultDueDate();
+      document.getElementById('task-title').focus();
     }
 
-    // Allow Enter key to add task
-    document.querySelectorAll('.add-task-card input').forEach(input => {
+    // Allow Enter key to submit task
+    document.querySelectorAll('.deck-card input').forEach(input => {
       input.addEventListener('keydown', e => {
         if (e.key === 'Enter') addTask();
       });
     });
 
     // ══════════════════════════════════════
-    // ── Move / Delete (Firebase) ──
+    // ── Update & Delete Handlers ──
     // ══════════════════════════════════════
     function moveTask(id, newStatus) {
       tasksRef.child(id).update({ status: newStatus });
@@ -660,12 +1144,12 @@
     }
 
     function deleteTask(id) {
-      if (!confirm('Delete this task?')) return;
+      if (!confirm('Are you sure you want to delete this assignment?')) return;
       tasksRef.child(id).remove();
     }
 
     // ══════════════════════════════════════
-    // ── Edit Modal ──
+    // ── Edit Modal Logic ──
     // ══════════════════════════════════════
     function openEditModal(id) {
       const task = allTasks.find(t => t.id === id);
@@ -673,10 +1157,10 @@
 
       document.getElementById('edit-id').value = id;
       document.getElementById('edit-title').value = task.title;
-      document.getElementById('edit-person').value = task.person;
-      document.getElementById('edit-date').value = task.date;
+      document.getElementById('edit-person').value = task.person || '';
+      document.getElementById('edit-date').value = task.date || '';
       document.getElementById('edit-followup').value = task.followup || '';
-      document.getElementById('edit-status').value = task.status;
+      document.getElementById('edit-status').value = task.status || 'todo';
       document.getElementById('edit-modal').classList.remove('hidden');
     }
 
@@ -704,13 +1188,12 @@
       deleteTask(id);
     }
 
-    // Close modal on backdrop click
     document.getElementById('edit-modal').addEventListener('click', e => {
       if (e.target === e.currentTarget) closeEditModal();
     });
 
     // ══════════════════════════════════════
-    // ── Render Board ──
+    // ── Render Board Engine ──
     // ══════════════════════════════════════
     function renderBoard() {
       const tasks = allTasks;
@@ -745,47 +1228,83 @@
       ['todo', 'inprogress', 'done'].forEach(status => {
         const col = document.getElementById('col-' + status);
         const count = document.getElementById('count-' + status);
-        count.textContent = groups[status].length;
+        count.textContent = String(groups[status].length).padStart(2, '0');
 
         if (groups[status].length === 0) {
-          col.innerHTML = '<div class="empty-state">No tasks</div>';
+          col.innerHTML = '<div class="empty-state">No assignments in this stage</div>';
           return;
         }
 
         col.innerHTML = groups[status].map(t => {
           const overdue = isOverdue(t.date, t.status);
+
           const statusButtons = ['todo', 'inprogress', 'done']
             .filter(s => s !== t.status)
             .map(s => {
-              const labels = { todo: '📌 To Do', inprogress: '🔧 In Progress', done: '✅ Done' };
-              return `<button class="btn btn-sm" onclick="moveTask('${t.id}','${s}')">${labels[s]}</button>`;
+              const labels = {
+                todo: '&larr; To Do',
+                inprogress: 'In Progress &rarr;',
+                done: '&check; Complete'
+              };
+              return `<button class="btn-action-pill" onclick="moveTask('${t.id}','${s}')">${labels[s]}</button>`;
             }).join('');
 
           return `
-            <div class="task-card ${overdue ? 'overdue' : ''}">
-              <div class="task-title">${escapeHtml(t.title)}</div>
-              <div class="task-meta">
-                ${t.person ? `<span class="badge badge-person">👤 ${escapeHtml(t.person)}</span>` : ''}
-                ${t.date ? `<span class="badge ${overdue ? 'badge-overdue' : 'badge-date'}">${overdue ? '⚠️ Due: ' : '📅 Due: '}${formatDate(t.date)}</span>` : ''}
-                ${t.createdAt ? `<span class="badge badge-created" title="Date task was entered">📝 Entered: ${formatCreated(t.createdAt)}</span>` : ''}
+            <article class="task-card ${overdue ? 'is-overdue' : ''}">
+              <div class="task-card-title">${escapeHtml(t.title)}</div>
+
+              <div class="task-meta-row">
+                ${t.person ? `
+                  <span class="chip chip-person">
+                    <span class="chip-avatar">${getInitials(t.person)}</span>
+                    ${escapeHtml(t.person)}
+                  </span>
+                ` : ''}
+
+                ${t.date ? `
+                  <span class="chip ${overdue ? 'chip-overdue' : 'chip-date'}">
+                    ${overdue ? '&bull; Overdue' : '&bull; Due'} ${formatDate(t.date)}
+                  </span>
+                ` : ''}
+
+                ${t.createdAt ? `
+                  <span class="chip-created" title="Entry timestamp">
+                    Entered ${formatCreated(t.createdAt)}
+                  </span>
+                ` : ''}
               </div>
-              <div class="tile-followup-row">
-                <label for="fup-${t.id}">🔔 Follow-up:</label>
-                <input type="date" id="fup-${t.id}" value="${t.followup || ''}" onchange="updateFollowup('${t.id}', this.value)" title="Set follow-up date" />
+
+              <div class="tile-followup-dock">
+                <label class="tile-followup-label" for="fup-${t.id}">
+                  <span>Follow-up</span>
+                </label>
+                <input
+                  type="date"
+                  class="tile-followup-input"
+                  id="fup-${t.id}"
+                  value="${t.followup || ''}"
+                  onchange="updateFollowup('${t.id}', this.value)"
+                  title="Select or modify follow-up date directly"
+                />
               </div>
-              <div class="task-actions">
-                ${statusButtons}
-                <button class="btn btn-sm" onclick="openEditModal('${t.id}')">✏️ Edit</button>
-                <button class="btn btn-sm" onclick="deleteTask('${t.id}')" style="color:var(--danger)">🗑️</button>
-              </div>
-            </div>`;
+
+              <footer class="card-actions-bar">
+                <div class="card-nav-buttons">
+                  ${statusButtons}
+                </div>
+                <div class="card-tool-buttons">
+                  <button class="btn-icon-subtle" onclick="openEditModal('${t.id}')" title="Edit assignment details">Edit</button>
+                  <button class="btn-icon-subtle delete" onclick="deleteTask('${t.id}')" title="Remove assignment">&times;</button>
+                </div>
+              </footer>
+            </article>`;
         }).join('');
       });
 
-      // Stats
-      document.getElementById('stat-total').textContent = tasks.length;
-      document.getElementById('stat-overdue').textContent = tasks.filter(t => isOverdue(t.date, t.status)).length;
-      document.getElementById('stat-done').textContent = tasks.filter(t => t.status === 'done').length;
+      // Update Top Metrics Readout
+      document.getElementById('stat-total').textContent = String(tasks.length).padStart(2, '0');
+      document.getElementById('stat-overdue').textContent = String(tasks.filter(t => isOverdue(t.date, t.status)).length).padStart(2, '0');
+      document.getElementById('stat-done').textContent = String(tasks.filter(t => t.status === 'done').length).padStart(2, '0');
     }
 
     function escapeHtml(str) {
@@ -794,16 +1313,7 @@
       return div.innerHTML;
     }
 
-    function setDefaultDueDate() {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const yyyy = tomorrow.getFullYear();
-      const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
-      const dd = String(tomorrow.getDate()).padStart(2, '0');
-      document.getElementById('task-date').value = `${yyyy}-${mm}-${dd}`;
-    }
-
-    // ── Init ──
+    // ── Initial State ──
     setDefaultDueDate();
   </script>
 </body>
