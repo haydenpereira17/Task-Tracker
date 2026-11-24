@@ -612,19 +612,26 @@
     /* Interactive Tile Follow-up Dock */
     .tile-followup-dock {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 7px 10px;
+      flex-direction: column;
+      gap: 8px;
+      padding: 9px 12px;
       background: var(--surface-subtle);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-sm);
-      transition: border-color var(--duration) var(--ease-tactile);
+      transition: all var(--duration) var(--ease-tactile);
     }
 
     .tile-followup-dock:focus-within {
       border-color: var(--border-strong);
       background: var(--surface);
+    }
+
+    .tile-followup-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .tile-followup-label {
@@ -637,7 +644,7 @@
       white-space: nowrap;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
     }
 
     .tile-followup-input {
@@ -645,11 +652,106 @@
       font-size: 0.78rem;
       color: var(--ink-primary);
       background: transparent;
-      border: none;
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 3px 6px;
       outline: none;
-      padding: 0;
       cursor: pointer;
-      text-align: right;
+    }
+
+    .tile-followup-input:focus {
+      border-color: var(--border-focus);
+      background: var(--surface);
+    }
+
+    .btn-followed-up {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      background: var(--ink-primary);
+      color: #ffffff;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all var(--duration) var(--ease-tactile);
+    }
+
+    .btn-followed-up:hover {
+      background: var(--accent-ink-hover);
+      transform: translateY(-1px);
+    }
+
+    .next-followup-box {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 6px 2px;
+      animation: fadeIn 0.18s var(--ease-tactile);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .next-followup-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--status-live);
+      font-weight: 600;
+    }
+
+    .next-followup-presets {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .btn-preset-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      color: var(--ink-primary);
+      cursor: pointer;
+      transition: all var(--duration) var(--ease-tactile);
+    }
+
+    .btn-preset-pill:hover {
+      background: var(--ink-primary);
+      color: #ffffff;
+      border-color: var(--ink-primary);
+    }
+
+    .btn-dismiss-text {
+      background: none;
+      border: none;
+      color: var(--ink-muted);
+      font-size: 0.68rem;
+      cursor: pointer;
+      padding: 2px 4px;
+      text-decoration: underline;
+    }
+
+    .btn-dismiss-text:hover {
+      color: var(--ink-primary);
+    }
+
+    .followup-history-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--ink-muted);
     }
 
     /* Actions Bar */
@@ -1139,8 +1241,42 @@
       tasksRef.child(id).update({ status: newStatus });
     }
 
+    function markFollowedUp(id) {
+      const task = allTasks.find(t => t.id === id);
+      const currentCount = (task && task.followupCount) ? task.followupCount : 0;
+      const todayIso = new Date().toISOString();
+      tasksRef.child(id).update({
+        lastFollowup: todayIso,
+        followupCount: currentCount + 1,
+        followup: '',
+        promptNextFollowup: true
+      });
+    }
+
+    function scheduleNextFollowup(id, daysAhead) {
+      const nextDate = new Date();
+      nextDate.setDate(nextDate.getDate() + daysAhead);
+      const yyyy = nextDate.getFullYear();
+      const mm = String(nextDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(nextDate.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      tasksRef.child(id).update({
+        followup: dateStr,
+        promptNextFollowup: false
+      });
+    }
+
+    function dismissNextFollowup(id) {
+      tasksRef.child(id).update({
+        promptNextFollowup: false
+      });
+    }
+
     function updateFollowup(id, val) {
-      tasksRef.child(id).update({ followup: val });
+      tasksRef.child(id).update({
+        followup: val,
+        promptNextFollowup: false
+      });
     }
 
     function deleteTask(id) {
@@ -1274,19 +1410,58 @@
                 ` : ''}
               </div>
 
-              <div class="tile-followup-dock">
-                <label class="tile-followup-label" for="fup-${t.id}">
-                  <span>Follow-up</span>
-                </label>
-                <input
-                  type="date"
-                  class="tile-followup-input"
-                  id="fup-${t.id}"
-                  value="${t.followup || ''}"
-                  onchange="updateFollowup('${t.id}', this.value)"
-                  title="Select or modify follow-up date directly"
-                />
-              </div>
+              ${t.promptNextFollowup ? `
+                <div class="tile-followup-dock">
+                  <div class="next-followup-box">
+                    <div class="next-followup-header">
+                      <span>&check; Follow-up logged! Schedule Next:</span>
+                      <button class="btn-dismiss-text" onclick="dismissNextFollowup('${t.id}')">Dismiss</button>
+                    </div>
+                    <div class="next-followup-presets">
+                      <button class="btn-preset-pill" onclick="scheduleNextFollowup('${t.id}', 1)">+1d (Tomorrow)</button>
+                      <button class="btn-preset-pill" onclick="scheduleNextFollowup('${t.id}', 3)">+3d</button>
+                      <button class="btn-preset-pill" onclick="scheduleNextFollowup('${t.id}', 7)">+1 Week</button>
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px;">
+                      <span style="font-family:'JetBrains Mono',monospace; font-size:0.69rem; color:var(--ink-muted);">Or pick date:</span>
+                      <input
+                        type="date"
+                        class="tile-followup-input"
+                        onchange="updateFollowup('${t.id}', this.value)"
+                        title="Set custom next follow-up date"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ` : `
+                <div class="tile-followup-dock">
+                  <div class="tile-followup-row">
+                    <label class="tile-followup-label" for="fup-${t.id}">
+                      <span>Follow-up</span>
+                    </label>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <input
+                        type="date"
+                        class="tile-followup-input"
+                        id="fup-${t.id}"
+                        value="${t.followup || ''}"
+                        onchange="updateFollowup('${t.id}', this.value)"
+                        title="Set or change follow-up date"
+                      />
+                      ${t.followup ? `
+                        <button class="btn-followed-up" onclick="markFollowedUp('${t.id}')" title="Log this follow-up as done and choose next date">
+                          &check; Followed Up
+                        </button>
+                      ` : ''}
+                    </div>
+                  </div>
+                  ${t.lastFollowup ? `
+                    <div class="followup-history-text">
+                      Last follow-up: ${formatCreated(t.lastFollowup)} ${t.followupCount ? `(#${t.followupCount})` : ''}
+                    </div>
+                  ` : ''}
+                </div>
+              `}
 
               <footer class="card-actions-bar">
                 <div class="card-nav-buttons">
