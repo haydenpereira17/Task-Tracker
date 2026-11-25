@@ -1004,34 +1004,34 @@
       border: 1px solid transparent;
     }
 
-    .task-card.is-collapsed-done {
+    .task-card.is-collapsed {
       padding: 11px 14px;
       gap: 7px;
     }
 
-    .done-card-head {
+    .card-expand-head {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       gap: 10px;
     }
 
-    .done-card-head .task-title {
+    .card-expand-head .task-title {
       flex: 1;
       min-width: 0;
       font-size: 0.9rem;
     }
 
-    .btn-done-expand {
+    .btn-card-expand {
       flex-shrink: 0;
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.67rem;
       font-weight: 700;
       padding: 3px 9px;
       border-radius: var(--radius-pill);
-      background: rgba(52, 211, 153, 0.12);
-      border: 1px solid rgba(52, 211, 153, 0.34);
-      color: var(--nx-emerald);
+      background: rgba(137, 170, 230, 0.12);
+      border: 1px solid rgba(137, 170, 230, 0.34);
+      color: var(--pace-periwinkle);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -1039,20 +1039,45 @@
       transition: all 0.18s var(--ease);
     }
 
-    .btn-done-expand:hover {
+    .btn-card-expand:hover {
+      background: rgba(137, 170, 230, 0.24);
+      border-color: var(--pace-periwinkle);
+      color: #ffffff;
+    }
+
+    .col-inprogress .btn-card-expand:not(.is-open) {
+      background: rgba(56, 189, 248, 0.14);
+      border-color: rgba(125, 211, 252, 0.4);
+      color: #bae6fd;
+    }
+
+    .col-inprogress .btn-card-expand:not(.is-open):hover {
+      background: rgba(56, 189, 248, 0.25);
+      border-color: #7dd3fc;
+      color: #ffffff;
+    }
+
+    .col-done .btn-card-expand:not(.is-open) {
+      background: rgba(52, 211, 153, 0.12);
+      border-color: rgba(52, 211, 153, 0.34);
+      color: var(--nx-emerald);
+    }
+
+    .col-done .btn-card-expand:not(.is-open):hover {
       background: rgba(52, 211, 153, 0.22);
       border-color: var(--nx-emerald);
       color: #ffffff;
     }
 
-    .btn-done-expand.is-open {
-      background: rgba(137, 170, 230, 0.14);
-      border-color: var(--pace-periwinkle);
-      color: var(--pace-periwinkle);
+    .btn-card-expand.is-open {
+      background: rgba(185, 22, 46, 0.16);
+      border-color: rgba(185, 22, 46, 0.48);
+      color: #ffb3bd;
     }
 
-    .btn-done-expand.is-open:hover {
-      background: rgba(137, 170, 230, 0.24);
+    .btn-card-expand.is-open:hover {
+      background: var(--pace-red);
+      border-color: var(--pace-red-hover);
       color: #ffffff;
     }
 
@@ -2902,7 +2927,7 @@
       openHistoryNotes.clear();
       editingHistoryNotes.clear();
       histNoteDrafts.clear();
-      expandedDoneTasks.clear();
+      expandedTasks.clear();
       closeEditModal();
       closeRecurringModal();
       document.getElementById('app-shell').classList.add('hidden');
@@ -3081,12 +3106,12 @@
       document.getElementById('task-date').value = `${yyyy}-${mm}-${dd}`;
     }
 
-    const expandedDoneTasks = new Set();
-    function toggleDoneExpand(id) {
-      if (expandedDoneTasks.has(id)) {
-        expandedDoneTasks.delete(id);
+    const expandedTasks = new Set();
+    function toggleTaskExpand(id) {
+      if (expandedTasks.has(id)) {
+        expandedTasks.delete(id);
       } else {
-        expandedDoneTasks.add(id);
+        expandedTasks.add(id);
       }
       renderBoard();
     }
@@ -3378,8 +3403,8 @@
       const patch = { status: newStatus };
       if (newStatus === 'done' && (!task || task.status !== 'done')) {
         patch.completedAt = new Date().toISOString();
+        expandedTasks.delete(id);
       } else if (newStatus !== 'done') {
-        expandedDoneTasks.delete(id);
         if (task && task.completedAt) patch.completedAt = null;
       }
       tasksRef.child(id).update(patch);
@@ -3490,8 +3515,8 @@
       };
       if (nextStatus === 'done' && (!prevTask || prevTask.status !== 'done')) {
         patch.completedAt = new Date().toISOString();
+        expandedTasks.delete(id);
       } else if (nextStatus !== 'done') {
-        expandedDoneTasks.delete(id);
         if (prevTask && prevTask.completedAt) patch.completedAt = null;
       }
       tasksRef.child(id).update(patch);
@@ -4129,15 +4154,22 @@
 
         col.innerHTML = groups[status].map(t => {
           const isDone = (t.status === 'done');
-          const isDoneExpanded = isDone && expandedDoneTasks.has(t.id);
+          const overdue = isOverdue(t.date, t.status);
+          const isCardExpanded = expandedTasks.has(t.id);
           const completionMeta = isDone ? getCompletionDateMeta(t) : null;
 
-          if (isDone && !isDoneExpanded) {
+          if (!isCardExpanded) {
+            const collapsedDateBadge = isDone
+              ? `<span class="nx-badge badge-completed" title="${escapeHtml(completionMeta.title)}">&check; ${escapeHtml(completionMeta.label)}</span>`
+              : (t.date
+                  ? `<span class="nx-badge ${overdue ? 'badge-overdue' : 'badge-date'}">${overdue ? '&bull; Overdue' : '&bull; Due'} ${formatDate(t.date)}</span>`
+                  : `<span class="nx-badge badge-date">No due date</span>`);
+
             return `
-              <article class="task-card is-collapsed-done" data-task-id="${t.id}">
-                <div class="done-card-head">
+              <article class="task-card is-collapsed ${overdue ? 'is-overdue' : ''}" data-task-id="${t.id}">
+                <div class="card-expand-head">
                   <div class="task-title">${escapeHtml(t.title)}</div>
-                  <button type="button" class="btn-done-expand" onclick="toggleDoneExpand('${t.id}')" aria-expanded="false" title="Expand completed task">
+                  <button type="button" class="btn-card-expand" onclick="toggleTaskExpand('${t.id}')" aria-expanded="false" title="Expand task details">
                     <span>Expand</span>
                     <span>&blacktriangledown;</span>
                   </button>
@@ -4146,15 +4178,11 @@
                   <span class="nx-badge badge-person">
                     ${t.person ? `<span class="avatar">${getInitials(t.person)}</span>${escapeHtml(t.person)}` : 'Unassigned'}
                   </span>
-                  <span class="nx-badge badge-completed" title="${escapeHtml(completionMeta.title)}">
-                    &check; ${escapeHtml(completionMeta.label)}
-                  </span>
+                  ${collapsedDateBadge}
                 </div>
               </article>
             `;
           }
-
-          const overdue = isOverdue(t.date, t.status);
           const taskHistory = getTaskHistory(t);
           const isHistoryOpen = openHistoryDrawers.has(t.id);
           const hasDesc = Boolean(t.description && t.description.trim());
@@ -4303,17 +4331,13 @@
 
           return `
             <article class="task-card ${overdue ? 'is-overdue' : ''}" data-task-id="${t.id}">
-              ${isDone ? `
-                <div class="done-card-head">
-                  <div class="task-title">${escapeHtml(t.title)}</div>
-                  <button type="button" class="btn-done-expand is-open" onclick="toggleDoneExpand('${t.id}')" aria-expanded="true" title="Collapse completed task">
-                    <span>Collapse</span>
-                    <span>&blacktriangle;</span>
-                  </button>
-                </div>
-              ` : `
+              <div class="card-expand-head">
                 <div class="task-title">${escapeHtml(t.title)}</div>
-              `}
+                <button type="button" class="btn-card-expand is-open" onclick="toggleTaskExpand('${t.id}')" aria-expanded="true" title="Collapse task">
+                  <span>Collapse</span>
+                  <span>&blacktriangle;</span>
+                </button>
+              </div>
 
               <div class="meta-row">
                 ${t.person ? `
