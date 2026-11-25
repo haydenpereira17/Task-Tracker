@@ -1338,6 +1338,64 @@
       overflow-y: auto;
     }
 
+    /* Expandable Follow-up Description Drawer */
+    .tile-fup-desc-dock {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .btn-fup-desc-toggle {
+      padding: 5px 9px;
+      font-size: 0.71rem;
+    }
+
+    .btn-fup-desc-toggle.has-content:not(.is-open) {
+      border-color: rgba(185, 22, 46, 0.45);
+      background: rgba(185, 22, 46, 0.12);
+      color: #ffd6dc;
+    }
+
+    .btn-fup-desc-toggle.has-content:not(.is-open) .btn-desc-hint {
+      color: #ff94a1;
+    }
+
+    .fup-desc-textarea {
+      width: 100%;
+      font-size: 0.78rem;
+      padding: 8px 10px;
+      line-height: 1.45;
+      resize: vertical;
+      min-height: 64px;
+    }
+
+    .fup-desc-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .btn-fup-save {
+      padding: 4px 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.71rem;
+      font-weight: 700;
+      border-radius: var(--radius-sm);
+      background: var(--pace-red);
+      color: #ffffff;
+      border: 1px solid rgba(255, 148, 161, 0.45);
+      cursor: pointer;
+      transition: all 0.18s var(--ease);
+    }
+
+    .btn-fup-save:hover {
+      background: var(--pace-red-hover);
+      border-color: #ffb3bd;
+    }
+
     /* Actions Footer */
     .card-footer {
       display: flex;
@@ -2300,6 +2358,11 @@
       </div>
 
       <div class="field-group" style="margin-bottom: 16px;">
+        <label class="field-label" for="edit-followup-desc">Follow-up Description</label>
+        <textarea id="edit-followup-desc" class="nx-input" rows="3" placeholder="Optional follow-up notes, call summary, or mail trail…"></textarea>
+      </div>
+
+      <div class="field-group" style="margin-bottom: 16px;">
         <label class="field-label" for="edit-status">Status</label>
         <select id="edit-status" class="nx-select">
           <option value="todo">To Do</option>
@@ -2655,6 +2718,9 @@
       detachFirebaseListeners();
       allTasks = [];
       allRecurring = [];
+      openFollowupDescDrawers.clear();
+      editingFollowupDesc.clear();
+      fupDescDrafts.clear();
       closeEditModal();
       closeRecurringModal();
       document.getElementById('app-shell').classList.add('hidden');
@@ -2853,10 +2919,77 @@
       renderBoard();
     }
 
-    function copyDescription(id, btnEl) {
+    const openFollowupDescDrawers = new Set();
+    const editingFollowupDesc = new Set();
+    const fupDescDrafts = new Map();
+
+    function toggleFollowupDesc(id) {
       const task = allTasks.find(t => t.id === id);
-      if (!task || !task.description || !navigator.clipboard) return;
-      navigator.clipboard.writeText(task.description).then(() => {
+      const hasFupDesc = Boolean(task && task.followupDescription && task.followupDescription.trim());
+      if (openFollowupDescDrawers.has(id)) {
+        openFollowupDescDrawers.delete(id);
+        editingFollowupDesc.delete(id);
+        fupDescDrafts.delete(id);
+      } else {
+        openFollowupDescDrawers.add(id);
+        if (!hasFupDesc) {
+          editingFollowupDesc.add(id);
+          fupDescDrafts.set(id, '');
+        } else {
+          editingFollowupDesc.delete(id);
+        }
+      }
+      renderBoard();
+      if (openFollowupDescDrawers.has(id) && editingFollowupDesc.has(id)) {
+        setTimeout(() => {
+          const el = document.getElementById('fup-desc-input-' + id);
+          if (el) el.focus();
+        }, 15);
+      }
+    }
+
+    function startEditFollowupDesc(id) {
+      const task = allTasks.find(t => t.id === id);
+      openFollowupDescDrawers.add(id);
+      editingFollowupDesc.add(id);
+      fupDescDrafts.set(id, (task && task.followupDescription) ? task.followupDescription : '');
+      renderBoard();
+      setTimeout(() => {
+        const el = document.getElementById('fup-desc-input-' + id);
+        if (el) el.focus();
+      }, 15);
+    }
+
+    function cancelEditFollowupDesc(id) {
+      const task = allTasks.find(t => t.id === id);
+      const hasFupDesc = Boolean(task && task.followupDescription && task.followupDescription.trim());
+      editingFollowupDesc.delete(id);
+      fupDescDrafts.delete(id);
+      if (!hasFupDesc) {
+        openFollowupDescDrawers.delete(id);
+      }
+      renderBoard();
+    }
+
+    function saveFollowupDesc(id) {
+      const input = document.getElementById('fup-desc-input-' + id);
+      const val = (input ? input.value : (fupDescDrafts.get(id) || '')).trim();
+      editingFollowupDesc.delete(id);
+      fupDescDrafts.delete(id);
+      if (!val) {
+        openFollowupDescDrawers.delete(id);
+      } else {
+        openFollowupDescDrawers.add(id);
+      }
+      tasksRef.child(id).update({ followupDescription: val });
+      renderBoard();
+    }
+
+    function copyTaskText(id, field, btnEl) {
+      const task = allTasks.find(t => t.id === id);
+      const text = task && task[field];
+      if (!text || !navigator.clipboard) return;
+      navigator.clipboard.writeText(text).then(() => {
         if (btnEl) {
           const prev = btnEl.textContent;
           btnEl.textContent = 'Copied!';
@@ -2900,6 +3033,7 @@
         date,
         description,
         followup: '',
+        followupDescription: '',
         status: 'todo',
         createdAt: new Date().toISOString()
       });
@@ -3002,6 +3136,7 @@
       document.getElementById('edit-person').value = task.person || '';
       document.getElementById('edit-date').value = task.date || '';
       document.getElementById('edit-followup').value = task.followup || '';
+      document.getElementById('edit-followup-desc').value = task.followupDescription || '';
       document.getElementById('edit-status').value = task.status || 'todo';
       document.getElementById('edit-modal').classList.remove('hidden');
       if (focusDesc) {
@@ -3024,6 +3159,7 @@
         person: document.getElementById('edit-person').value,
         date: document.getElementById('edit-date').value,
         followup: document.getElementById('edit-followup').value,
+        followupDescription: document.getElementById('edit-followup-desc').value.trim(),
         status: nextStatus
       });
 
@@ -3332,6 +3468,7 @@
           date: dateStr,
           description: rule.description || '',
           followup: '',
+          followupDescription: '',
           status: 'todo',
           recurringId: rule.id,
           recurrenceLabel: formatRecurrenceShort(rule),
@@ -3678,7 +3815,7 @@
                   <div class="desc-drawer-head">
                     <span class="desc-drawer-label">Mail Trail / Context</span>
                     <div class="desc-drawer-tools">
-                      <button type="button" class="btn-desc-mini" onclick="copyDescription('${t.id}', this)">Copy</button>
+                      <button type="button" class="btn-desc-mini" onclick="copyTaskText('${t.id}', 'description', this)">Copy</button>
                       <button type="button" class="btn-desc-mini" onclick="openEditModal('${t.id}', true)">Edit</button>
                     </div>
                   </div>
@@ -3687,6 +3824,52 @@
               ` : ''}
             </div>
           ` : '';
+
+          const hasFupDesc = Boolean(t.followupDescription && t.followupDescription.trim());
+          const isFupDescOpen = openFollowupDescDrawers.has(t.id);
+          const isEditingFupDesc = editingFollowupDesc.has(t.id);
+          const fupDraftVal = fupDescDrafts.has(t.id) ? fupDescDrafts.get(t.id) : (t.followupDescription || '');
+
+          const followupDescMarkup = `
+            <div class="tile-fup-desc-dock">
+              <button type="button" class="btn-desc-toggle btn-fup-desc-toggle ${isFupDescOpen ? 'is-open' : ''} ${hasFupDesc ? 'has-content' : ''}" onclick="toggleFollowupDesc('${t.id}')" aria-expanded="${isFupDescOpen}">
+                <span class="btn-desc-left">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <span>Follow-up Description</span>
+                </span>
+                <span class="btn-desc-hint">${isFupDescOpen ? 'Hide &blacktriangle;' : (hasFupDesc ? 'View &blacktriangledown;' : '+ Add &blacktriangledown;')}</span>
+              </button>
+              ${isFupDescOpen ? `
+                <div class="desc-drawer">
+                  <div class="desc-drawer-head">
+                    <span class="desc-drawer-label">Follow-up Notes</span>
+                    <div class="desc-drawer-tools">
+                      ${(!isEditingFupDesc && hasFupDesc) ? `
+                        <button type="button" class="btn-desc-mini" onclick="copyTaskText('${t.id}', 'followupDescription', this)">Copy</button>
+                        <button type="button" class="btn-desc-mini" onclick="startEditFollowupDesc('${t.id}')">Edit</button>
+                      ` : ''}
+                    </div>
+                  </div>
+                  ${isEditingFupDesc ? `
+                    <textarea
+                      id="fup-desc-input-${t.id}"
+                      class="nx-input fup-desc-textarea"
+                      rows="3"
+                      placeholder="Add follow-up notes, call summary, mail trail…"
+                      oninput="fupDescDrafts.set('${t.id}', this.value)"
+                      onkeydown="if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveFollowupDesc('${t.id}');}"
+                    >${escapeHtml(fupDraftVal)}</textarea>
+                    <div class="fup-desc-actions">
+                      <button type="button" class="btn-desc-mini" onclick="cancelEditFollowupDesc('${t.id}')">Cancel</button>
+                      <button type="button" class="btn-fup-save" onclick="saveFollowupDesc('${t.id}')">Save Note</button>
+                    </div>
+                  ` : `
+                    <div class="desc-content">${escapeHtml(t.followupDescription)}</div>
+                  `}
+                </div>
+              ` : ''}
+            </div>
+          `;
 
           const statusButtons = ['todo', 'inprogress', 'done']
             .filter(s => s !== t.status)
@@ -3780,6 +3963,7 @@
                       />
                     </div>
                   </div>
+                  ${followupDescMarkup}
                   ${historyMarkup}
                 </div>
               ` : `
@@ -3804,6 +3988,7 @@
                       ` : ''}
                     </div>
                   </div>
+                  ${followupDescMarkup}
                   ${historyMarkup}
                 </div>
               `}
