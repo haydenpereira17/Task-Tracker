@@ -1910,7 +1910,7 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── Password Gate (Pace Ocean Lock Screen) ── */
+    /* ── Password Gate (The Pace Chrono-Vault) ── */
     #auth-gate {
       position: fixed;
       inset: 0;
@@ -1918,48 +1918,208 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 18px;
       overflow-y: auto;
-      background: rgba(6, 24, 38, 0.65);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      overflow-x: hidden;
+      background: radial-gradient(circle at 50% 25%, rgba(4, 58, 92, 0.52) 0%, rgba(4, 15, 25, 0.94) 68%, #030c14 100%);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      transition: opacity 0.32s var(--ease), transform 0.32s var(--ease), filter 0.32s var(--ease);
+    }
+
+    #auth-gate.is-unlocking {
+      opacity: 0;
+      transform: scale(1.05);
+      filter: blur(8px);
+      pointer-events: none;
+    }
+
+    #auth-wave-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
     }
 
     .auth-card {
       width: 100%;
-      max-width: 390px;
+      max-width: 404px;
       margin: auto;
-      background: rgba(8, 39, 59, 0.90);
-      border: 1px solid var(--nx-border-strong);
-      border-radius: var(--radius-xl);
-      padding: 34px 28px 30px;
-      box-shadow: var(--shadow-modal);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: rgba(6, 25, 40, 0.84);
+      border: 1px solid rgba(137, 170, 230, 0.28);
+      border-radius: 22px;
+      padding: 20px 24px 24px;
+      box-shadow: 0 28px 70px rgba(1, 8, 15, 0.86), 0 0 0 1px rgba(137, 170, 230, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
       position: relative;
+      z-index: 2;
       overflow: hidden;
-      animation: modal-pop 0.25s var(--ease);
+      animation: modal-pop 0.3s var(--ease);
     }
 
+    /* Interactive Cursor-Tracking Spotlight Border Halo */
     .auth-card::before {
       content: '';
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(137, 170, 230, 0.6), rgba(185, 22, 46, 0.65), transparent);
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: radial-gradient(
+        380px circle at var(--mx, 50%) var(--my, 15%),
+        rgba(137, 170, 230, 0.65),
+        rgba(185, 22, 46, 0.42) 38%,
+        transparent 72%
+      );
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    /* Subtle Ambient Core Sheen Inside Card */
+    .auth-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        320px circle at var(--mx, 50%) var(--my, 0%),
+        rgba(4, 113, 166, 0.14),
+        transparent 65%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .auth-card > * {
+      position: relative;
+      z-index: 2;
     }
 
     .auth-card.shake {
-      animation: authShake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+      animation: authShake 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+      border-color: rgba(185, 22, 46, 0.72);
     }
 
     @keyframes authShake {
-      10%, 90% { transform: translateX(-2px); }
-      20%, 80% { transform: translateX(4px); }
-      30%, 50%, 70% { transform: translateX(-6px); }
-      40%, 60% { transform: translateX(6px); }
+      10%, 90% { transform: translateX(-3px); }
+      20%, 80% { transform: translateX(5px); }
+      30%, 50%, 70% { transform: translateX(-7px); }
+      40%, 60% { transform: translateX(7px); }
+    }
+
+    /* Top Telemetry & Utility Row */
+    .vault-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .vault-beacon {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--nx-muted);
+      background: rgba(4, 20, 33, 0.7);
+      border: 1px solid rgba(137, 170, 230, 0.22);
+      border-radius: var(--radius-pill);
+      padding: 4px 10px;
+      transition: all 0.22s var(--ease);
+    }
+
+    .vault-beacon-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--pace-red);
+      box-shadow: 0 0 8px var(--pace-red-glow);
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .vault-beacon.is-typing {
+      color: var(--pace-periwinkle);
+      border-color: rgba(137, 170, 230, 0.48);
+    }
+
+    .vault-beacon.is-typing .vault-beacon-dot {
+      background: #38bdf8;
+      box-shadow: 0 0 9px rgba(56, 189, 248, 0.75);
+    }
+
+    .vault-beacon.is-denied {
+      color: #ffb3bd;
+      border-color: rgba(185, 22, 46, 0.65);
+      background: rgba(185, 22, 46, 0.22);
+    }
+
+    .vault-beacon.is-denied .vault-beacon-dot {
+      background: #ff4d67;
+      box-shadow: 0 0 10px rgba(255, 77, 103, 0.9);
+    }
+
+    .vault-beacon.is-granted {
+      color: var(--nx-emerald);
+      border-color: rgba(52, 211, 153, 0.6);
+      background: rgba(16, 185, 129, 0.16);
+    }
+
+    .vault-beacon.is-granted .vault-beacon-dot {
+      background: var(--nx-emerald);
+      box-shadow: 0 0 10px rgba(52, 211, 153, 0.9);
+    }
+
+    .vault-tools {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-vault-mini {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: var(--radius-pill);
+      background: rgba(137, 170, 230, 0.08);
+      border: 1px solid rgba(137, 170, 230, 0.24);
+      color: var(--nx-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.18s var(--ease);
+    }
+
+    .btn-vault-mini:hover {
+      border-color: var(--pace-periwinkle);
+      color: #ffffff;
+      background: rgba(4, 113, 166, 0.24);
+    }
+
+    .btn-vault-mini.is-on {
+      border-color: rgba(56, 189, 248, 0.55);
+      background: rgba(4, 113, 166, 0.34);
+      color: #e0f2fe;
+    }
+
+    .btn-vault-pad-toggle {
+      display: inline-flex;
+    }
+
+    @media (pointer: coarse), (max-width: 640px) {
+      .btn-vault-pad-toggle {
+        display: none;
+      }
     }
 
     .auth-header {
@@ -1967,40 +2127,129 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 18px;
     }
 
-    .auth-icon {
-      width: 46px;
-      height: 46px;
-      border-radius: 13px;
-      background: linear-gradient(135deg, #0471a6 0%, #3685b5 100%);
+    /* Orbital Chrono-Seal Emblem */
+    .vault-emblem {
+      position: relative;
+      width: 92px;
+      height: 92px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .vault-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .vault-ring-outer {
+      transform-origin: 50px 50px;
+      animation: vaultSpinSlow 28s linear infinite;
+    }
+
+    .vault-ring-gyro {
+      transform-origin: 50px 50px;
+      transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes vaultSpinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .vault-core {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 32% 28%, rgba(54, 133, 181, 0.45), rgba(4, 24, 38, 0.96) 74%);
+      border: 1px solid rgba(137, 170, 230, 0.42);
+      box-shadow: 0 0 22px rgba(4, 113, 166, 0.45), inset 0 0 12px rgba(185, 22, 46, 0.22);
       display: flex;
       align-items: center;
       justify-content: center;
       color: #ffffff;
-      box-shadow: 0 6px 20px rgba(4, 113, 166, 0.42);
-      border: 1px solid rgba(137, 170, 230, 0.4);
-      margin-bottom: 14px;
+      transition: all 0.25s var(--ease);
     }
 
-    .auth-icon svg {
-      width: 22px;
-      height: 22px;
+    .auth-card.is-granted .vault-core {
+      border-color: var(--nx-emerald);
+      box-shadow: 0 0 28px rgba(52, 211, 153, 0.65);
+      color: var(--nx-emerald);
+      transform: scale(1.08);
+    }
+
+    .auth-card.shake .vault-core {
+      border-color: var(--pace-red-hover);
+      box-shadow: 0 0 24px rgba(185, 22, 46, 0.72);
+      color: #ff94a1;
+    }
+
+    .vault-core svg {
+      width: 19px;
+      height: 19px;
+      transition: transform 0.25s var(--ease);
     }
 
     .auth-title {
-      font-size: 1.35rem;
+      font-size: 1.32rem;
       font-weight: 800;
-      letter-spacing: -0.03em;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
       color: #ffffff;
       margin-bottom: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .auth-title-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--pace-red);
+      box-shadow: 0 0 10px var(--pace-red-glow);
     }
 
     .auth-subtitle {
-      font-size: 0.82rem;
+      font-size: 0.78rem;
       color: var(--nx-muted);
+      letter-spacing: 0.02em;
     }
+
+    /* Kinetic Corner-Bracket Cipher Field */
+    .vault-input-frame {
+      position: relative;
+      padding: 4px;
+      border-radius: 15px;
+      background: rgba(4, 18, 30, 0.62);
+      border: 1px solid rgba(137, 170, 230, 0.22);
+      transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+    }
+
+    .vault-input-frame:focus-within {
+      border-color: rgba(137, 170, 230, 0.55);
+      box-shadow: 0 0 22px rgba(4, 113, 166, 0.3);
+    }
+
+    .vault-corner {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      pointer-events: none;
+      transition: border-color 0.2s var(--ease);
+    }
+
+    .vault-corner.tl { top: -1px; left: -1px; border-top: 2px solid var(--pace-periwinkle); border-left: 2px solid var(--pace-periwinkle); border-top-left-radius: 8px; }
+    .vault-corner.tr { top: -1px; right: -1px; border-top: 2px solid var(--pace-red); border-right: 2px solid var(--pace-red); border-top-right-radius: 8px; }
+    .vault-corner.bl { bottom: -1px; left: -1px; border-bottom: 2px solid var(--pace-red); border-left: 2px solid var(--pace-red); border-bottom-left-radius: 8px; }
+    .vault-corner.br { bottom: -1px; right: -1px; border-bottom: 2px solid var(--pace-periwinkle); border-right: 2px solid var(--pace-periwinkle); border-bottom-right-radius: 8px; }
 
     .auth-input-wrap {
       position: relative;
@@ -2009,42 +2258,85 @@
     }
 
     .auth-input {
-      padding: 12px 44px 12px 14px;
-      font-size: 1rem;
+      padding: 12px 44px;
+      font-size: 1.1rem;
       font-family: 'JetBrains Mono', monospace;
-      letter-spacing: 0.2em;
+      font-weight: 700;
+      letter-spacing: 0.34em;
       text-align: center;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+
+    .auth-input:hover, .auth-input:focus {
+      background: transparent;
+      box-shadow: none;
     }
 
     .auth-input::placeholder {
-      font-family: 'Inter', sans-serif;
-      font-size: 0.86rem;
-      letter-spacing: normal;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: rgba(186, 205, 228, 0.45);
     }
 
     .btn-eye {
       position: absolute;
-      right: 10px;
+      right: 8px;
       background: transparent;
       border: none;
       color: var(--nx-muted);
       cursor: pointer;
       padding: 6px;
-      border-radius: 6px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: color 0.2s var(--ease);
+      transition: color 0.2s var(--ease), background 0.2s var(--ease);
     }
 
     .btn-eye:hover {
       color: #ffffff;
+      background: rgba(137, 170, 230, 0.14);
+    }
+
+    /* Live Harmonic Signal Strip (reactive waveform telemetry) */
+    .vault-signal-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      height: 16px;
+      margin-top: 10px;
+    }
+
+    .vault-sig-node {
+      width: 14px;
+      height: 3px;
+      border-radius: 99px;
+      background: rgba(137, 170, 230, 0.2);
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .vault-sig-node.is-lit {
+      height: 10px;
+      background: linear-gradient(180deg, #7dd3fc 0%, var(--pace-ocean) 100%);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+    }
+
+    .vault-sig-node.is-crimson {
+      height: 12px;
+      background: linear-gradient(180deg, #ff7a8d 0%, var(--pace-red) 100%);
+      box-shadow: 0 0 10px var(--pace-red-glow);
     }
 
     .auth-error {
       color: var(--nx-rose);
-      font-size: 0.78rem;
-      font-weight: 500;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 600;
       min-height: 18px;
       text-align: center;
       margin-top: 8px;
@@ -2058,40 +2350,120 @@
 
     .auth-submit {
       width: 100%;
-      margin-top: 12px;
+      margin-top: 10px;
       padding: 12px 20px;
+      background: linear-gradient(135deg, var(--pace-ocean) 0%, #065a86 55%, rgba(185, 22, 46, 0.85) 145%);
+      border: 1px solid rgba(137, 170, 230, 0.42);
+      box-shadow: 0 8px 24px rgba(4, 113, 166, 0.36);
+      letter-spacing: 0.04em;
     }
 
-    /* Mobile Touch Numeric Keypad (auto-visible on phones) */
+    .auth-submit:hover {
+      background: linear-gradient(135deg, var(--pace-blue) 0%, var(--pace-ocean) 60%, var(--pace-red) 135%);
+      border-color: var(--pace-periwinkle);
+      transform: translateY(-1px);
+    }
+
+    /* Sculpted Chrono Numeric Keypad */
     .mobile-keypad {
       display: none;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 9px;
       margin-top: 12px;
+      padding: 10px;
+      border-radius: 16px;
+      background: rgba(4, 18, 30, 0.52);
+      border: 1px solid rgba(137, 170, 230, 0.16);
+    }
+
+    .mobile-keypad.is-desk-open {
+      display: grid;
+      animation: fadeIn 0.2s var(--ease);
     }
 
     @media (pointer: coarse), (max-width: 640px) {
+      #auth-gate {
+        padding: 10px 12px;
+      }
+
       .mobile-keypad:not(.os-kbd-open) {
         display: grid;
+        gap: 6px;
+        margin-top: 8px;
+        padding: 8px;
+      }
+
+      .mobile-keypad .keypad-btn {
+        height: 40px;
+        font-size: 1.05rem;
       }
 
       .auth-card {
-        padding: 24px 20px 22px;
+        padding: 14px 14px 16px;
+      }
+
+      .vault-status-row {
+        margin-bottom: 8px;
+      }
+
+      .vault-emblem {
+        width: 58px;
+        height: 58px;
+        margin-bottom: 6px;
+      }
+
+      .vault-core {
+        width: 30px;
+        height: 30px;
+      }
+
+      .vault-core svg {
+        width: 15px;
+        height: 15px;
       }
 
       .auth-header {
-        margin-bottom: 16px;
+        margin-bottom: 8px;
+      }
+
+      .auth-title {
+        font-size: 1.08rem;
+      }
+
+      .auth-subtitle {
+        font-size: 0.72rem;
+      }
+
+      .auth-input {
+        padding: 9px 38px;
+        font-size: 1rem;
+      }
+
+      .vault-signal-bar {
+        height: 12px;
+        margin-top: 6px;
+      }
+
+      .auth-error {
+        min-height: 14px;
+        margin-top: 4px;
+      }
+
+      .auth-submit {
+        margin-top: 8px;
+        padding: 10px 16px;
       }
     }
 
     .keypad-btn {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 1.15rem;
+      font-size: 1.12rem;
       font-weight: 700;
-      height: 46px;
-      border-radius: var(--radius-md);
-      background: rgba(6, 24, 38, 0.72);
-      border: 1px solid var(--nx-border-strong);
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(12, 46, 70, 0.8) 0%, rgba(5, 22, 36, 0.92) 100%);
+      border: 1px solid rgba(137, 170, 230, 0.26);
+      box-shadow: 0 3px 10px rgba(2, 10, 18, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
       color: #ffffff;
       cursor: pointer;
       display: flex;
@@ -2101,33 +2473,39 @@
       user-select: none;
       -webkit-user-select: none;
       -webkit-tap-highlight-color: transparent;
-      transition: transform 0.08s var(--ease), background 0.15s var(--ease), border-color 0.15s var(--ease);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.09s var(--ease), background 0.16s var(--ease), border-color 0.16s var(--ease), box-shadow 0.16s var(--ease);
     }
 
     .keypad-btn:hover {
-      background: rgba(4, 113, 166, 0.28);
+      background: linear-gradient(180deg, rgba(4, 113, 166, 0.45) 0%, rgba(6, 36, 58, 0.95) 100%);
       border-color: var(--pace-periwinkle);
+      box-shadow: 0 0 14px rgba(137, 170, 230, 0.25);
     }
 
-    .keypad-btn:active {
-      transform: scale(0.95);
+    .keypad-btn:active, .keypad-btn.is-pressed {
+      transform: scale(0.93);
       background: var(--pace-ocean);
-      border-color: var(--pace-periwinkle);
+      border-color: #7dd3fc;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.45);
     }
 
     .keypad-btn-action {
-      font-family: 'Inter', sans-serif;
-      font-size: 0.78rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
       font-weight: 700;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
       color: var(--nx-muted);
-      background: rgba(7, 38, 58, 0.55);
+      background: rgba(7, 32, 50, 0.65);
     }
 
-    .keypad-btn-clear:active {
-      background: var(--pace-red);
-      border-color: rgba(255, 148, 161, 0.65);
+    .keypad-btn-clear:hover, .keypad-btn-clear:active {
+      background: rgba(185, 22, 46, 0.85);
+      border-color: rgba(255, 148, 161, 0.72);
       color: #ffffff;
+      box-shadow: 0 0 14px var(--pace-red-glow);
     }
 
     .btn-lock-app {
@@ -2457,42 +2835,96 @@
   <div class="ambient-glow"></div>
   <div class="dot-grid"></div>
 
-  <!-- Password Gate -->
+  <!-- Password Gate (The Pace Chrono-Vault) -->
   <div id="auth-gate" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <canvas id="auth-wave-canvas" aria-hidden="true"></canvas>
+
     <div class="auth-card" id="auth-card">
-      <div class="auth-header">
-        <div class="auth-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
+      <div class="vault-status-row">
+        <div class="vault-beacon" id="vault-beacon">
+          <span class="vault-beacon-dot"></span>
+          <span id="vault-beacon-text">Vault // Locked</span>
         </div>
-        <h1 class="auth-title" id="auth-title">Tasks</h1>
-        <p class="auth-subtitle">Enter password to access workspace</p>
+        <div class="vault-tools">
+          <button type="button" class="btn-vault-mini is-on" id="btn-vault-sound" onclick="toggleVaultAudio()" title="Toggle tactile key tones" aria-pressed="true">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            <span>Sound</span>
+          </button>
+          <button type="button" class="btn-vault-mini btn-vault-pad-toggle" id="btn-toggle-desktop-pad" onclick="toggleDesktopKeypad()" title="Show or hide numeric keypad" aria-pressed="false">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/></svg>
+            <span>Pad</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="auth-header">
+        <div class="vault-emblem" aria-hidden="true">
+          <svg class="vault-svg" viewBox="0 0 100 100">
+            <circle class="vault-ring-outer" cx="50" cy="50" r="46" fill="none" stroke="rgba(137, 170, 230, 0.24)" stroke-width="1.2" stroke-dasharray="2 8" />
+            <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(4, 113, 166, 0.3)" stroke-width="1" />
+            <g class="vault-ring-gyro" id="vault-gyro-ring">
+              <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(137, 170, 230, 0.65)" stroke-width="2" stroke-dasharray="32 16 12 16" stroke-linecap="round" />
+              <circle cx="50" cy="50" r="28" fill="none" stroke="#b9162e" stroke-width="2" stroke-dasharray="18 52" stroke-linecap="round" />
+            </g>
+          </svg>
+          <div class="vault-core" id="vault-core">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path id="vault-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+        </div>
+        <h1 class="auth-title" id="auth-title">
+          <span>Pace</span>
+          <span class="auth-title-dot" aria-hidden="true"></span>
+          <span>Tasks</span>
+        </h1>
+        <p class="auth-subtitle">Enter access cipher to unlock workspace</p>
       </div>
 
       <form id="auth-form" onsubmit="verifyPassword(event)" novalidate>
         <div class="field-group">
-          <label class="field-label" for="auth-password">Password</label>
-          <div class="auth-input-wrap">
-            <input
-              type="password"
-              id="auth-password"
-              class="nx-input auth-input"
-              placeholder="Enter password"
-              inputmode="numeric"
-              pattern="[0-9]*"
-              enterkeyhint="go"
-              autocomplete="one-time-code"
-              autofocus
-            />
-            <button type="button" class="btn-eye" id="toggle-eye" onclick="togglePasswordVisibility()" aria-label="Show password" title="Show or hide password">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
+          <label class="field-label" for="auth-password" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Access Cipher</span>
+            <span id="vault-cipher-state" style="font-family:'JetBrains Mono',monospace; font-size:0.64rem; color:var(--pace-periwinkle); opacity:0.8;">STANDBY</span>
+          </label>
+          <div class="vault-input-frame">
+            <span class="vault-corner tl"></span>
+            <span class="vault-corner tr"></span>
+            <span class="vault-corner bl"></span>
+            <span class="vault-corner br"></span>
+            <div class="auth-input-wrap">
+              <input
+                type="password"
+                id="auth-password"
+                class="nx-input auth-input"
+                placeholder="ENTER CODE"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                enterkeyhint="go"
+                autocomplete="one-time-code"
+                autofocus
+              />
+              <button type="button" class="btn-eye" id="toggle-eye" onclick="togglePasswordVisibility()" aria-label="Show password" title="Show or hide password">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Adaptive Harmonic Signal Bars -->
+          <div class="vault-signal-bar" id="vault-signal-bar" aria-hidden="true">
+            <span class="vault-sig-node"></span>
+            <span class="vault-sig-node"></span>
+            <span class="vault-sig-node"></span>
+            <span class="vault-sig-node"></span>
+            <span class="vault-sig-node"></span>
+            <span class="vault-sig-node"></span>
+            <span class="vault-sig-node"></span>
+            <span class="vault-sig-node"></span>
           </div>
         </div>
 
-        <div class="auth-error" id="auth-error" role="alert">Incorrect password. Please try again.</div>
+        <div class="auth-error" id="auth-error" role="alert">Access denied — invalid cipher. Retry.</div>
 
         <div class="mobile-keypad" id="mobile-keypad" role="group" aria-label="Numeric keypad">
           <button type="button" class="keypad-btn" onclick="keypadAppend('1')">1</button>
@@ -2512,7 +2944,7 @@
         </div>
 
         <button type="submit" class="btn-nx-primary auth-submit">
-          <span>Unlock Workspace</span>
+          <span>Engage &amp; Unlock</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </button>
       </form>
@@ -3000,6 +3432,139 @@
       return (h >>> 0).toString(16).padStart(8, '0');
     }
 
+    let vaultAudioEnabled = true;
+    let vaultAudioCtx = null;
+    let vaultUnlockTimer = null;
+    let vaultGyroAngle = 0;
+
+    function playVaultSound(kind, stepIndex = 0) {
+      if (!vaultAudioEnabled) return;
+      const AudioCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtor) return;
+      try {
+        if (!vaultAudioCtx) vaultAudioCtx = new AudioCtor();
+        if (vaultAudioCtx.state === 'suspended') vaultAudioCtx.resume();
+        const now = vaultAudioCtx.currentTime;
+
+        if (kind === 'tick') {
+          const osc = vaultAudioCtx.createOscillator();
+          const gain = vaultAudioCtx.createGain();
+          osc.type = 'triangle';
+          const freq = 460 + (stepIndex % 6) * 58;
+          osc.frequency.setValueAtTime(freq, now);
+          osc.frequency.exponentialRampToValueAtTime(190, now + 0.04);
+          gain.gain.setValueAtTime(0.055, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+          osc.connect(gain);
+          gain.connect(vaultAudioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } else if (kind === 'deny') {
+          const osc = vaultAudioCtx.createOscillator();
+          const gain = vaultAudioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(145, now);
+          osc.frequency.linearRampToValueAtTime(92, now + 0.16);
+          gain.gain.setValueAtTime(0.06, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+          osc.connect(gain);
+          gain.connect(vaultAudioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.18);
+        } else if (kind === 'unlock') {
+          [523.25, 659.25, 783.99].forEach((freq, idx) => {
+            const osc = vaultAudioCtx.createOscillator();
+            const gain = vaultAudioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.055);
+            gain.gain.setValueAtTime(0.001, now + idx * 0.055);
+            gain.gain.linearRampToValueAtTime(0.06, now + idx * 0.055 + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.055 + 0.24);
+            osc.connect(gain);
+            gain.connect(vaultAudioCtx.destination);
+            osc.start(now + idx * 0.055);
+            osc.stop(now + idx * 0.055 + 0.25);
+          });
+        }
+      } catch (e) {}
+    }
+
+    function toggleVaultAudio() {
+      vaultAudioEnabled = !vaultAudioEnabled;
+      const btn = document.getElementById('btn-vault-sound');
+      if (!btn) return;
+      btn.classList.toggle('is-on', vaultAudioEnabled);
+      btn.setAttribute('aria-pressed', vaultAudioEnabled ? 'true' : 'false');
+      btn.innerHTML = vaultAudioEnabled
+        ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg><span>Sound</span>'
+        : '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg><span>Muted</span>';
+      if (vaultAudioEnabled) playVaultSound('tick', 2);
+    }
+
+    function toggleDesktopKeypad() {
+      const pad = document.getElementById('mobile-keypad');
+      const btn = document.getElementById('btn-toggle-desktop-pad');
+      if (!pad) return;
+      const isOpen = pad.classList.toggle('is-desk-open');
+      if (btn) {
+        btn.classList.toggle('is-on', isOpen);
+        btn.setAttribute('aria-pressed', isOpen ? 'true' : 'false');
+      }
+      playVaultSound('tick', 1);
+    }
+
+    function updateVaultVisuals(mode) {
+      const input = document.getElementById('auth-password');
+      const beacon = document.getElementById('vault-beacon');
+      const beaconText = document.getElementById('vault-beacon-text');
+      const cipherState = document.getElementById('vault-cipher-state');
+      const gyro = document.getElementById('vault-gyro-ring');
+      const bars = document.querySelectorAll('#vault-signal-bar .vault-sig-node');
+      const val = input ? String(input.value || '') : '';
+      const len = val.length;
+
+      bars.forEach((bar, i) => {
+        const lit = i < Math.min(len, bars.length);
+        bar.classList.toggle('is-lit', lit && mode !== 'denied');
+        bar.classList.toggle('is-crimson', lit && (mode === 'denied' || i % 3 === 2));
+      });
+
+      if (gyro) {
+        if (mode === 'granted') {
+          vaultGyroAngle += 180;
+        } else if (len > 0) {
+          vaultGyroAngle = len * 48;
+        } else {
+          vaultGyroAngle = 0;
+        }
+        gyro.style.transform = `rotate(${vaultGyroAngle}deg)`;
+      }
+
+      if (!beacon || !beaconText || !cipherState) return;
+      beacon.classList.remove('is-typing', 'is-denied', 'is-granted');
+
+      if (mode === 'granted') {
+        beacon.classList.add('is-granted');
+        beaconText.textContent = 'Access // Granted';
+        cipherState.textContent = 'VERIFIED';
+        cipherState.style.color = 'var(--nx-emerald)';
+      } else if (mode === 'denied') {
+        beacon.classList.add('is-denied');
+        beaconText.textContent = 'Access // Denied';
+        cipherState.textContent = 'MISMATCH';
+        cipherState.style.color = '#ff94a1';
+      } else if (len > 0) {
+        beacon.classList.add('is-typing');
+        beaconText.textContent = 'Signal // Active';
+        cipherState.textContent = 'KEYING';
+        cipherState.style.color = '#7dd3fc';
+      } else {
+        beaconText.textContent = 'Vault // Locked';
+        cipherState.textContent = 'STANDBY';
+        cipherState.style.color = 'var(--pace-periwinkle)';
+      }
+    }
+
     function verifyPassword(event) {
       if (event) event.preventDefault();
       const input = document.getElementById('auth-password');
@@ -3014,7 +3579,10 @@
         card.classList.remove('shake');
         void card.offsetWidth;
         card.classList.add('shake');
+        playVaultSound('deny');
+        triggerAuthCanvasPulse('#b9162e');
         input.value = '';
+        updateVaultVisuals('denied');
         input.focus();
       }
     }
@@ -3050,6 +3618,9 @@
       const input = document.getElementById('auth-password');
       clearAuthError();
       input.value = String(input.value || '') + String(digit);
+      playVaultSound('tick', input.value.length);
+      triggerAuthCanvasPulse('#38bdf8');
+      updateVaultVisuals();
       if (navigator.vibrate) {
         try { navigator.vibrate(8); } catch (e) {}
       }
@@ -3060,12 +3631,17 @@
       const input = document.getElementById('auth-password');
       clearAuthError();
       input.value = String(input.value || '').slice(0, -1);
+      playVaultSound('tick', 0);
+      updateVaultVisuals();
     }
 
     function keypadClear() {
       const input = document.getElementById('auth-password');
       clearAuthError();
       input.value = '';
+      playVaultSound('tick', 0);
+      triggerAuthCanvasPulse('#b9162e');
+      updateVaultVisuals();
     }
 
     function togglePasswordVisibility() {
@@ -3083,8 +3659,16 @@
     function unlockApp() {
       if (isUnlocked) return;
       isUnlocked = true;
+      const gate = document.getElementById('auth-gate');
+      const card = document.getElementById('auth-card');
+      const shackle = document.getElementById('vault-shackle');
+      if (card) card.classList.add('is-granted');
+      if (shackle) shackle.setAttribute('d', 'M7 11V7a5 5 0 0 1 9.9-1');
+      updateVaultVisuals('granted');
+      playVaultSound('unlock');
+      triggerAuthCanvasPulse('#34d399');
+
       populatePersonSelects();
-      document.getElementById('auth-gate').classList.add('hidden');
       document.getElementById('app-shell').classList.remove('hidden');
       document.getElementById('auth-password').value = '';
       clearAuthError();
@@ -3093,10 +3677,24 @@
       setDefaultDueDate();
       resetRecurringForm();
       renderBoard();
+
+      if (gate) {
+        gate.classList.add('is-unlocking');
+        if (vaultUnlockTimer) clearTimeout(vaultUnlockTimer);
+        vaultUnlockTimer = setTimeout(() => {
+          gate.classList.add('hidden');
+          gate.classList.remove('is-unlocking');
+          stopAuthCanvas();
+        }, 320);
+      }
     }
 
     function lockApp() {
       isUnlocked = false;
+      if (vaultUnlockTimer) {
+        clearTimeout(vaultUnlockTimer);
+        vaultUnlockTimer = null;
+      }
       stopRolloverScheduler();
       detachFirebaseListeners();
       allTasks = [];
@@ -3111,7 +3709,15 @@
       closeEditModal();
       closeRecurringModal();
       document.getElementById('app-shell').classList.add('hidden');
-      document.getElementById('auth-gate').classList.remove('hidden');
+      const gate = document.getElementById('auth-gate');
+      const card = document.getElementById('auth-card');
+      const shackle = document.getElementById('vault-shackle');
+      if (gate) {
+        gate.classList.remove('hidden');
+        gate.classList.remove('is-unlocking');
+      }
+      if (card) card.classList.remove('is-granted', 'shake');
+      if (shackle) shackle.setAttribute('d', 'M7 11V7a5 5 0 0 1 10 0v4');
       const input = document.getElementById('auth-password');
       input.value = '';
       input.type = 'password';
@@ -3121,6 +3727,8 @@
       clearAuthError();
       const pad = document.getElementById('mobile-keypad');
       if (pad) pad.classList.remove('os-kbd-open');
+      updateVaultVisuals();
+      startAuthCanvas();
       setTimeout(focusAuthInput, 50);
     }
 
@@ -4710,8 +5318,165 @@
     const authGateEl = document.getElementById('auth-gate');
     const mobileKeypadEl = document.getElementById('mobile-keypad');
 
+    // ── Chrono-Vault Spotlight & Interactive Pelagic Wave Canvas ──
+    const authCardEl = document.getElementById('auth-card');
+    const authCanvasEl = document.getElementById('auth-wave-canvas');
+    let authRafId = null;
+    let authCanvasState = null;
+
+    function triggerAuthCanvasPulse(color) {
+      if (!authCanvasState) return;
+      authCanvasState.pulses.push({ r: 28, alpha: 0.72, color: color || '#89aae6' });
+    }
+
+    function stopAuthCanvas() {
+      if (authRafId !== null) {
+        cancelAnimationFrame(authRafId);
+        authRafId = null;
+      }
+    }
+
+    function startAuthCanvas() {
+      if (!authCanvasEl || isUnlocked || authRafId !== null) return;
+      const ctx = authCanvasEl.getContext('2d');
+      if (!ctx) return;
+
+      if (!authCanvasState) {
+        const particles = Array.from({ length: 34 }, () => ({
+          x: Math.random(),
+          y: Math.random(),
+          vx: (Math.random() - 0.5) * 0.00045,
+          vy: (Math.random() - 0.5) * 0.00045,
+          r: 1.1 + Math.random() * 1.5,
+          red: Math.random() < 0.22
+        }));
+        authCanvasState = { t: 0, particles, pulses: [], mx: 0.5, my: 0.5 };
+      }
+
+      function resizeCanvas() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        authCanvasEl.width = w * dpr;
+        authCanvasEl.height = h * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { w, h };
+      }
+
+      let dims = resizeCanvas();
+      if (!authCanvasEl.dataset.boundResize) {
+        authCanvasEl.dataset.boundResize = '1';
+        window.addEventListener('resize', () => { dims = resizeCanvas(); });
+      }
+
+      function drawFrame() {
+        if (isUnlocked) {
+          authRafId = null;
+          return;
+        }
+        const { w, h } = dims;
+        ctx.clearRect(0, 0, w, h);
+        authCanvasState.t += 0.018;
+        const t = authCanvasState.t;
+        const mPx = authCanvasState.mx * w;
+        const mPy = authCanvasState.my * h;
+
+        // 1. Pace Pelagic Horizon Harmonic Waves
+        const waves = [
+          { amp: 24, freq: 0.0055, speed: 1.0, yRatio: 0.52, color: 'rgba(4, 113, 166, 0.34)', lw: 1.4 },
+          { amp: 16, freq: 0.0082, speed: -1.35, yRatio: 0.56, color: 'rgba(137, 170, 230, 0.26)', lw: 1.1 },
+          { amp: 12, freq: 0.011, speed: 1.7, yRatio: 0.49, color: 'rgba(185, 22, 46, 0.34)', lw: 1.1 }
+        ];
+        waves.forEach(wv => {
+          ctx.beginPath();
+          for (let x = 0; x <= w; x += 14) {
+            const dx = x - mPx;
+            const dyBase = h * wv.yRatio;
+            const dist = Math.hypot(dx, dyBase - mPy);
+            const ripple = dist < 240 ? Math.sin(dist * 0.04 - t * 3) * (1 - dist / 240) * 14 : 0;
+            const y = dyBase + Math.sin(x * wv.freq + t * wv.speed) * wv.amp + ripple;
+            if (x === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.strokeStyle = wv.color;
+          ctx.lineWidth = wv.lw;
+          ctx.stroke();
+        });
+
+        // 2. Constellation Nodes & Proximity Mesh
+        const pts = authCanvasState.particles;
+        for (let i = 0; i < pts.length; i++) {
+          const p = pts[i];
+          p.x = (p.x + p.vx + 1) % 1;
+          p.y = (p.y + p.vy + 1) % 1;
+          const px = p.x * w;
+          const py = p.y * h;
+
+          ctx.beginPath();
+          ctx.arc(px, py, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = p.red ? 'rgba(185, 22, 46, 0.55)' : 'rgba(137, 170, 230, 0.42)';
+          ctx.fill();
+
+          for (let j = i + 1; j < pts.length; j++) {
+            const q = pts[j];
+            const dist = Math.hypot(px - q.x * w, py - q.y * h);
+            if (dist < 130) {
+              ctx.beginPath();
+              ctx.moveTo(px, py);
+              ctx.lineTo(q.x * w, q.y * h);
+              ctx.strokeStyle = `rgba(137, 170, 230, ${(1 - dist / 130) * 0.14})`;
+              ctx.lineWidth = 0.7;
+              ctx.stroke();
+            }
+          }
+        }
+
+        // 3. Expanding Cipher Shockwaves on Key Input
+        for (let k = authCanvasState.pulses.length - 1; k >= 0; k--) {
+          const pulse = authCanvasState.pulses[k];
+          pulse.r += 5.5;
+          pulse.alpha *= 0.94;
+          if (pulse.alpha < 0.02) {
+            authCanvasState.pulses.splice(k, 1);
+            continue;
+          }
+          ctx.beginPath();
+          ctx.arc(w / 2, h / 2, pulse.r, 0, Math.PI * 2);
+          ctx.strokeStyle = pulse.color;
+          ctx.globalAlpha = pulse.alpha;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+
+        authRafId = requestAnimationFrame(drawFrame);
+      }
+
+      authRafId = requestAnimationFrame(drawFrame);
+    }
+
+    if (authGateEl) {
+      authGateEl.addEventListener('pointermove', e => {
+        if (authCanvasState && window.innerWidth > 0 && window.innerHeight > 0) {
+          authCanvasState.mx = e.clientX / window.innerWidth;
+          authCanvasState.my = e.clientY / window.innerHeight;
+        }
+        if (authCardEl) {
+          const rect = authCardEl.getBoundingClientRect();
+          authCardEl.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+          authCardEl.style.setProperty('--my', `${e.clientY - rect.top}px`);
+        }
+      });
+    }
+
+    startAuthCanvas();
+    updateVaultVisuals();
+
     authInputEl.addEventListener('input', () => {
       clearAuthError();
+      playVaultSound('tick', authInputEl.value.length);
+      triggerAuthCanvasPulse('#38bdf8');
+      updateVaultVisuals();
       maybeAutoUnlock();
     });
 
