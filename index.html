@@ -1481,6 +1481,7 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
+      overflow-y: auto;
       background: rgba(6, 24, 38, 0.65);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
@@ -1489,6 +1490,7 @@
     .auth-card {
       width: 100%;
       max-width: 390px;
+      margin: auto;
       background: rgba(8, 39, 59, 0.90);
       border: 1px solid var(--nx-border-strong);
       border-radius: var(--radius-xl);
@@ -1620,6 +1622,74 @@
       width: 100%;
       margin-top: 12px;
       padding: 12px 20px;
+    }
+
+    /* Mobile Touch Numeric Keypad (auto-visible on phones) */
+    .mobile-keypad {
+      display: none;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    @media (pointer: coarse), (max-width: 640px) {
+      .mobile-keypad:not(.os-kbd-open) {
+        display: grid;
+      }
+
+      .auth-card {
+        padding: 24px 20px 22px;
+      }
+
+      .auth-header {
+        margin-bottom: 16px;
+      }
+    }
+
+    .keypad-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.15rem;
+      font-weight: 700;
+      height: 46px;
+      border-radius: var(--radius-md);
+      background: rgba(6, 24, 38, 0.72);
+      border: 1px solid var(--nx-border-strong);
+      color: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.08s var(--ease), background 0.15s var(--ease), border-color 0.15s var(--ease);
+    }
+
+    .keypad-btn:hover {
+      background: rgba(4, 113, 166, 0.28);
+      border-color: var(--pace-periwinkle);
+    }
+
+    .keypad-btn:active {
+      transform: scale(0.95);
+      background: var(--pace-ocean);
+      border-color: var(--pace-periwinkle);
+    }
+
+    .keypad-btn-action {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      color: var(--nx-muted);
+      background: rgba(7, 38, 58, 0.55);
+    }
+
+    .keypad-btn-clear:active {
+      background: var(--pace-red);
+      border-color: rgba(255, 148, 161, 0.65);
+      color: #ffffff;
     }
 
     .btn-lock-app {
@@ -1973,7 +2043,9 @@
               class="nx-input auth-input"
               placeholder="Enter password"
               inputmode="numeric"
-              autocomplete="current-password"
+              pattern="[0-9]*"
+              enterkeyhint="go"
+              autocomplete="one-time-code"
               autofocus
             />
             <button type="button" class="btn-eye" id="toggle-eye" onclick="togglePasswordVisibility()" aria-label="Show password" title="Show or hide password">
@@ -1983,6 +2055,23 @@
         </div>
 
         <div class="auth-error" id="auth-error" role="alert">Incorrect password. Please try again.</div>
+
+        <div class="mobile-keypad" id="mobile-keypad" role="group" aria-label="Numeric keypad">
+          <button type="button" class="keypad-btn" onclick="keypadAppend('1')">1</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('2')">2</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('3')">3</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('4')">4</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('5')">5</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('6')">6</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('7')">7</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('8')">8</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('9')">9</button>
+          <button type="button" class="keypad-btn keypad-btn-action keypad-btn-clear" onclick="keypadClear()" aria-label="Clear password">Clear</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('0')">0</button>
+          <button type="button" class="keypad-btn keypad-btn-action" onclick="keypadBackspace()" aria-label="Backspace">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+          </button>
+        </div>
 
         <button type="submit" class="btn-nx-primary auth-submit">
           <span>Unlock Workspace</span>
@@ -2488,6 +2577,51 @@
       document.getElementById('auth-error').classList.remove('visible');
     }
 
+    function focusAuthInput() {
+      if (isUnlocked) return;
+      const input = document.getElementById('auth-password');
+      if (!input) return;
+      try {
+        input.focus({ preventScroll: true });
+      } catch (e) {
+        input.focus();
+      }
+      if ('virtualKeyboard' in navigator && typeof navigator.virtualKeyboard.show === 'function') {
+        try { navigator.virtualKeyboard.show(); } catch (e) {}
+      }
+    }
+
+    function maybeAutoUnlock() {
+      if (isUnlocked) return;
+      const input = document.getElementById('auth-password');
+      const val = input.value.trim();
+      if (val && hashPassword(val) === PASS_HASH) {
+        unlockApp();
+      }
+    }
+
+    function keypadAppend(digit) {
+      const input = document.getElementById('auth-password');
+      clearAuthError();
+      input.value = String(input.value || '') + String(digit);
+      if (navigator.vibrate) {
+        try { navigator.vibrate(8); } catch (e) {}
+      }
+      maybeAutoUnlock();
+    }
+
+    function keypadBackspace() {
+      const input = document.getElementById('auth-password');
+      clearAuthError();
+      input.value = String(input.value || '').slice(0, -1);
+    }
+
+    function keypadClear() {
+      const input = document.getElementById('auth-password');
+      clearAuthError();
+      input.value = '';
+    }
+
     function togglePasswordVisibility() {
       const input = document.getElementById('auth-password');
       const btn = document.getElementById('toggle-eye');
@@ -2532,7 +2666,9 @@
       btn.setAttribute('aria-label', 'Show password');
       btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
       clearAuthError();
-      setTimeout(() => input.focus(), 50);
+      const pad = document.getElementById('mobile-keypad');
+      if (pad) pad.classList.remove('os-kbd-open');
+      setTimeout(focusAuthInput, 50);
     }
 
     // ══════════════════════════════════════
@@ -3705,8 +3841,39 @@
     });
 
     // ── Initial State ──
-    document.getElementById('auth-password').addEventListener('input', clearAuthError);
-    document.getElementById('auth-password').focus();
+    const authInputEl = document.getElementById('auth-password');
+    const authGateEl = document.getElementById('auth-gate');
+    const mobileKeypadEl = document.getElementById('mobile-keypad');
+
+    authInputEl.addEventListener('input', () => {
+      clearAuthError();
+      maybeAutoUnlock();
+    });
+
+    authGateEl.addEventListener('click', e => {
+      if (e.target.closest('button, input, a, #mobile-keypad')) return;
+      focusAuthInput();
+    });
+
+    function syncOsKeyboardState() {
+      if (!mobileKeypadEl) return;
+      const vv = window.visualViewport;
+      const kbdLikelyOpen = document.activeElement === authInputEl &&
+        ((vv && (window.innerHeight - vv.height > 120 || vv.height < 480)) || window.innerHeight < 480);
+      mobileKeypadEl.classList.toggle('os-kbd-open', Boolean(kbdLikelyOpen));
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', syncOsKeyboardState);
+    }
+    authInputEl.addEventListener('focus', () => setTimeout(syncOsKeyboardState, 120));
+    authInputEl.addEventListener('blur', () => {
+      if (mobileKeypadEl) mobileKeypadEl.classList.remove('os-kbd-open');
+    });
+
+    focusAuthInput();
+    window.addEventListener('DOMContentLoaded', focusAuthInput);
+    window.addEventListener('pageshow', () => setTimeout(focusAuthInput, 60));
   </script>
 </body>
 </html>
