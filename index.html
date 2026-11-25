@@ -16,8 +16,9 @@
 
   <style>
     /* ══════════════════════════════════════════════════════════════════
-       ── Nexflow Design System (nexflow.solutions) ──
-       Deep Midnight Canvas, Coral Orange (#ff5b37), High-Contrast Glass
+       ── The Pace Theory Color Scheme (thepacetheory.com) ──
+       Deep Ocean Navy (#061826), Pelagic Blue (#0471a6 / #3685b5),
+       Periwinkle (#89aae6), & Pace Crimson (#db162f)
        ══════════════════════════════════════════════════════════════════ */
     *, *::before, *::after {
       box-sizing: border-box;
@@ -26,39 +27,49 @@
     }
 
     :root {
-      --nx-bg: #0c0e14;
-      --nx-bg-subtle: #090b10;
-      --nx-card: rgba(255, 255, 255, 0.035);
-      --nx-card-hover: rgba(255, 255, 255, 0.06);
-      --nx-card-elevated: #131722;
+      --pace-navy: #061826;
+      --pace-panel: #07263a;
+      --pace-ocean: #0471a6;
+      --pace-blue: #3685b5;
+      --pace-periwinkle: #89aae6;
+      --pace-red: #db162f;
+      --pace-white: #ffffff;
+      --pace-dim-on-dark: #cbd9ef;
 
-      --nx-border: rgba(255, 255, 255, 0.08);
-      --nx-border-strong: rgba(255, 255, 255, 0.16);
+      --nx-bg: #061826;
+      --nx-bg-subtle: #04121d;
+      --nx-card: rgba(7, 38, 58, 0.56);
+      --nx-card-hover: rgba(10, 50, 76, 0.74);
+      --nx-card-elevated: #08273b;
+
+      --nx-border: rgba(137, 170, 230, 0.22);
+      --nx-border-strong: rgba(137, 170, 230, 0.42);
 
       --nx-text: #ffffff;
-      --nx-muted: #94a3b8;
-      --nx-faint: rgba(255, 255, 255, 0.35);
+      --nx-muted: #bacde4;
+      --nx-faint: rgba(203, 217, 239, 0.48);
 
-      --nx-orange: #ff5b37;
-      --nx-orange-hover: #f14d2a;
-      --nx-orange-bg: rgba(255, 91, 55, 0.12);
-      --nx-orange-border: rgba(255, 91, 55, 0.3);
-      --nx-orange-glow: rgba(255, 91, 55, 0.25);
+      --nx-orange: #0471a6;
+      --nx-orange-hover: #3685b5;
+      --nx-orange-bg: rgba(137, 170, 230, 0.14);
+      --nx-orange-border: rgba(137, 170, 230, 0.34);
+      --nx-orange-glow: rgba(4, 113, 166, 0.34);
 
-      --nx-purple: #8b5cf6;
-      --nx-purple-bg: rgba(139, 92, 246, 0.12);
-      --nx-purple-border: rgba(139, 92, 246, 0.28);
+      --nx-periwinkle: #89aae6;
+      --nx-purple: #0471a6;
+      --nx-purple-bg: rgba(137, 170, 230, 0.14);
+      --nx-purple-border: rgba(137, 170, 230, 0.32);
 
-      --nx-emerald: #10b981;
-      --nx-emerald-bg: rgba(16, 185, 129, 0.12);
-      --nx-emerald-border: rgba(16, 185, 129, 0.28);
+      --nx-emerald: #34d399;
+      --nx-emerald-bg: rgba(16, 185, 129, 0.14);
+      --nx-emerald-border: rgba(52, 211, 153, 0.32);
 
-      --nx-blue: #3b82f6;
-      --nx-blue-bg: rgba(59, 130, 246, 0.12);
+      --nx-blue: #3685b5;
+      --nx-blue-bg: rgba(54, 133, 181, 0.16);
 
-      --nx-rose: #f43f5e;
-      --nx-rose-bg: rgba(244, 63, 94, 0.12);
-      --nx-rose-border: rgba(244, 63, 94, 0.3);
+      --nx-rose: #ff7a8a;
+      --nx-rose-bg: rgba(219, 22, 47, 0.16);
+      --nx-rose-border: rgba(219, 22, 47, 0.42);
 
       --radius-sm: 8px;
       --radius-md: 12px;
@@ -66,10 +77,10 @@
       --radius-xl: 20px;
       --radius-pill: 9999px;
 
-      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-      --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
-      --shadow-glow: 0 0 28px -4px var(--nx-orange-glow);
-      --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      --shadow-sm: 0 1px 2px rgba(2, 10, 18, 0.35);
+      --shadow-card: 0 6px 24px -2px rgba(2, 10, 18, 0.45);
+      --shadow-glow: 0 0 28px -4px rgba(4, 113, 166, 0.38);
+      --shadow-modal: 0 24px 60px rgba(2, 10, 18, 0.78), 0 0 0 1px rgba(137, 170, 230, 0.24);
 
       --ease: cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -86,25 +97,25 @@
       position: relative;
     }
 
-    /* Nexflow Signature Ambient Atmospheric Glow */
+    /* Ambient Atmospheric Glow (Pace Ocean & Periwinkle) */
     .ambient-glow {
       position: absolute;
       top: -120px;
       left: 50%;
       transform: translateX(-50%);
-      width: 760px;
-      height: 400px;
-      background: radial-gradient(circle, rgba(255, 91, 55, 0.13) 0%, rgba(139, 92, 246, 0.05) 50%, transparent 75%);
+      width: 820px;
+      height: 420px;
+      background: radial-gradient(circle, rgba(4, 113, 166, 0.24) 0%, rgba(137, 170, 230, 0.09) 52%, transparent 75%);
       filter: blur(100px);
       pointer-events: none;
       z-index: 0;
     }
 
-    /* Nexflow Micro Dot Grid Overlay */
+    /* Micro Dot Grid Overlay */
     .dot-grid {
       position: absolute;
       inset: 0;
-      background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+      background-image: radial-gradient(rgba(137, 170, 230, 0.09) 1px, transparent 1px);
       background-size: 28px 28px;
       mask-image: radial-gradient(ellipse 65% 55% at 50% 20%, #000 25%, transparent 75%);
       -webkit-mask-image: radial-gradient(ellipse 65% 55% at 50% 20%, #000 25%, transparent 75%);
@@ -112,12 +123,12 @@
       z-index: 0;
     }
 
-    /* ── Sticky Frosted Header (Nexflow Style) ── */
+    /* ── Sticky Frosted Header ── */
     header {
       position: sticky;
       top: 0;
       z-index: 50;
-      background: rgba(12, 14, 20, 0.82);
+      background: rgba(6, 24, 38, 0.85);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--nx-border);
@@ -136,7 +147,7 @@
       z-index: 10;
     }
 
-    /* Nexflow Brand Logo */
+    /* Brand Logo */
     .brand-container {
       display: flex;
       align-items: center;
@@ -148,11 +159,12 @@
       width: 32px;
       height: 32px;
       border-radius: 9px;
-      background: linear-gradient(135deg, #ff5b37 0%, #ff7b5a 100%);
+      background: linear-gradient(135deg, #0471a6 0%, #3685b5 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 14px var(--nx-orange-glow);
+      box-shadow: 0 4px 14px rgba(4, 113, 166, 0.38);
+      border: 1px solid rgba(137, 170, 230, 0.35);
     }
 
     .brand-icon svg {
@@ -177,7 +189,7 @@
     }
 
     .brand-logo-text span {
-      color: var(--nx-orange);
+      color: var(--pace-periwinkle);
     }
 
     .brand-subline {
@@ -192,14 +204,15 @@
       display: flex;
       align-items: center;
       gap: 16px;
+      flex-wrap: wrap;
     }
 
-    /* Nexflow Counters Capsule */
+    /* Counters Capsule */
     .stats-shelf {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(7, 38, 58, 0.55);
       border: 1px solid var(--nx-border);
       border-radius: var(--radius-pill);
       padding: 4px 10px;
@@ -260,7 +273,7 @@
       background: var(--nx-rose-bg);
       border-color: var(--nx-rose-border);
       color: var(--nx-rose);
-      box-shadow: 0 0 12px rgba(244, 63, 94, 0.15);
+      box-shadow: 0 0 12px rgba(219, 22, 47, 0.2);
     }
 
     @keyframes pulse-ring {
@@ -277,7 +290,7 @@
       z-index: 10;
     }
 
-    /* ── Nexflow Action Card (New Task Deck) ── */
+    /* ── Action Card (New Task Deck) ── */
     .nex-card {
       background: var(--nx-card);
       border: 1px solid var(--nx-border);
@@ -299,7 +312,7 @@
       left: 0;
       right: 0;
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255, 91, 55, 0.35), transparent);
+      background: linear-gradient(90deg, transparent, rgba(137, 170, 230, 0.45), transparent);
     }
 
     .nex-card:focus-within {
@@ -332,7 +345,7 @@
       border-radius: var(--radius-pill);
       background: var(--nx-orange-bg);
       border: 1px solid var(--nx-orange-border);
-      color: var(--nx-orange);
+      color: var(--pace-periwinkle);
     }
 
     .form-grid {
@@ -370,7 +383,7 @@
       font-family: 'Inter', sans-serif;
       font-size: 0.88rem;
       color: #ffffff;
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(6, 24, 38, 0.55);
       border: 1px solid var(--nx-border);
       border-radius: var(--radius-md);
       padding: 10px 14px;
@@ -385,26 +398,26 @@
 
     .nx-input:hover, .nx-select:hover {
       border-color: var(--nx-border-strong);
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(7, 38, 58, 0.75);
     }
 
     .nx-input:focus, .nx-select:focus {
-      border-color: var(--nx-orange);
-      background: rgba(255, 255, 255, 0.07);
-      box-shadow: 0 0 0 3px var(--nx-orange-glow);
+      border-color: var(--pace-periwinkle);
+      background: rgba(7, 38, 58, 0.9);
+      box-shadow: 0 0 0 3px rgba(137, 170, 230, 0.22);
     }
 
     select.nx-select {
       cursor: pointer;
       appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23bacde4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 14px center;
       padding-right: 36px;
     }
 
     select.nx-select option {
-      background: #131722;
+      background: #08273b;
       color: #ffffff;
     }
 
@@ -414,14 +427,14 @@
       font-size: 0.85rem;
     }
 
-    /* ── Nexflow Vibrant Buttons ── */
+    /* ── Pace Ocean Primary & Secondary Buttons ── */
     .btn-nx-primary {
       font-family: 'Inter', sans-serif;
       font-size: 0.88rem;
       font-weight: 700;
       color: #ffffff;
-      background: var(--nx-orange);
-      border: none;
+      background: var(--pace-ocean);
+      border: 1px solid rgba(137, 170, 230, 0.35);
       border-radius: var(--radius-md);
       padding: 11px 22px;
       cursor: pointer;
@@ -436,8 +449,9 @@
     }
 
     .btn-nx-primary:hover {
-      background: var(--nx-orange-hover);
-      box-shadow: 0 6px 24px rgba(255, 91, 55, 0.4);
+      background: var(--pace-blue);
+      border-color: var(--pace-periwinkle);
+      box-shadow: 0 6px 24px rgba(54, 133, 181, 0.45);
       transform: translateY(-1px);
     }
 
@@ -450,7 +464,7 @@
       font-size: 0.84rem;
       font-weight: 600;
       color: var(--nx-muted);
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(137, 170, 230, 0.08);
       border: 1px solid var(--nx-border);
       border-radius: var(--radius-sm);
       padding: 9px 18px;
@@ -460,7 +474,7 @@
 
     .btn-nx-secondary:hover {
       color: #ffffff;
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(137, 170, 230, 0.16);
       border-color: var(--nx-border-strong);
     }
 
@@ -478,7 +492,7 @@
     }
 
     .btn-nx-danger:hover {
-      background: rgba(244, 63, 94, 0.2);
+      background: rgba(219, 22, 47, 0.28);
     }
 
     /* ── 14-Day Calendar Heatmap (Current & Next Week) ── */
@@ -502,7 +516,7 @@
       left: 0;
       right: 0;
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255, 91, 55, 0.4), transparent);
+      background: linear-gradient(90deg, transparent, rgba(137, 170, 230, 0.5), transparent);
     }
 
     .heatmap-header {
@@ -535,8 +549,8 @@
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.69rem;
       font-weight: 600;
-      color: var(--nx-muted);
-      background: rgba(255, 255, 255, 0.04);
+      color: var(--pace-periwinkle);
+      background: rgba(137, 170, 230, 0.1);
       border: 1px solid var(--nx-border);
       padding: 2px 8px;
       border-radius: var(--radius-pill);
@@ -563,10 +577,10 @@
       border-radius: 3px;
     }
 
-    .legend-box.l0 { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); }
-    .legend-box.l1 { background: rgba(255, 91, 55, 0.22); border: 1px solid rgba(255, 91, 55, 0.45); }
-    .legend-box.l2 { background: rgba(255, 91, 55, 0.5); border: 1px solid rgba(255, 91, 55, 0.7); }
-    .legend-box.l3 { background: #ff5b37; box-shadow: 0 0 6px var(--nx-orange-glow); }
+    .legend-box.l0 { background: rgba(137, 170, 230, 0.05); border: 1px solid rgba(137, 170, 230, 0.16); }
+    .legend-box.l1 { background: rgba(54, 133, 181, 0.28); border: 1px solid rgba(137, 170, 230, 0.42); }
+    .legend-box.l2 { background: rgba(4, 113, 166, 0.58); border: 1px solid rgba(137, 170, 230, 0.68); }
+    .legend-box.l3 { background: #3685b5; border: 1px solid #89aae6; box-shadow: 0 0 8px rgba(54, 133, 181, 0.45); }
 
     .heatmap-weeks-container {
       display: flex;
@@ -595,7 +609,7 @@
       content: '';
       flex: 1;
       height: 1px;
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(137, 170, 230, 0.14);
     }
 
     .heatmap-days-grid {
@@ -626,11 +640,11 @@
 
     .heatmap-day-cell:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 4px 14px rgba(2, 10, 18, 0.45);
     }
 
     .heatmap-day-cell.is-selected {
-      outline: 2px solid #ffffff;
+      outline: 2px solid var(--pace-periwinkle);
       outline-offset: 2px;
     }
 
@@ -646,46 +660,46 @@
       box-shadow: 0 0 6px var(--nx-emerald);
     }
 
-    /* Heat intensity levels */
+    /* Heat intensity levels (Ocean -> Periwinkle) */
     .heatmap-day-cell.heat-0 {
-      background: rgba(255, 255, 255, 0.025);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(6, 24, 38, 0.45);
+      border: 1px solid rgba(137, 170, 230, 0.14);
       color: var(--nx-muted);
     }
 
     .heatmap-day-cell.heat-0:hover {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(255, 255, 255, 0.14);
+      background: rgba(7, 38, 58, 0.72);
+      border-color: rgba(137, 170, 230, 0.32);
     }
 
     .heatmap-day-cell.heat-1 {
-      background: rgba(255, 91, 55, 0.15);
-      border: 1px solid rgba(255, 91, 55, 0.32);
-      color: #ffd6cc;
+      background: rgba(4, 113, 166, 0.24);
+      border: 1px solid rgba(137, 170, 230, 0.36);
+      color: var(--pace-dim-on-dark);
     }
 
     .heatmap-day-cell.heat-1:hover {
-      background: rgba(255, 91, 55, 0.24);
-      border-color: rgba(255, 91, 55, 0.55);
+      background: rgba(4, 113, 166, 0.36);
+      border-color: rgba(137, 170, 230, 0.56);
     }
 
     .heatmap-day-cell.heat-2 {
-      background: rgba(255, 91, 55, 0.34);
-      border: 1px solid rgba(255, 91, 55, 0.58);
+      background: rgba(4, 113, 166, 0.52);
+      border: 1px solid rgba(137, 170, 230, 0.58);
       color: #ffffff;
-      box-shadow: 0 0 14px rgba(255, 91, 55, 0.18);
+      box-shadow: 0 0 14px rgba(4, 113, 166, 0.25);
     }
 
     .heatmap-day-cell.heat-2:hover {
-      background: rgba(255, 91, 55, 0.45);
-      border-color: rgba(255, 91, 55, 0.75);
+      background: rgba(54, 133, 181, 0.65);
+      border-color: var(--pace-periwinkle);
     }
 
     .heatmap-day-cell.heat-3 {
-      background: linear-gradient(135deg, #ff5b37 0%, #ff7b5a 100%);
-      border: 1px solid #ff8f73;
+      background: linear-gradient(135deg, #0471a6 0%, #3685b5 100%);
+      border: 1px solid var(--pace-periwinkle);
       color: #ffffff;
-      box-shadow: 0 4px 16px var(--nx-orange-glow);
+      box-shadow: 0 4px 16px rgba(4, 113, 166, 0.42);
     }
 
     .heatmap-day-cell.heat-3:hover {
@@ -696,7 +710,7 @@
       font-size: 0.63rem;
       font-weight: 700;
       letter-spacing: 0.05em;
-      opacity: 0.8;
+      opacity: 0.84;
       margin-bottom: 2px;
     }
 
@@ -714,7 +728,7 @@
       margin-top: 3px;
       padding: 1px 6px;
       border-radius: var(--radius-pill);
-      background: rgba(0, 0, 0, 0.25);
+      background: rgba(6, 24, 38, 0.45);
     }
 
     .active-filter-indicator {
@@ -723,9 +737,9 @@
       gap: 6px;
       padding: 2px 8px;
       border-radius: var(--radius-pill);
-      background: var(--nx-orange-bg);
-      border: 1px solid var(--nx-orange-border);
-      color: var(--nx-orange);
+      background: rgba(137, 170, 230, 0.16);
+      border: 1px solid rgba(137, 170, 230, 0.4);
+      color: var(--pace-periwinkle);
       font-size: 0.7rem;
       font-weight: 600;
     }
@@ -740,7 +754,7 @@
       padding: 0 2px;
     }
 
-    /* ── Nexflow Filter Shelf ── */
+    /* ── Filter Shelf ── */
     .filter-bar {
       display: flex;
       align-items: center;
@@ -769,11 +783,16 @@
       font-size: 0.82rem;
       padding: 7px 12px;
       border-radius: var(--radius-sm);
-      background: rgba(255, 255, 255, 0.035);
+      background: rgba(7, 38, 58, 0.56);
       border: 1px solid var(--nx-border);
       color: #ffffff;
       outline: none;
       transition: all 0.2s var(--ease);
+    }
+
+    .filter-bar select option {
+      background: #08273b;
+      color: #ffffff;
     }
 
     .filter-bar select:hover, .filter-bar input:hover {
@@ -781,15 +800,15 @@
     }
 
     .filter-bar select:focus, .filter-bar input:focus {
-      border-color: var(--nx-orange);
-      box-shadow: 0 0 0 2px var(--nx-orange-glow);
+      border-color: var(--pace-periwinkle);
+      box-shadow: 0 0 0 2px rgba(137, 170, 230, 0.2);
     }
 
     .filter-search-box {
       min-width: 260px;
     }
 
-    /* ── Kanban Columns (Nexflow Workspaces Style) ── */
+    /* ── Kanban Columns ── */
     .board-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -804,7 +823,7 @@
     }
 
     .column {
-      background: rgba(255, 255, 255, 0.02);
+      background: rgba(7, 38, 58, 0.28);
       border: 1px solid var(--nx-border);
       border-radius: var(--radius-lg);
       padding: 16px;
@@ -834,9 +853,9 @@
       border-radius: 50%;
     }
 
-    .col-todo .column-status-indicator { background: var(--nx-orange); box-shadow: 0 0 8px var(--nx-orange-glow); }
-    .col-inprogress .column-status-indicator { background: var(--nx-blue); box-shadow: 0 0 8px rgba(59, 130, 246, 0.4); }
-    .col-done .column-status-indicator { background: var(--nx-emerald); box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+    .col-todo .column-status-indicator { background: var(--pace-periwinkle); box-shadow: 0 0 8px rgba(137, 170, 230, 0.55); }
+    .col-inprogress .column-status-indicator { background: var(--pace-blue); box-shadow: 0 0 8px rgba(54, 133, 181, 0.55); }
+    .col-done .column-status-indicator { background: var(--nx-emerald); box-shadow: 0 0 8px rgba(52, 211, 153, 0.45); }
 
     .column-title {
       font-size: 0.85rem;
@@ -850,8 +869,8 @@
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.72rem;
       font-weight: 600;
-      color: var(--nx-muted);
-      background: rgba(255, 255, 255, 0.05);
+      color: var(--pace-dim-on-dark);
+      background: rgba(137, 170, 230, 0.1);
       border: 1px solid var(--nx-border);
       padding: 2px 8px;
       border-radius: var(--radius-pill);
@@ -864,7 +883,7 @@
       flex: 1;
     }
 
-    /* ── Nexflow Modern Task Card ── */
+    /* ── Task Card ── */
     .task-card {
       background: var(--nx-card);
       border: 1px solid var(--nx-border);
@@ -880,14 +899,14 @@
 
     .task-card:hover {
       background: var(--nx-card-hover);
-      border-color: rgba(255, 91, 55, 0.4);
-      box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 91, 55, 0.15);
+      border-color: rgba(137, 170, 230, 0.52);
+      box-shadow: 0 8px 24px -4px rgba(2, 10, 18, 0.55), 0 0 0 1px rgba(137, 170, 230, 0.18);
       transform: translateY(-2px);
     }
 
     .task-card.is-overdue {
-      border-left: 3px solid var(--nx-rose);
-      background: linear-gradient(90deg, rgba(244, 63, 94, 0.07), var(--nx-card));
+      border-left: 3px solid var(--pace-red);
+      background: linear-gradient(90deg, rgba(219, 22, 47, 0.12), var(--nx-card));
     }
 
     .task-title {
@@ -919,16 +938,16 @@
     }
 
     .badge-person {
-      background: var(--nx-purple-bg);
-      border-color: var(--nx-purple-border);
-      color: #c4b5fd;
+      background: rgba(137, 170, 230, 0.14);
+      border-color: rgba(137, 170, 230, 0.3);
+      color: var(--pace-dim-on-dark);
     }
 
     .badge-person .avatar {
       width: 14px;
       height: 14px;
       border-radius: 50%;
-      background: var(--nx-purple);
+      background: var(--pace-ocean);
       color: #ffffff;
       font-size: 0.52rem;
       display: inline-flex;
@@ -938,7 +957,7 @@
     }
 
     .badge-date {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(6, 24, 38, 0.45);
       border-color: var(--nx-border);
       color: var(--nx-muted);
       font-family: 'JetBrains Mono', monospace;
@@ -961,7 +980,7 @@
 
     /* ── Follow-up Glass Dock ── */
     .followup-dock {
-      background: rgba(0, 0, 0, 0.25);
+      background: rgba(6, 24, 38, 0.48);
       border: 1px solid var(--nx-border);
       border-radius: var(--radius-sm);
       padding: 9px 11px;
@@ -972,7 +991,7 @@
     }
 
     .followup-dock:focus-within {
-      border-color: var(--nx-orange-border);
+      border-color: var(--pace-periwinkle);
     }
 
     .followup-row {
@@ -999,7 +1018,7 @@
       font-size: 0.78rem;
       color-scheme: dark;
       color: #ffffff;
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(7, 38, 58, 0.65);
       border: 1px solid var(--nx-border);
       border-radius: 6px;
       padding: 3px 8px;
@@ -1008,29 +1027,30 @@
     }
 
     .followup-date-input:focus {
-      border-color: var(--nx-orange);
+      border-color: var(--pace-periwinkle);
     }
 
-    /* Nexflow Followed Up Pill Button */
+    /* Followed Up Pill Button */
     .btn-followup-check {
       font-family: 'Inter', sans-serif;
       font-size: 0.72rem;
       font-weight: 700;
       padding: 4px 11px;
       border-radius: var(--radius-pill);
-      background: var(--nx-orange);
+      background: var(--pace-ocean);
       color: #ffffff;
-      border: none;
+      border: 1px solid rgba(137, 170, 230, 0.35);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      box-shadow: 0 2px 10px var(--nx-orange-glow);
+      box-shadow: 0 2px 10px rgba(4, 113, 166, 0.35);
       transition: all 0.2s var(--ease);
     }
 
     .btn-followup-check:hover {
-      background: var(--nx-orange-hover);
+      background: var(--pace-blue);
+      border-color: var(--pace-periwinkle);
       transform: translateY(-1px);
     }
 
@@ -1064,7 +1084,7 @@
       font-weight: 600;
       padding: 3px 9px;
       border-radius: var(--radius-pill);
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(137, 170, 230, 0.1);
       border: 1px solid var(--nx-border);
       color: #ffffff;
       cursor: pointer;
@@ -1072,8 +1092,8 @@
     }
 
     .preset-chip:hover {
-      background: var(--nx-orange);
-      border-color: var(--nx-orange);
+      background: var(--pace-ocean);
+      border-color: var(--pace-periwinkle);
       color: #ffffff;
       transform: translateY(-1px);
     }
@@ -1108,7 +1128,7 @@
     .btn-toggle-log {
       background: none;
       border: none;
-      color: var(--nx-orange);
+      color: var(--pace-periwinkle);
       font-size: 0.7rem;
       font-weight: 600;
       cursor: pointer;
@@ -1125,7 +1145,7 @@
     .history-drawer {
       margin-top: 6px;
       padding: 8px 10px;
-      background: rgba(0, 0, 0, 0.35);
+      background: rgba(6, 24, 38, 0.65);
       border: 1px solid var(--nx-border);
       border-radius: 6px;
       display: flex;
@@ -1157,9 +1177,9 @@
       width: 16px;
       height: 16px;
       border-radius: 50%;
-      background: var(--nx-orange-bg);
-      border: 1px solid var(--nx-orange-border);
-      color: var(--nx-orange);
+      background: rgba(4, 113, 166, 0.25);
+      border: 1px solid rgba(137, 170, 230, 0.45);
+      color: var(--pace-periwinkle);
       font-size: 0.6rem;
       font-weight: 700;
       display: inline-flex;
@@ -1195,7 +1215,7 @@
       font-weight: 600;
       padding: 4px 10px;
       border-radius: var(--radius-pill);
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(137, 170, 230, 0.08);
       color: var(--nx-muted);
       border: 1px solid var(--nx-border);
       cursor: pointer;
@@ -1203,9 +1223,9 @@
     }
 
     .btn-flow:hover {
-      background: #ffffff;
-      color: var(--nx-bg);
-      border-color: #ffffff;
+      background: var(--pace-periwinkle);
+      color: var(--pace-navy);
+      border-color: var(--pace-periwinkle);
     }
 
     .card-tools {
@@ -1228,7 +1248,7 @@
 
     .btn-tool:hover {
       color: #ffffff;
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(137, 170, 230, 0.14);
     }
 
     .btn-tool.delete:hover {
@@ -1244,11 +1264,11 @@
       font-weight: 500;
     }
 
-    /* ── Nexflow Modal Dialog ── */
+    /* ── Modal Dialog ── */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(6, 8, 12, 0.75);
+      background: rgba(4, 16, 26, 0.78);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       display: flex;
@@ -1305,7 +1325,7 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── Password Gate (Nexflow Lock Screen) ── */
+    /* ── Password Gate (Pace Ocean Lock Screen) ── */
     #auth-gate {
       position: fixed;
       inset: 0;
@@ -1314,7 +1334,7 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
-      background: rgba(12, 14, 20, 0.55);
+      background: rgba(6, 24, 38, 0.65);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
     }
@@ -1322,7 +1342,7 @@
     .auth-card {
       width: 100%;
       max-width: 390px;
-      background: rgba(19, 23, 34, 0.88);
+      background: rgba(8, 39, 59, 0.90);
       border: 1px solid var(--nx-border-strong);
       border-radius: var(--radius-xl);
       padding: 34px 28px 30px;
@@ -1341,7 +1361,7 @@
       left: 0;
       right: 0;
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255, 91, 55, 0.55), transparent);
+      background: linear-gradient(90deg, transparent, rgba(137, 170, 230, 0.65), transparent);
     }
 
     .auth-card.shake {
@@ -1367,12 +1387,13 @@
       width: 46px;
       height: 46px;
       border-radius: 13px;
-      background: linear-gradient(135deg, #ff5b37 0%, #ff7b5a 100%);
+      background: linear-gradient(135deg, #0471a6 0%, #3685b5 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       color: #ffffff;
-      box-shadow: 0 6px 20px var(--nx-orange-glow);
+      box-shadow: 0 6px 20px rgba(4, 113, 166, 0.42);
+      border: 1px solid rgba(137, 170, 230, 0.4);
       margin-bottom: 14px;
     }
 
@@ -1455,7 +1476,7 @@
     }
 
     .btn-lock-app {
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(7, 38, 58, 0.65);
       border: 1px solid var(--nx-border);
       color: var(--nx-muted);
       padding: 5px 11px;
@@ -1473,14 +1494,14 @@
     .btn-lock-app:hover {
       color: #ffffff;
       border-color: var(--nx-border-strong);
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(137, 170, 230, 0.14);
     }
 
     /* ── Recurring Tasks Menu & Badges ── */
     .btn-recurring-menu {
-      background: var(--nx-purple-bg);
-      border: 1px solid var(--nx-purple-border);
-      color: #ddd6fe;
+      background: rgba(137, 170, 230, 0.14);
+      border: 1px solid rgba(137, 170, 230, 0.32);
+      color: var(--pace-periwinkle);
       padding: 5px 12px;
       border-radius: var(--radius-pill);
       font-family: 'Inter', sans-serif;
@@ -1494,8 +1515,8 @@
     }
 
     .btn-recurring-menu:hover {
-      background: rgba(139, 92, 246, 0.22);
-      border-color: rgba(139, 92, 246, 0.55);
+      background: rgba(4, 113, 166, 0.35);
+      border-color: var(--pace-periwinkle);
       color: #ffffff;
       transform: translateY(-1px);
     }
@@ -1504,7 +1525,7 @@
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.65rem;
       font-weight: 700;
-      background: var(--nx-purple);
+      background: var(--pace-ocean);
       color: #ffffff;
       padding: 1px 6px;
       border-radius: var(--radius-pill);
@@ -1517,9 +1538,9 @@
       letter-spacing: 0.03em;
       padding: 4px 11px;
       border-radius: var(--radius-pill);
-      background: var(--nx-purple-bg);
-      border: 1px solid var(--nx-purple-border);
-      color: #ddd6fe;
+      background: rgba(137, 170, 230, 0.14);
+      border: 1px solid rgba(137, 170, 230, 0.32);
+      color: var(--pace-periwinkle);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -1528,20 +1549,21 @@
     }
 
     .btn-card-recurring:hover {
-      background: rgba(139, 92, 246, 0.22);
+      background: rgba(4, 113, 166, 0.35);
+      border-color: var(--pace-periwinkle);
       color: #ffffff;
     }
 
     .badge-recurring {
-      background: var(--nx-orange-bg);
-      border-color: var(--nx-orange-border);
-      color: #ffb4a2;
+      background: rgba(54, 133, 181, 0.18);
+      border-color: rgba(137, 170, 230, 0.35);
+      color: var(--pace-periwinkle);
       font-family: 'JetBrains Mono', monospace;
     }
 
     .badge-rollover {
       background: rgba(245, 158, 11, 0.12);
-      border-color: rgba(245, 158, 11, 0.3);
+      border-color: rgba(245, 158, 11, 0.34);
       color: #fcd34d;
       font-family: 'JetBrains Mono', monospace;
     }
@@ -1568,7 +1590,7 @@
     }
 
     .btn-modal-close {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(137, 170, 230, 0.08);
       border: 1px solid var(--nx-border);
       color: var(--nx-muted);
       width: 32px;
@@ -1586,12 +1608,12 @@
 
     .btn-modal-close:hover {
       color: #ffffff;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(137, 170, 230, 0.18);
       border-color: var(--nx-border-strong);
     }
 
     .rec-form-box {
-      background: rgba(255, 255, 255, 0.025);
+      background: rgba(6, 24, 38, 0.45);
       border: 1px solid var(--nx-border);
       border-radius: var(--radius-md);
       padding: 18px;
@@ -1631,7 +1653,7 @@
       font-weight: 600;
       padding: 6px 10px;
       border-radius: var(--radius-sm);
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(6, 24, 38, 0.55);
       border: 1px solid var(--nx-border);
       color: var(--nx-muted);
       cursor: pointer;
@@ -1644,10 +1666,10 @@
     }
 
     .weekday-chip.active {
-      background: var(--nx-orange);
-      border-color: var(--nx-orange);
+      background: var(--pace-ocean);
+      border-color: var(--pace-periwinkle);
       color: #ffffff;
-      box-shadow: 0 2px 10px var(--nx-orange-glow);
+      box-shadow: 0 2px 10px rgba(4, 113, 166, 0.38);
     }
 
     .rec-preview-bar {
@@ -1664,7 +1686,7 @@
     .rec-preview-text {
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.72rem;
-      color: #ddd6fe;
+      color: var(--pace-periwinkle);
     }
 
     .rec-form-actions {
@@ -1695,7 +1717,7 @@
     }
 
     .rec-rule-card {
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(6, 24, 38, 0.45);
       border: 1px solid var(--nx-border);
       border-radius: var(--radius-md);
       padding: 13px 15px;
@@ -1739,7 +1761,7 @@
     }
 
     .rec-status-pill.paused {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(137, 170, 230, 0.08);
       border-color: var(--nx-border);
       color: var(--nx-muted);
     }
