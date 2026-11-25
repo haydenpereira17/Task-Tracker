@@ -407,6 +407,30 @@
       box-shadow: 0 0 0 3px rgba(137, 170, 230, 0.22);
     }
 
+    textarea.nx-input {
+      resize: vertical;
+      line-height: 1.5;
+      min-height: 80px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .task-desc-row {
+      margin-top: 12px;
+    }
+
+    textarea.task-desc-compact {
+      min-height: 40px;
+      height: 40px;
+      padding: 9px 14px;
+      transition: all 0.2s var(--ease);
+    }
+
+    textarea.task-desc-compact:focus,
+    textarea.task-desc-compact.has-content {
+      min-height: 96px;
+      height: auto;
+    }
+
     select.nx-select {
       cursor: pointer;
       appearance: none;
@@ -1193,6 +1217,120 @@
       font-weight: 500;
     }
 
+    /* ── Expandable Description / Mail Trail Drawer ── */
+    .tile-desc-dock {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .btn-desc-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 10px;
+      background: rgba(137, 170, 230, 0.08);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-sm);
+      color: var(--pace-dim-on-dark);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+      text-align: left;
+    }
+
+    .btn-desc-toggle:hover {
+      background: rgba(137, 170, 230, 0.16);
+      border-color: var(--nx-border-strong);
+      color: #ffffff;
+    }
+
+    .btn-desc-toggle.is-open {
+      border-color: var(--pace-periwinkle);
+      background: rgba(4, 113, 166, 0.22);
+      color: #ffffff;
+    }
+
+    .btn-desc-left {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-desc-hint {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--pace-periwinkle);
+    }
+
+    .desc-drawer {
+      padding: 10px 12px;
+      background: rgba(6, 24, 38, 0.72);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      animation: fadeIn 0.16s var(--ease);
+    }
+
+    .desc-drawer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid var(--nx-border);
+    }
+
+    .desc-drawer-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.66rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--nx-muted);
+    }
+
+    .desc-drawer-tools {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-desc-mini {
+      background: rgba(137, 170, 230, 0.1);
+      border: 1px solid var(--nx-border);
+      color: var(--pace-periwinkle);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.18s var(--ease);
+    }
+
+    .btn-desc-mini:hover {
+      background: var(--pace-ocean);
+      border-color: var(--pace-periwinkle);
+      color: #ffffff;
+    }
+
+    .desc-content {
+      font-size: 0.8rem;
+      line-height: 1.55;
+      color: var(--pace-dim-on-dark);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
     /* Actions Footer */
     .card-footer {
       display: flex;
@@ -1293,6 +1431,8 @@
       padding: 30px;
       width: 100%;
       max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
       box-shadow: var(--shadow-modal);
       animation: modal-pop 0.22s var(--ease);
     }
@@ -1965,6 +2105,13 @@
           </button>
         </div>
       </div>
+
+      <div class="task-desc-row">
+        <div class="field-group">
+          <label class="field-label" for="task-desc">Description / Mail Trail <span style="opacity:0.65; font-weight:500;">(Optional)</span></label>
+          <textarea id="task-desc" class="nx-input task-desc-compact" rows="1" placeholder="Optional: paste email trail, notes, or context…" oninput="this.classList.toggle('has-content', this.value.trim().length > 0)"></textarea>
+        </div>
+      </div>
     </section>
 
     <!-- Filter Shelf -->
@@ -2034,6 +2181,11 @@
       <div class="field-group" style="margin-bottom: 16px;">
         <label class="field-label" for="edit-title">Task Title</label>
         <input type="text" id="edit-title" class="nx-input" />
+      </div>
+
+      <div class="field-group" style="margin-bottom: 16px;">
+        <label class="field-label" for="edit-desc">Description / Mail Trail</label>
+        <textarea id="edit-desc" class="nx-input" rows="4" placeholder="Paste email trail, notes, or context…"></textarea>
       </div>
 
       <div class="field-group" style="margin-bottom: 16px;">
@@ -2144,6 +2296,11 @@
         <div class="field-group hidden" id="rec-interval-group" style="margin-bottom: 10px; max-width: 200px;">
           <label class="field-label" for="rec-interval">Repeat Every (Days)</label>
           <input type="number" id="rec-interval" class="nx-input" min="2" max="365" value="3" oninput="updateRecurringPreview()" />
+        </div>
+
+        <div class="field-group" style="margin-bottom: 4px;">
+          <label class="field-label" for="rec-desc">Description / Mail Trail <span style="opacity:0.65; font-weight:500;">(Optional)</span></label>
+          <textarea id="rec-desc" class="nx-input task-desc-compact" rows="1" placeholder="Optional context or email trail for each occurrence…" oninput="this.classList.toggle('has-content', this.value.trim().length > 0)"></textarea>
         </div>
 
         <div class="rec-preview-bar">
@@ -2543,6 +2700,28 @@
       renderBoard();
     }
 
+    const openDescDrawers = new Set();
+    function toggleDescription(id) {
+      if (openDescDrawers.has(id)) {
+        openDescDrawers.delete(id);
+      } else {
+        openDescDrawers.add(id);
+      }
+      renderBoard();
+    }
+
+    function copyDescription(id, btnEl) {
+      const task = allTasks.find(t => t.id === id);
+      if (!task || !task.description || !navigator.clipboard) return;
+      navigator.clipboard.writeText(task.description).then(() => {
+        if (btnEl) {
+          const prev = btnEl.textContent;
+          btnEl.textContent = 'Copied!';
+          setTimeout(() => { btnEl.textContent = prev; }, 1400);
+        }
+      }).catch(() => {});
+    }
+
     function getTaskHistory(t) {
       if (!t) return [];
       if (t.followupHistory) {
@@ -2564,6 +2743,8 @@
       const title = document.getElementById('task-title').value.trim();
       const person = document.getElementById('task-person').value;
       const date = document.getElementById('task-date').value;
+      const descEl = document.getElementById('task-desc');
+      const description = descEl.value.trim();
 
       if (!title) {
         document.getElementById('task-title').focus();
@@ -2574,6 +2755,7 @@
         title,
         person,
         date,
+        description,
         followup: '',
         status: 'todo',
         createdAt: new Date().toISOString()
@@ -2581,6 +2763,8 @@
 
       document.getElementById('task-title').value = '';
       document.getElementById('task-person').value = '';
+      descEl.value = '';
+      descEl.classList.remove('has-content');
       setDefaultDueDate();
       document.getElementById('task-title').focus();
     }
@@ -2665,17 +2849,21 @@
     // ══════════════════════════════════════
     // ── Edit Modal Logic ──
     // ══════════════════════════════════════
-    function openEditModal(id) {
+    function openEditModal(id, focusDesc = false) {
       const task = allTasks.find(t => t.id === id);
       if (!task) return;
 
       document.getElementById('edit-id').value = id;
       document.getElementById('edit-title').value = task.title;
+      document.getElementById('edit-desc').value = task.description || '';
       document.getElementById('edit-person').value = task.person || '';
       document.getElementById('edit-date').value = task.date || '';
       document.getElementById('edit-followup').value = task.followup || '';
       document.getElementById('edit-status').value = task.status || 'todo';
       document.getElementById('edit-modal').classList.remove('hidden');
+      if (focusDesc) {
+        setTimeout(() => document.getElementById('edit-desc').focus(), 20);
+      }
     }
 
     function closeEditModal() {
@@ -2689,6 +2877,7 @@
 
       tasksRef.child(id).update({
         title: document.getElementById('edit-title').value.trim(),
+        description: document.getElementById('edit-desc').value.trim(),
         person: document.getElementById('edit-person').value,
         date: document.getElementById('edit-date').value,
         followup: document.getElementById('edit-followup').value,
@@ -2778,6 +2967,7 @@
       return {
         title: document.getElementById('rec-title').value.trim(),
         person: document.getElementById('rec-person').value,
+        description: document.getElementById('rec-desc').value.trim(),
         frequency: freq,
         startDate,
         mode: document.getElementById('rec-mode').value,
@@ -2834,6 +3024,9 @@
       document.getElementById('rec-edit-id').value = '';
       document.getElementById('rec-title').value = '';
       document.getElementById('rec-person').value = '';
+      const recDescEl = document.getElementById('rec-desc');
+      recDescEl.value = '';
+      recDescEl.classList.remove('has-content');
       document.getElementById('rec-freq').value = 'weekly';
       document.getElementById('rec-mode').value = 'single';
       const today = new Date();
@@ -2853,6 +3046,9 @@
       document.getElementById('rec-edit-id').value = id;
       document.getElementById('rec-title').value = rule.title || '';
       document.getElementById('rec-person').value = rule.person || '';
+      const recDescEl = document.getElementById('rec-desc');
+      recDescEl.value = rule.description || '';
+      recDescEl.classList.toggle('has-content', Boolean(rule.description));
       document.getElementById('rec-freq').value = rule.frequency || 'weekly';
       document.getElementById('rec-start').value = rule.startDate || formatLocalDateStr(new Date());
       document.getElementById('rec-mode').value = rule.mode || 'single';
@@ -2882,6 +3078,7 @@
         recurringRef.child(editId).update({
           title: draft.title,
           person: draft.person,
+          description: draft.description,
           frequency: draft.frequency,
           startDate: draft.startDate,
           mode: draft.mode,
@@ -2990,6 +3187,7 @@
           title: rule.title,
           person: rule.person || '',
           date: dateStr,
+          description: rule.description || '',
           followup: '',
           status: 'todo',
           recurringId: rule.id,
@@ -3286,7 +3484,7 @@
         if (filterPerson && t.person !== filterPerson) return false;
         if (filterOverdue === 'overdue' && !isOverdue(t.date, t.status)) return false;
         if (filterOverdue === 'rolled' && !(t.rolloverCount > 0)) return false;
-        if (searchTerm && !t.title.toLowerCase().includes(searchTerm) && !(t.person || '').toLowerCase().includes(searchTerm)) return false;
+        if (searchTerm && !t.title.toLowerCase().includes(searchTerm) && !(t.person || '').toLowerCase().includes(searchTerm) && !(t.description || '').toLowerCase().includes(searchTerm)) return false;
         return true;
       });
 
@@ -3320,6 +3518,32 @@
           const overdue = isOverdue(t.date, t.status);
           const taskHistory = getTaskHistory(t);
           const isHistoryOpen = openHistoryDrawers.has(t.id);
+          const hasDesc = Boolean(t.description && t.description.trim());
+          const isDescOpen = openDescDrawers.has(t.id);
+
+          const descMarkup = hasDesc ? `
+            <div class="tile-desc-dock">
+              <button type="button" class="btn-desc-toggle ${isDescOpen ? 'is-open' : ''}" onclick="toggleDescription('${t.id}')" aria-expanded="${isDescOpen}">
+                <span class="btn-desc-left">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  <span>Mail Trail / Description</span>
+                </span>
+                <span class="btn-desc-hint">${isDescOpen ? 'Hide &blacktriangle;' : 'View &blacktriangledown;'}</span>
+              </button>
+              ${isDescOpen ? `
+                <div class="desc-drawer">
+                  <div class="desc-drawer-head">
+                    <span class="desc-drawer-label">Mail Trail / Context</span>
+                    <div class="desc-drawer-tools">
+                      <button type="button" class="btn-desc-mini" onclick="copyDescription('${t.id}', this)">Copy</button>
+                      <button type="button" class="btn-desc-mini" onclick="openEditModal('${t.id}', true)">Edit</button>
+                    </div>
+                  </div>
+                  <div class="desc-content">${escapeHtml(t.description)}</div>
+                </div>
+              ` : ''}
+            </div>
+          ` : '';
 
           const statusButtons = ['todo', 'inprogress', 'done']
             .filter(s => s !== t.status)
@@ -3388,6 +3612,8 @@
                   </span>
                 ` : ''}
               </div>
+
+              ${descMarkup}
 
               ${t.promptNextFollowup ? `
                 <div class="followup-dock">
