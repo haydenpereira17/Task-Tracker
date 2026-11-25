@@ -89,15 +89,22 @@
       --ease: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
+    html {
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background-color: var(--nx-bg);
       color: var(--nx-text);
       min-height: 100vh;
+      max-width: 100%;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
+      overflow-x: clip;
       position: relative;
     }
 
@@ -107,7 +114,8 @@
       top: -120px;
       left: 50%;
       transform: translateX(-50%);
-      width: 820px;
+      width: min(820px, 100%);
+      max-width: 100vw;
       height: 420px;
       background: radial-gradient(circle, rgba(4, 113, 166, 0.24) 0%, rgba(185, 22, 46, 0.11) 42%, rgba(137, 170, 230, 0.06) 65%, transparent 78%);
       filter: blur(100px);
@@ -645,17 +653,12 @@
 
     .heatmap-days-grid {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(7, minmax(0, 1fr));
       gap: 8px;
     }
 
-    @media (max-width: 640px) {
-      .heatmap-days-grid {
-        gap: 5px;
-      }
-    }
-
     .heatmap-day-cell {
+      min-width: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -935,19 +938,21 @@
     }
 
     .filter-search-box {
-      min-width: 260px;
+      min-width: 0;
+      flex: 1 1 240px;
+      max-width: 340px;
     }
 
     /* ── Kanban Columns ── */
     .board-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 20px;
     }
 
     @media (max-width: 960px) {
       .board-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
         gap: 24px;
       }
     }
@@ -958,8 +963,81 @@
       border-radius: var(--radius-lg);
       padding: 16px;
       min-height: 440px;
+      min-width: 0;
+      max-width: 100%;
       display: flex;
       flex-direction: column;
+    }
+
+    @media (max-width: 640px) {
+      .header-inner {
+        padding: 12px 14px;
+        gap: 10px;
+      }
+
+      .header-right {
+        gap: 8px;
+        width: 100%;
+      }
+
+      .stats-shelf {
+        max-width: 100%;
+        flex-wrap: wrap;
+        font-size: 0.7rem;
+        padding: 3px 8px;
+        gap: 4px;
+      }
+
+      main {
+        padding: 16px 12px 64px;
+      }
+
+      .heatmap-panel {
+        padding: 14px 12px;
+        margin-bottom: 16px;
+      }
+
+      .heatmap-days-grid {
+        gap: 4px;
+      }
+
+      .heatmap-day-cell {
+        padding: 7px 2px;
+      }
+
+      .cell-weekday {
+        font-size: 0.56rem;
+        letter-spacing: 0;
+      }
+
+      .cell-date-num {
+        font-size: 0.85rem;
+      }
+
+      .cell-task-badge {
+        font-size: 0.6rem;
+        padding: 1px 4px;
+      }
+
+      .nex-card {
+        padding: 16px 14px;
+        margin-bottom: 18px;
+      }
+
+      .filter-search-box {
+        max-width: 100%;
+        flex: 1 1 100%;
+      }
+
+      .open-people-strip {
+        padding: 8px 10px;
+        margin-bottom: 16px;
+      }
+
+      .column {
+        padding: 12px;
+        min-height: 0;
+      }
     }
 
     .column-header {
