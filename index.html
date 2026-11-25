@@ -791,8 +791,107 @@
       align-items: center;
       justify-content: space-between;
       gap: 14px;
-      margin-bottom: 24px;
+      margin-bottom: 12px;
       flex-wrap: wrap;
+    }
+
+    /* ── Open Tasks by Person Narrow Strip ── */
+    .open-people-strip {
+      display: flex;
+      align-items: center;
+      gap: 8px 10px;
+      flex-wrap: wrap;
+      padding: 8px 12px;
+      margin-bottom: 20px;
+      background: rgba(7, 38, 58, 0.36);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-md);
+    }
+
+    .open-people-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--nx-muted);
+      white-space: nowrap;
+      margin-right: 2px;
+    }
+
+    .open-people-list {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .open-person-chip {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+      background: rgba(6, 24, 38, 0.55);
+      border: 1px solid var(--nx-border);
+      color: var(--pace-dim-on-dark);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.18s var(--ease);
+      white-space: nowrap;
+    }
+
+    .open-person-chip:hover {
+      background: rgba(4, 113, 166, 0.25);
+      border-color: var(--pace-periwinkle);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .open-person-chip.is-active {
+      background: var(--pace-red);
+      border-color: rgba(255, 148, 161, 0.65);
+      color: #ffffff;
+      box-shadow: 0 2px 10px var(--pace-red-glow);
+    }
+
+    .open-person-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--pace-periwinkle);
+    }
+
+    .open-person-chip.is-active .open-person-count {
+      color: #ffe4e8;
+    }
+
+    .btn-open-person-clear {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.66rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+      background: rgba(137, 170, 230, 0.12);
+      border: 1px solid var(--nx-border);
+      color: var(--nx-muted);
+      cursor: pointer;
+      transition: all 0.18s var(--ease);
+      margin-left: auto;
+    }
+
+    .btn-open-person-clear:hover {
+      border-color: var(--pace-periwinkle);
+      color: #ffffff;
+    }
+
+    .open-people-empty {
+      font-size: 0.74rem;
+      color: var(--nx-muted);
+      font-style: italic;
     }
 
     .filter-left {
@@ -2489,6 +2588,9 @@
       </div>
     </section>
 
+    <!-- Open Tasks by Person Strip -->
+    <section class="open-people-strip" id="open-people-strip" aria-label="Open Tasks by Assignee"></section>
+
     <!-- Kanban Columns -->
     <section class="board-grid" aria-label="Task Board">
       <!-- Column: To Do -->
@@ -4113,8 +4215,9 @@
       const filterOverdue = document.getElementById('filter-overdue').value;
       const searchTerm = document.getElementById('filter-search').value.toLowerCase();
 
-      // Render Heatmap with current task density
+      // Render Heatmap and Open Tasks by Person strip
       renderHeatmap(tasks);
+      renderOpenPeopleStrip(tasks, filterPerson);
 
       // Filter tasks
       const filtered = tasks.filter(t => {
@@ -4451,10 +4554,70 @@
       document.getElementById('stat-done').textContent = String(tasks.filter(t => t.status === 'done').length).padStart(2, '0');
     }
 
+    function togglePersonChipFilter(name) {
+      const sel = document.getElementById('filter-person');
+      if (!sel) return;
+      if (!name || sel.value === name) {
+        sel.value = '';
+      } else {
+        const hasOpt = Array.from(sel.options).some(o => o.value === name);
+        if (!hasOpt) {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          sel.appendChild(opt);
+        }
+        sel.value = name;
+      }
+      renderBoard();
+    }
+
+    function renderOpenPeopleStrip(tasks, activePerson) {
+      const strip = document.getElementById('open-people-strip');
+      if (!strip) return;
+
+      const counts = new Map();
+      tasks.forEach(t => {
+        if (t.status === 'done') return;
+        const name = (t.person || '').trim();
+        if (!name) return;
+        counts.set(name, (counts.get(name) || 0) + 1);
+      });
+
+      const entries = Array.from(counts.entries())
+        .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]));
+
+      const listHtml = entries.length > 0
+        ? entries.map(([name, count]) => {
+            const isActive = (activePerson === name);
+            return `
+              <button type="button" class="open-person-chip ${isActive ? 'is-active' : ''}" data-person="${escapeAttr(name)}" onclick="togglePersonChipFilter(this.dataset.person)" aria-pressed="${isActive}" title="${isActive ? 'Clear filter' : 'Filter tasks for ' + escapeAttr(name)}">
+                <span>${escapeHtml(name)}</span>
+                <span class="open-person-count">(${count})</span>
+              </button>
+            `;
+          }).join('')
+        : '<span class="open-people-empty">No open assigned tasks</span>';
+
+      const clearBtnHtml = activePerson
+        ? '<button type="button" class="btn-open-person-clear" onclick="togglePersonChipFilter(\'\')" title="Show all assignees">Clear &times;</button>'
+        : '';
+
+      strip.innerHTML = `
+        <span class="open-people-label">Open Tasks</span>
+        <div class="open-people-list">${listHtml}</div>
+        ${clearBtnHtml}
+      `;
+    }
+
     function escapeHtml(str) {
       const div = document.createElement('div');
       div.textContent = str;
       return div.innerHTML;
+    }
+
+    function escapeAttr(str) {
+      return escapeHtml(String(str || '')).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
     document.addEventListener('keydown', e => {
