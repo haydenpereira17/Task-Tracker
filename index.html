@@ -1197,11 +1197,32 @@
 
     .history-item {
       display: flex;
-      align-items: center;
-      gap: 8px;
+      flex-direction: column;
+      gap: 5px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.72rem;
-      padding: 2px 0;
+      padding: 4px 0;
+      border-bottom: 1px dashed rgba(137, 170, 230, 0.14);
+    }
+
+    .history-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .history-item-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .history-item-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
     }
 
     .history-node {
@@ -1222,6 +1243,67 @@
     .history-time {
       color: #ffffff;
       font-weight: 500;
+    }
+
+    .btn-history-note-toggle {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.64rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(137, 170, 230, 0.1);
+      border: 1px solid var(--nx-border);
+      color: var(--pace-periwinkle);
+      cursor: pointer;
+      transition: all 0.18s var(--ease);
+      flex-shrink: 0;
+    }
+
+    .btn-history-note-toggle:hover {
+      background: rgba(137, 170, 230, 0.2);
+      border-color: var(--nx-border-strong);
+      color: #ffffff;
+    }
+
+    .btn-history-note-toggle.has-note:not(.is-open) {
+      background: rgba(185, 22, 46, 0.16);
+      border-color: rgba(185, 22, 46, 0.48);
+      color: #ffb3bd;
+    }
+
+    .btn-history-note-toggle.is-open {
+      background: rgba(4, 113, 166, 0.25);
+      border-color: var(--pace-periwinkle);
+      color: #ffffff;
+    }
+
+    .history-note-drawer {
+      margin-left: 23px;
+      padding: 7px 9px;
+      background: rgba(4, 34, 54, 0.72);
+      border: 1px solid var(--nx-border);
+      border-radius: 5px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .history-note-body {
+      font-size: 0.76rem;
+      line-height: 1.48;
+      color: var(--pace-dim-on-dark);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .hist-note-textarea {
+      width: 100%;
+      font-size: 0.76rem;
+      padding: 7px 9px;
+      line-height: 1.42;
+      resize: vertical;
+      min-height: 54px;
     }
 
     /* ── Expandable Description / Mail Trail Drawer ── */
@@ -2721,6 +2803,9 @@
       openFollowupDescDrawers.clear();
       editingFollowupDesc.clear();
       fupDescDrafts.clear();
+      openHistoryNotes.clear();
+      editingHistoryNotes.clear();
+      histNoteDrafts.clear();
       closeEditModal();
       closeRecurringModal();
       document.getElementById('app-shell').classList.add('hidden');
@@ -2985,9 +3070,7 @@
       renderBoard();
     }
 
-    function copyTaskText(id, field, btnEl) {
-      const task = allTasks.find(t => t.id === id);
-      const text = task && task[field];
+    function copyStringToClipboard(text, btnEl) {
       if (!text || !navigator.clipboard) return;
       navigator.clipboard.writeText(text).then(() => {
         if (btnEl) {
@@ -2996,6 +3079,109 @@
           setTimeout(() => { btnEl.textContent = prev; }, 1400);
         }
       }).catch(() => {});
+    }
+
+    function copyTaskText(id, field, btnEl) {
+      const task = allTasks.find(t => t.id === id);
+      copyStringToClipboard(task && task[field], btnEl);
+    }
+
+    const openHistoryNotes = new Set();
+    const editingHistoryNotes = new Set();
+    const histNoteDrafts = new Map();
+
+    function getHistoryEntryText(entry) {
+      if (!entry) return '';
+      if (entry.description !== undefined && entry.description !== null) return String(entry.description);
+      if (entry.note !== undefined && entry.note !== null) return String(entry.note);
+      return '';
+    }
+
+    function toggleHistoryNote(id, idx) {
+      const key = `${id}:${idx}`;
+      const task = allTasks.find(t => t.id === id);
+      const history = getTaskHistory(task);
+      const entryText = getHistoryEntryText(history[idx]).trim();
+
+      if (openHistoryNotes.has(key)) {
+        openHistoryNotes.delete(key);
+        editingHistoryNotes.delete(key);
+        histNoteDrafts.delete(key);
+      } else {
+        openHistoryNotes.add(key);
+        if (!entryText) {
+          editingHistoryNotes.add(key);
+          histNoteDrafts.set(key, '');
+        } else {
+          editingHistoryNotes.delete(key);
+        }
+      }
+      renderBoard();
+      if (openHistoryNotes.has(key) && editingHistoryNotes.has(key)) {
+        setTimeout(() => {
+          const el = document.getElementById(`hist-note-input-${id}-${idx}`);
+          if (el) el.focus();
+        }, 15);
+      }
+    }
+
+    function startEditHistoryNote(id, idx) {
+      const key = `${id}:${idx}`;
+      const task = allTasks.find(t => t.id === id);
+      const history = getTaskHistory(task);
+      const entryText = getHistoryEntryText(history[idx]);
+      openHistoryNotes.add(key);
+      editingHistoryNotes.add(key);
+      histNoteDrafts.set(key, entryText);
+      renderBoard();
+      setTimeout(() => {
+        const el = document.getElementById(`hist-note-input-${id}-${idx}`);
+        if (el) el.focus();
+      }, 15);
+    }
+
+    function cancelEditHistoryNote(id, idx) {
+      const key = `${id}:${idx}`;
+      const task = allTasks.find(t => t.id === id);
+      const history = getTaskHistory(task);
+      const hasNote = Boolean(getHistoryEntryText(history[idx]).trim());
+      editingHistoryNotes.delete(key);
+      histNoteDrafts.delete(key);
+      if (!hasNote) {
+        openHistoryNotes.delete(key);
+      }
+      renderBoard();
+    }
+
+    function saveHistoryNote(id, idx) {
+      const key = `${id}:${idx}`;
+      const task = allTasks.find(t => t.id === id);
+      if (!task) return;
+      const history = [...getTaskHistory(task)];
+      if (idx < 0 || idx >= history.length) return;
+
+      const input = document.getElementById(`hist-note-input-${id}-${idx}`);
+      const val = (input ? input.value : (histNoteDrafts.get(key) || '')).trim();
+      const updatedEntry = { ...history[idx], description: val };
+      delete updatedEntry.note;
+      history[idx] = updatedEntry;
+
+      editingHistoryNotes.delete(key);
+      histNoteDrafts.delete(key);
+      if (!val) {
+        openHistoryNotes.delete(key);
+      } else {
+        openHistoryNotes.add(key);
+      }
+
+      tasksRef.child(id).update({ followupHistory: history });
+      renderBoard();
+    }
+
+    function copyHistoryNote(id, idx, btnEl) {
+      const task = allTasks.find(t => t.id === id);
+      const history = getTaskHistory(task);
+      copyStringToClipboard(getHistoryEntryText(history[idx]), btnEl);
     }
 
     function getTaskHistory(t) {
@@ -3080,7 +3266,8 @@
 
       history.push({
         completedAt: todayIso,
-        number: currentCount + 1
+        number: currentCount + 1,
+        description: (task && task.followupDescription) ? task.followupDescription.trim() : ''
       });
 
       tasksRef.child(id).update({
@@ -3892,12 +4079,52 @@
             ${isHistoryOpen ? `
               <div class="history-drawer">
                 <div class="history-title">Follow-up Log (${taskHistory.length})</div>
-                ${taskHistory.slice().reverse().map(h => `
-                  <div class="history-item">
-                    <span class="history-node">#${h.number || ''}</span>
-                    <span class="history-time">${formatFullDateTime(h.completedAt)}</span>
-                  </div>
-                `).join('')}
+                ${taskHistory.map((h, idx) => ({ h, idx })).reverse().map(({ h, idx }) => {
+                  const hKey = `${t.id}:${idx}`;
+                  const noteText = getHistoryEntryText(h).trim();
+                  const hasNote = Boolean(noteText);
+                  const noteOpen = openHistoryNotes.has(hKey);
+                  const isEditingNote = editingHistoryNotes.has(hKey);
+                  const histDraftVal = histNoteDrafts.has(hKey) ? histNoteDrafts.get(hKey) : getHistoryEntryText(h);
+
+                  return `
+                    <div class="history-item" data-history-idx="${idx}">
+                      <div class="history-item-head">
+                        <div class="history-item-meta">
+                          <span class="history-node">#${h.number || (idx + 1)}</span>
+                          <span class="history-time">${formatFullDateTime(h.completedAt)}</span>
+                        </div>
+                        <button type="button" class="btn-history-note-toggle ${noteOpen ? 'is-open' : ''} ${hasNote ? 'has-note' : ''}" onclick="toggleHistoryNote('${t.id}', ${idx})">
+                          ${noteOpen ? 'Hide &blacktriangle;' : (hasNote ? 'Description &blacktriangledown;' : '+ Description')}
+                        </button>
+                      </div>
+                      ${noteOpen ? `
+                        <div class="history-note-drawer">
+                          ${isEditingNote ? `
+                            <textarea
+                              id="hist-note-input-${t.id}-${idx}"
+                              class="nx-input hist-note-textarea"
+                              rows="2"
+                              placeholder="Add or edit description for this follow-up…"
+                              oninput="histNoteDrafts.set('${hKey}', this.value)"
+                              onkeydown="if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();saveHistoryNote('${t.id}', ${idx});}"
+                            >${escapeHtml(histDraftVal)}</textarea>
+                            <div class="fup-desc-actions">
+                              <button type="button" class="btn-desc-mini" onclick="cancelEditHistoryNote('${t.id}', ${idx})">Cancel</button>
+                              <button type="button" class="btn-fup-save" onclick="saveHistoryNote('${t.id}', ${idx})">Save</button>
+                            </div>
+                          ` : `
+                            <div class="history-note-body">${escapeHtml(getHistoryEntryText(h))}</div>
+                            <div class="fup-desc-actions">
+                              <button type="button" class="btn-desc-mini" onclick="copyHistoryNote('${t.id}', ${idx}, this)">Copy</button>
+                              <button type="button" class="btn-desc-mini" onclick="startEditHistoryNote('${t.id}', ${idx})">Edit</button>
+                            </div>
+                          `}
+                        </div>
+                      ` : ''}
+                    </div>
+                  `;
+                }).join('')}
               </div>
             ` : ''}
           ` : '';
