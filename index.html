@@ -400,6 +400,29 @@
       box-shadow: 0 0 0 3px rgba(137, 170, 230, 0.22);
     }
 
+    .required-star {
+      color: var(--nx-rose);
+      font-weight: 700;
+      margin-left: 2px;
+    }
+
+    .nx-input.is-invalid, .nx-select.is-invalid {
+      border-color: var(--nx-rose);
+      box-shadow: 0 0 0 3px rgba(185, 22, 46, 0.24);
+    }
+
+    .form-validation-msg {
+      display: none;
+      margin-top: 10px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--nx-rose);
+    }
+
+    .form-validation-msg.visible {
+      display: block;
+    }
+
     textarea.nx-input {
       resize: vertical;
       line-height: 1.5;
@@ -2934,13 +2957,13 @@
 
       <div class="form-grid">
         <div class="field-group">
-          <label class="field-label" for="task-title">Task Title</label>
-          <input type="text" id="task-title" class="nx-input" placeholder="What needs to be done?" />
+          <label class="field-label" for="task-title">Task Title <span class="required-star" aria-hidden="true">*</span></label>
+          <input type="text" id="task-title" class="nx-input" placeholder="What needs to be done?" required aria-required="true" oninput="clearTaskFieldError(this, 'create-form-error')" />
         </div>
 
         <div class="field-group">
-          <label class="field-label" for="task-person">Assignee</label>
-          <select id="task-person" class="nx-select"></select>
+          <label class="field-label" for="task-person">Assignee <span class="required-star" aria-hidden="true">*</span></label>
+          <select id="task-person" class="nx-select" required aria-required="true" onchange="clearTaskFieldError(this, 'create-form-error')"></select>
         </div>
 
         <div class="field-group">
@@ -2954,12 +2977,13 @@
         </div>
 
         <div class="submit-cell">
-          <button class="btn-nx-primary" onclick="addTask()">
+          <button type="button" class="btn-nx-primary" onclick="addTask()">
             <span>Add Task</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
         </div>
       </div>
+      <div class="form-validation-msg" id="create-form-error" role="alert"></div>
 
       <div class="task-desc-row">
         <div class="field-group">
@@ -3037,8 +3061,8 @@
       <input type="hidden" id="edit-id" />
 
       <div class="field-group" style="margin-bottom: 16px;">
-        <label class="field-label" for="edit-title">Task Title</label>
-        <input type="text" id="edit-title" class="nx-input" />
+        <label class="field-label" for="edit-title">Task Title <span class="required-star" aria-hidden="true">*</span></label>
+        <input type="text" id="edit-title" class="nx-input" required aria-required="true" oninput="clearTaskFieldError(this, 'edit-form-error')" />
       </div>
 
       <div class="field-group" style="margin-bottom: 16px;">
@@ -3047,8 +3071,8 @@
       </div>
 
       <div class="field-group" style="margin-bottom: 16px;">
-        <label class="field-label" for="edit-person">Assignee</label>
-        <select id="edit-person" class="nx-select"></select>
+        <label class="field-label" for="edit-person">Assignee <span class="required-star" aria-hidden="true">*</span></label>
+        <select id="edit-person" class="nx-select" required aria-required="true" onchange="clearTaskFieldError(this, 'edit-form-error')"></select>
       </div>
 
       <div class="field-group" style="margin-bottom: 16px;">
@@ -3080,6 +3104,8 @@
         </select>
       </div>
 
+      <div class="form-validation-msg" id="edit-form-error" role="alert" style="margin-top:0; margin-bottom:12px;"></div>
+
       <div class="modal-actions">
         <button class="btn-nx-danger" onclick="deleteTaskFromModal()">Delete</button>
         <button class="btn-nx-secondary" onclick="closeEditModal()">Cancel</button>
@@ -3099,18 +3125,18 @@
         <button type="button" class="btn-modal-close" onclick="closeRecurringModal()" aria-label="Close recurring menu">&times;</button>
       </div>
 
-      <form class="rec-form-box" id="recurring-form" onsubmit="saveRecurringRule(event)">
+      <form class="rec-form-box" id="recurring-form" onsubmit="saveRecurringRule(event)" novalidate>
         <input type="hidden" id="rec-edit-id" />
 
         <div class="field-group" style="margin-bottom: 12px;">
-          <label class="field-label" for="rec-title">Task Title</label>
-          <input type="text" id="rec-title" class="nx-input" placeholder="e.g. Weekly status review" required />
+          <label class="field-label" for="rec-title">Task Title <span class="required-star" aria-hidden="true">*</span></label>
+          <input type="text" id="rec-title" class="nx-input" placeholder="e.g. Weekly status review" required aria-required="true" oninput="clearTaskFieldError(this, 'rec-form-error')" />
         </div>
 
         <div class="rec-grid-2">
           <div class="field-group">
-            <label class="field-label" for="rec-person">Assignee</label>
-            <select id="rec-person" class="nx-select"></select>
+            <label class="field-label" for="rec-person">Assignee <span class="required-star" aria-hidden="true">*</span></label>
+            <select id="rec-person" class="nx-select" required aria-required="true" onchange="clearTaskFieldError(this, 'rec-form-error')"></select>
           </div>
           <div class="field-group">
             <label class="field-label" for="rec-secondary-person">Secondary Assignee <span style="opacity:0.65; font-weight:500;">(Opt.)</span></label>
@@ -3175,6 +3201,8 @@
           <label class="field-label" for="rec-desc">Description / Mail Trail <span style="opacity:0.65; font-weight:500;">(Optional)</span></label>
           <textarea id="rec-desc" class="nx-input task-desc-compact" rows="1" placeholder="Optional context or email trail for each occurrence…" oninput="this.classList.toggle('has-content', this.value.trim().length > 0)"></textarea>
         </div>
+
+        <div class="form-validation-msg" id="rec-form-error" role="alert" style="margin-top:0; margin-bottom:10px;"></div>
 
         <div class="rec-preview-bar">
           <span class="rec-preview-text" id="rec-preview-text">Repeats weekly</span>
@@ -3994,21 +4022,66 @@
       return [];
     }
 
+    function clearTaskValidation(errorId, ...els) {
+      els.forEach(el => { if (el) el.classList.remove('is-invalid'); });
+      const errEl = errorId ? document.getElementById(errorId) : null;
+      if (errEl) {
+        errEl.textContent = '';
+        errEl.classList.remove('visible');
+      }
+    }
+
+    function clearTaskFieldError(fieldEl, errorId) {
+      if (fieldEl) fieldEl.classList.remove('is-invalid');
+      const errEl = errorId ? document.getElementById(errorId) : null;
+      if (!errEl) return;
+      const scope = fieldEl ? fieldEl.closest('.nex-card, .modal-window, .rec-form-box') : null;
+      if (!scope || !scope.querySelector('.is-invalid')) {
+        errEl.textContent = '';
+        errEl.classList.remove('visible');
+      }
+    }
+
+    function validateTaskTitleAndAssignee(titleEl, personEl, errorId) {
+      const titleVal = (titleEl && titleEl.value ? titleEl.value : '').trim();
+      const personVal = (personEl && personEl.value ? personEl.value : '').trim();
+      const errEl = errorId ? document.getElementById(errorId) : null;
+
+      if (titleEl) titleEl.classList.toggle('is-invalid', !titleVal);
+      if (personEl) personEl.classList.toggle('is-invalid', !personVal);
+
+      if (!titleVal || !personVal) {
+        let msg = '';
+        if (!titleVal && !personVal) msg = 'Please enter a task title and select an assignee.';
+        else if (!titleVal) msg = 'Please enter a task title.';
+        else msg = 'Please select an assignee.';
+        if (errEl) {
+          errEl.textContent = msg;
+          errEl.classList.add('visible');
+        }
+        if (!titleVal && titleEl) titleEl.focus();
+        else if (!personVal && personEl) personEl.focus();
+        return false;
+      }
+
+      clearTaskValidation(errorId, titleEl, personEl);
+      return true;
+    }
+
     // ══════════════════════════════════════
     // ── Add Task ──
     // ══════════════════════════════════════
     function addTask() {
-      const title = document.getElementById('task-title').value.trim();
-      const person = document.getElementById('task-person').value;
+      const titleEl = document.getElementById('task-title');
+      const personEl = document.getElementById('task-person');
+      if (!validateTaskTitleAndAssignee(titleEl, personEl, 'create-form-error')) return;
+
+      const title = titleEl.value.trim();
+      const person = personEl.value.trim();
       const secondaryPerson = normalizeSecondaryPerson(person, document.getElementById('task-secondary-person').value);
       const date = document.getElementById('task-date').value;
       const descEl = document.getElementById('task-desc');
       const description = descEl.value.trim();
-
-      if (!title) {
-        document.getElementById('task-title').focus();
-        return;
-      }
 
       tasksRef.push({
         title,
@@ -4022,13 +4095,14 @@
         createdAt: new Date().toISOString()
       });
 
-      document.getElementById('task-title').value = '';
-      document.getElementById('task-person').value = '';
+      titleEl.value = '';
+      personEl.value = '';
       document.getElementById('task-secondary-person').value = '';
       descEl.value = '';
       descEl.classList.remove('has-content');
+      clearTaskValidation('create-form-error', titleEl, personEl);
       setDefaultDueDate();
-      document.getElementById('task-title').focus();
+      titleEl.focus();
     }
 
     document.querySelectorAll('.nex-card input').forEach(input => {
@@ -4124,14 +4198,17 @@
       if (!task) return;
 
       document.getElementById('edit-id').value = id;
-      document.getElementById('edit-title').value = task.title;
+      const editTitleEl = document.getElementById('edit-title');
+      const editPersonEl = document.getElementById('edit-person');
+      editTitleEl.value = task.title;
       document.getElementById('edit-desc').value = task.description || '';
-      document.getElementById('edit-person').value = task.person || '';
+      editPersonEl.value = task.person || '';
       document.getElementById('edit-secondary-person').value = normalizeSecondaryPerson(task.person, task.secondaryPerson);
       document.getElementById('edit-date').value = task.date || '';
       document.getElementById('edit-followup').value = task.followup || '';
       document.getElementById('edit-followup-desc').value = task.followupDescription || '';
       document.getElementById('edit-status').value = task.status || 'todo';
+      clearTaskValidation('edit-form-error', editTitleEl, editPersonEl);
       document.getElementById('edit-modal').classList.remove('hidden');
       if (focusDesc) {
         setTimeout(() => document.getElementById('edit-desc').focus(), 20);
@@ -4139,17 +4216,26 @@
     }
 
     function closeEditModal() {
+      clearTaskValidation(
+        'edit-form-error',
+        document.getElementById('edit-title'),
+        document.getElementById('edit-person')
+      );
       document.getElementById('edit-modal').classList.add('hidden');
     }
 
     function saveEdit() {
+      const editTitleEl = document.getElementById('edit-title');
+      const editPersonEl = document.getElementById('edit-person');
+      if (!validateTaskTitleAndAssignee(editTitleEl, editPersonEl, 'edit-form-error')) return;
+
       const id = document.getElementById('edit-id').value;
       const prevTask = allTasks.find(t => t.id === id);
       const nextStatus = document.getElementById('edit-status').value;
 
-      const editPersonVal = document.getElementById('edit-person').value;
+      const editPersonVal = editPersonEl.value.trim();
       const patch = {
-        title: document.getElementById('edit-title').value.trim(),
+        title: editTitleEl.value.trim(),
         description: document.getElementById('edit-desc').value.trim(),
         person: editPersonVal,
         secondaryPerson: normalizeSecondaryPerson(editPersonVal, document.getElementById('edit-secondary-person').value),
@@ -4321,6 +4407,7 @@
       selectedRecWeekdays = new Set([today.getDay()]);
       document.getElementById('rec-submit-btn').textContent = 'Create Recurring Task';
       document.getElementById('rec-cancel-edit').classList.add('hidden');
+      clearTaskValidation('rec-form-error', document.getElementById('rec-title'), document.getElementById('rec-person'));
       updateRecurringFormFields();
     }
 
@@ -4353,11 +4440,10 @@
     function saveRecurringRule(event) {
       if (event) event.preventDefault();
       const titleInput = document.getElementById('rec-title');
+      const personSelect = document.getElementById('rec-person');
+      if (!validateTaskTitleAndAssignee(titleInput, personSelect, 'rec-form-error')) return;
+
       const draft = buildDraftRuleFromForm();
-      if (!draft.title) {
-        titleInput.focus();
-        return;
-      }
 
       const editId = document.getElementById('rec-edit-id').value;
       if (editId) {
