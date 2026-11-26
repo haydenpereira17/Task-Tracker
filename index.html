@@ -3108,7 +3108,7 @@
 
         <div class="sync-status-pill" id="sync-pill" title="Firebase Realtime Sync">
           <span class="sync-pulse-dot"></span>
-          <span id="sync-status">Live Synced</span>
+          <span id="sync-status">Synced</span>
         </div>
 
         <button type="button" class="btn-recurring-menu" onclick="openRecurringModal()" title="Create and manage recurring tasks">
@@ -3638,7 +3638,7 @@
 
       db.ref('.info/connected').on('value', snap => {
         if (snap.val() === true) {
-          syncStatusEl.textContent = 'Live Synced';
+          syncStatusEl.textContent = 'Synced';
           syncPillEl.className = 'sync-status-pill';
         } else {
           syncStatusEl.textContent = 'Offline';
