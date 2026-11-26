@@ -423,6 +423,14 @@
       display: block;
     }
 
+    .other-assignee-input {
+      margin-top: 8px;
+      font-size: 0.84rem;
+      padding: 8px 12px;
+      border-color: rgba(137, 170, 230, 0.36);
+      background: rgba(6, 24, 38, 0.72);
+    }
+
     textarea.nx-input {
       resize: vertical;
       line-height: 1.5;
@@ -3208,12 +3216,14 @@
 
         <div class="field-group">
           <label class="field-label" for="task-person">Assignee <span class="required-star" aria-hidden="true">*</span></label>
-          <select id="task-person" class="nx-select" required aria-required="true" onchange="clearTaskFieldError(this, 'create-form-error')"></select>
+          <select id="task-person" class="nx-select" required aria-required="true" onchange="handlePersonSelectChange(this, 'task-person-other', 'create-form-error')"></select>
+          <input type="text" id="task-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external person's name…" aria-label="External assignee name" oninput="clearTaskFieldError(this, 'create-form-error')" />
         </div>
 
         <div class="field-group">
           <label class="field-label" for="task-secondary-person">Secondary Assignee <span style="opacity:0.65; font-weight:500;">(Opt.)</span></label>
-          <select id="task-secondary-person" class="nx-select"></select>
+          <select id="task-secondary-person" class="nx-select" onchange="handlePersonSelectChange(this, 'task-secondary-person-other', null)"></select>
+          <input type="text" id="task-secondary-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external 2nd assignee…" aria-label="External secondary assignee name" />
         </div>
 
         <div class="field-group">
@@ -3319,12 +3329,14 @@
 
       <div class="field-group" style="margin-bottom: 16px;">
         <label class="field-label" for="edit-person">Assignee <span class="required-star" aria-hidden="true">*</span></label>
-        <select id="edit-person" class="nx-select" required aria-required="true" onchange="clearTaskFieldError(this, 'edit-form-error')"></select>
+        <select id="edit-person" class="nx-select" required aria-required="true" onchange="handlePersonSelectChange(this, 'edit-person-other', 'edit-form-error')"></select>
+        <input type="text" id="edit-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external person's name…" aria-label="External assignee name" oninput="clearTaskFieldError(this, 'edit-form-error')" />
       </div>
 
       <div class="field-group" style="margin-bottom: 16px;">
         <label class="field-label" for="edit-secondary-person">Secondary Assignee <span style="opacity:0.65; font-weight:500;">(Optional)</span></label>
-        <select id="edit-secondary-person" class="nx-select"></select>
+        <select id="edit-secondary-person" class="nx-select" onchange="handlePersonSelectChange(this, 'edit-secondary-person-other', null)"></select>
+        <input type="text" id="edit-secondary-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external 2nd assignee…" aria-label="External secondary assignee name" />
       </div>
 
       <div class="field-group" style="margin-bottom: 16px;">
@@ -3402,11 +3414,13 @@
         <div class="rec-grid-2">
           <div class="field-group">
             <label class="field-label" for="rec-person">Assignee <span class="required-star" aria-hidden="true">*</span></label>
-            <select id="rec-person" class="nx-select" required aria-required="true" onchange="clearTaskFieldError(this, 'rec-form-error')"></select>
+            <select id="rec-person" class="nx-select" required aria-required="true" onchange="handlePersonSelectChange(this, 'rec-person-other', 'rec-form-error')"></select>
+            <input type="text" id="rec-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external person's name…" aria-label="External assignee name" oninput="clearTaskFieldError(this, 'rec-form-error')" />
           </div>
           <div class="field-group">
             <label class="field-label" for="rec-secondary-person">Secondary Assignee <span style="opacity:0.65; font-weight:500;">(Opt.)</span></label>
-            <select id="rec-secondary-person" class="nx-select"></select>
+            <select id="rec-secondary-person" class="nx-select" onchange="handlePersonSelectChange(this, 'rec-secondary-person-other', null)"></select>
+            <input type="text" id="rec-secondary-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external 2nd assignee…" aria-label="External secondary assignee name" />
           </div>
         </div>
 
@@ -3519,27 +3533,103 @@
       'Suchita'
     ];
 
+    const OTHER_ASSIGNEE_VALUE = '__other__';
+
     function populatePersonSelects() {
       const configs = [
-        { id: 'task-person', placeholder: 'Select team member…' },
-        { id: 'task-secondary-person', placeholder: 'Optional secondary…' },
-        { id: 'edit-person', placeholder: 'Select team member…' },
-        { id: 'edit-secondary-person', placeholder: 'Optional secondary…' },
-        { id: 'filter-person', placeholder: 'All Assignees' },
-        { id: 'rec-person', placeholder: 'Select team member…' },
-        { id: 'rec-secondary-person', placeholder: 'Optional secondary…' }
+        { id: 'task-person', placeholder: 'Select team member…', allowOther: true },
+        { id: 'task-secondary-person', placeholder: 'Optional secondary…', allowOther: true },
+        { id: 'edit-person', placeholder: 'Select team member…', allowOther: true },
+        { id: 'edit-secondary-person', placeholder: 'Optional secondary…', allowOther: true },
+        { id: 'filter-person', placeholder: 'All Assignees', allowOther: false },
+        { id: 'rec-person', placeholder: 'Select team member…', allowOther: true },
+        { id: 'rec-secondary-person', placeholder: 'Optional secondary…', allowOther: true }
       ];
       configs.forEach(cfg => {
         const el = document.getElementById(cfg.id);
         if (!el) return;
         const prevVal = el.value;
         el.innerHTML = `<option value="">${cfg.placeholder}</option>` +
-          TEAM_MEMBERS.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+          TEAM_MEMBERS.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('') +
+          (cfg.allowOther ? `<option value="${OTHER_ASSIGNEE_VALUE}">Other (Type name…)</option>` : '');
         el.value = prevVal;
       });
       const datalistEl = document.getElementById('team-members-datalist');
       if (datalistEl) {
         datalistEl.innerHTML = TEAM_MEMBERS.map(name => `<option value="${escapeHtml(name)}"></option>`).join('');
+      }
+    }
+
+    function syncFilterPersonOptions(tasks) {
+      const sel = document.getElementById('filter-person');
+      if (!sel) return;
+      const currentVal = sel.value;
+      const teamSet = new Set(TEAM_MEMBERS);
+      const externalSet = new Set();
+      (tasks || []).forEach(t => {
+        getTaskAssignees(t).forEach(name => {
+          if (!teamSet.has(name)) externalSet.add(name);
+        });
+      });
+      if (currentVal && !teamSet.has(currentVal)) externalSet.add(currentVal);
+      const externalList = Array.from(externalSet).sort((a, b) => a.localeCompare(b));
+      sel.innerHTML = '<option value="">All Assignees</option>' +
+        TEAM_MEMBERS.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('') +
+        (externalList.length ? `<optgroup label="External / Other">${externalList.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('')}</optgroup>` : '');
+      sel.value = currentVal;
+    }
+
+    function handlePersonSelectChange(selectEl, otherInputId, errorId) {
+      const otherEl = document.getElementById(otherInputId);
+      const isOther = Boolean(selectEl && selectEl.value === OTHER_ASSIGNEE_VALUE);
+      if (otherEl) {
+        otherEl.classList.toggle('hidden', !isOther);
+        if (isOther) {
+          setTimeout(() => otherEl.focus(), 10);
+        } else {
+          otherEl.value = '';
+          otherEl.classList.remove('is-invalid');
+        }
+      }
+      if (errorId) clearTaskFieldError(selectEl, errorId);
+    }
+
+    function getResolvedPersonValue(selectId, otherInputId) {
+      const sel = document.getElementById(selectId);
+      if (!sel) return '';
+      if (sel.value === OTHER_ASSIGNEE_VALUE) {
+        const otherEl = document.getElementById(otherInputId);
+        return (otherEl && otherEl.value ? otherEl.value : '').trim();
+      }
+      return (sel.value || '').trim();
+    }
+
+    function setPersonFieldValue(selectId, otherInputId, personValue) {
+      const sel = document.getElementById(selectId);
+      const otherEl = document.getElementById(otherInputId);
+      const clean = (personValue || '').trim();
+      if (!sel) return;
+      if (!clean) {
+        sel.value = '';
+        if (otherEl) {
+          otherEl.value = '';
+          otherEl.classList.add('hidden');
+          otherEl.classList.remove('is-invalid');
+        }
+      } else if (TEAM_MEMBERS.includes(clean)) {
+        sel.value = clean;
+        if (otherEl) {
+          otherEl.value = '';
+          otherEl.classList.add('hidden');
+          otherEl.classList.remove('is-invalid');
+        }
+      } else {
+        sel.value = OTHER_ASSIGNEE_VALUE;
+        if (otherEl) {
+          otherEl.value = clean;
+          otherEl.classList.remove('hidden');
+          otherEl.classList.remove('is-invalid');
+        }
       }
     }
 
@@ -4407,29 +4497,42 @@
       }
     }
 
-    function validateTaskTitleAndAssignee(titleEl, personEl, errorId) {
+    function validateTaskTitleAndAssignee(titleEl, personEl, otherPersonEl, errorId) {
       const titleVal = (titleEl && titleEl.value ? titleEl.value : '').trim();
-      const personVal = (personEl && personEl.value ? personEl.value : '').trim();
+      const isOther = Boolean(personEl && personEl.value === OTHER_ASSIGNEE_VALUE);
+      const personVal = isOther
+        ? (otherPersonEl && otherPersonEl.value ? otherPersonEl.value : '').trim()
+        : (personEl && personEl.value ? personEl.value : '').trim();
       const errEl = errorId ? document.getElementById(errorId) : null;
 
       if (titleEl) titleEl.classList.toggle('is-invalid', !titleVal);
-      if (personEl) personEl.classList.toggle('is-invalid', !personVal);
+      if (personEl) personEl.classList.toggle('is-invalid', !isOther && !personVal);
+      if (otherPersonEl) otherPersonEl.classList.toggle('is-invalid', isOther && !personVal);
 
       if (!titleVal || !personVal) {
         let msg = '';
-        if (!titleVal && !personVal) msg = 'Please enter a task title and select an assignee.';
-        else if (!titleVal) msg = 'Please enter a task title.';
-        else msg = 'Please select an assignee.';
+        if (!titleVal && !personVal) {
+          msg = isOther
+            ? "Please enter a task title and type the external assignee's name."
+            : 'Please enter a task title and select an assignee.';
+        } else if (!titleVal) {
+          msg = 'Please enter a task title.';
+        } else {
+          msg = isOther
+            ? "Please type the external assignee's name."
+            : 'Please select an assignee.';
+        }
         if (errEl) {
           errEl.textContent = msg;
           errEl.classList.add('visible');
         }
         if (!titleVal && titleEl) titleEl.focus();
+        else if (isOther && !personVal && otherPersonEl) otherPersonEl.focus();
         else if (!personVal && personEl) personEl.focus();
         return false;
       }
 
-      clearTaskValidation(errorId, titleEl, personEl);
+      clearTaskValidation(errorId, titleEl, personEl, otherPersonEl);
       return true;
     }
 
@@ -4439,11 +4542,12 @@
     function addTask() {
       const titleEl = document.getElementById('task-title');
       const personEl = document.getElementById('task-person');
-      if (!validateTaskTitleAndAssignee(titleEl, personEl, 'create-form-error')) return;
+      const otherPersonEl = document.getElementById('task-person-other');
+      if (!validateTaskTitleAndAssignee(titleEl, personEl, otherPersonEl, 'create-form-error')) return;
 
       const title = titleEl.value.trim();
-      const person = personEl.value.trim();
-      const secondaryPerson = normalizeSecondaryPerson(person, document.getElementById('task-secondary-person').value);
+      const person = getResolvedPersonValue('task-person', 'task-person-other');
+      const secondaryPerson = normalizeSecondaryPerson(person, getResolvedPersonValue('task-secondary-person', 'task-secondary-person-other'));
       const date = document.getElementById('task-date').value;
       const descEl = document.getElementById('task-desc');
       const description = descEl.value.trim();
@@ -4461,11 +4565,11 @@
       });
 
       titleEl.value = '';
-      personEl.value = '';
-      document.getElementById('task-secondary-person').value = '';
+      setPersonFieldValue('task-person', 'task-person-other', '');
+      setPersonFieldValue('task-secondary-person', 'task-secondary-person-other', '');
       descEl.value = '';
       descEl.classList.remove('has-content');
-      clearTaskValidation('create-form-error', titleEl, personEl);
+      clearTaskValidation('create-form-error', titleEl, personEl, otherPersonEl);
       setDefaultDueDate();
       titleEl.focus();
     }
@@ -4589,10 +4693,11 @@
       document.getElementById('edit-id').value = id;
       const editTitleEl = document.getElementById('edit-title');
       const editPersonEl = document.getElementById('edit-person');
+      const editPersonOtherEl = document.getElementById('edit-person-other');
       editTitleEl.value = task.title;
       document.getElementById('edit-desc').value = task.description || '';
-      editPersonEl.value = task.person || '';
-      document.getElementById('edit-secondary-person').value = normalizeSecondaryPerson(task.person, task.secondaryPerson);
+      setPersonFieldValue('edit-person', 'edit-person-other', task.person || '');
+      setPersonFieldValue('edit-secondary-person', 'edit-secondary-person-other', normalizeSecondaryPerson(task.person, task.secondaryPerson));
       document.getElementById('edit-date').value = task.date || '';
       document.getElementById('edit-followup').value = task.followup || '';
       document.getElementById('edit-followup-desc').value = task.followupDescription || '';
@@ -4601,7 +4706,7 @@
       document.getElementById('edit-pending-version').value = getNextVersionLabel(task);
       document.getElementById('edit-pending-from').value = task.pendingFeedbackFrom || '';
       toggleEditPendingFieldsVisibility();
-      clearTaskValidation('edit-form-error', editTitleEl, editPersonEl);
+      clearTaskValidation('edit-form-error', editTitleEl, editPersonEl, editPersonOtherEl);
       document.getElementById('edit-modal').classList.remove('hidden');
       if (focusDesc) {
         setTimeout(() => document.getElementById('edit-desc').focus(), 20);
@@ -4612,7 +4717,8 @@
       clearTaskValidation(
         'edit-form-error',
         document.getElementById('edit-title'),
-        document.getElementById('edit-person')
+        document.getElementById('edit-person'),
+        document.getElementById('edit-person-other')
       );
       document.getElementById('edit-modal').classList.add('hidden');
     }
@@ -4620,19 +4726,20 @@
     function saveEdit() {
       const editTitleEl = document.getElementById('edit-title');
       const editPersonEl = document.getElementById('edit-person');
-      if (!validateTaskTitleAndAssignee(editTitleEl, editPersonEl, 'edit-form-error')) return;
+      const editPersonOtherEl = document.getElementById('edit-person-other');
+      if (!validateTaskTitleAndAssignee(editTitleEl, editPersonEl, editPersonOtherEl, 'edit-form-error')) return;
 
       const id = document.getElementById('edit-id').value;
       const prevTask = allTasks.find(t => t.id === id);
       const nextStatus = document.getElementById('edit-status').value;
 
-      const editPersonVal = editPersonEl.value.trim();
+      const editPersonVal = getResolvedPersonValue('edit-person', 'edit-person-other');
       const isPendingChecked = (nextStatus === 'inprogress') && document.getElementById('edit-pending-feedback').checked;
       const patch = {
         title: editTitleEl.value.trim(),
         description: document.getElementById('edit-desc').value.trim(),
         person: editPersonVal,
-        secondaryPerson: normalizeSecondaryPerson(editPersonVal, document.getElementById('edit-secondary-person').value),
+        secondaryPerson: normalizeSecondaryPerson(editPersonVal, getResolvedPersonValue('edit-secondary-person', 'edit-secondary-person-other')),
         date: document.getElementById('edit-date').value,
         followup: document.getElementById('edit-followup').value,
         followupDescription: document.getElementById('edit-followup-desc').value.trim(),
@@ -4747,11 +4854,11 @@
     function buildDraftRuleFromForm() {
       const freq = document.getElementById('rec-freq').value;
       const startDate = document.getElementById('rec-start').value || formatLocalDateStr(new Date());
-      const recPerson = document.getElementById('rec-person').value;
+      const recPerson = getResolvedPersonValue('rec-person', 'rec-person-other');
       return {
         title: document.getElementById('rec-title').value.trim(),
         person: recPerson,
-        secondaryPerson: normalizeSecondaryPerson(recPerson, document.getElementById('rec-secondary-person').value),
+        secondaryPerson: normalizeSecondaryPerson(recPerson, getResolvedPersonValue('rec-secondary-person', 'rec-secondary-person-other')),
         description: document.getElementById('rec-desc').value.trim(),
         frequency: freq,
         startDate,
@@ -4808,8 +4915,8 @@
     function resetRecurringForm() {
       document.getElementById('rec-edit-id').value = '';
       document.getElementById('rec-title').value = '';
-      document.getElementById('rec-person').value = '';
-      document.getElementById('rec-secondary-person').value = '';
+      setPersonFieldValue('rec-person', 'rec-person-other', '');
+      setPersonFieldValue('rec-secondary-person', 'rec-secondary-person-other', '');
       const recDescEl = document.getElementById('rec-desc');
       recDescEl.value = '';
       recDescEl.classList.remove('has-content');
@@ -4822,7 +4929,7 @@
       selectedRecWeekdays = new Set([today.getDay()]);
       document.getElementById('rec-submit-btn').textContent = 'Create Recurring Task';
       document.getElementById('rec-cancel-edit').classList.add('hidden');
-      clearTaskValidation('rec-form-error', document.getElementById('rec-title'), document.getElementById('rec-person'));
+      clearTaskValidation('rec-form-error', document.getElementById('rec-title'), document.getElementById('rec-person'), document.getElementById('rec-person-other'));
       updateRecurringFormFields();
     }
 
@@ -4832,8 +4939,8 @@
 
       document.getElementById('rec-edit-id').value = id;
       document.getElementById('rec-title').value = rule.title || '';
-      document.getElementById('rec-person').value = rule.person || '';
-      document.getElementById('rec-secondary-person').value = normalizeSecondaryPerson(rule.person, rule.secondaryPerson);
+      setPersonFieldValue('rec-person', 'rec-person-other', rule.person || '');
+      setPersonFieldValue('rec-secondary-person', 'rec-secondary-person-other', normalizeSecondaryPerson(rule.person, rule.secondaryPerson));
       const recDescEl = document.getElementById('rec-desc');
       recDescEl.value = rule.description || '';
       recDescEl.classList.toggle('has-content', Boolean(rule.description));
@@ -4856,7 +4963,8 @@
       if (event) event.preventDefault();
       const titleInput = document.getElementById('rec-title');
       const personSelect = document.getElementById('rec-person');
-      if (!validateTaskTitleAndAssignee(titleInput, personSelect, 'rec-form-error')) return;
+      const personOtherInput = document.getElementById('rec-person-other');
+      if (!validateTaskTitleAndAssignee(titleInput, personSelect, personOtherInput, 'rec-form-error')) return;
 
       const draft = buildDraftRuleFromForm();
 
@@ -5256,6 +5364,7 @@
     // ══════════════════════════════════════
     function renderBoard() {
       const tasks = allTasks;
+      syncFilterPersonOptions(tasks);
       const filterPerson = document.getElementById('filter-person').value;
       const filterOverdue = document.getElementById('filter-overdue').value;
       const searchTerm = document.getElementById('filter-search').value.toLowerCase();
