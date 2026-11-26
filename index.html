@@ -1065,6 +1065,49 @@
       border-radius: var(--radius-pill);
     }
 
+    /* See More Tasks Button */
+    .btn-see-more {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px 16px;
+      margin-top: 6px;
+      background: rgba(137, 170, 230, 0.07);
+      border: 1px dashed rgba(137, 170, 230, 0.3);
+      border-radius: var(--radius-lg);
+      color: var(--pace-periwinkle);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+      letter-spacing: 0.01em;
+    }
+
+    .btn-see-more:hover {
+      background: rgba(137, 170, 230, 0.14);
+      border-color: rgba(137, 170, 230, 0.5);
+      color: #ffffff;
+    }
+
+    .btn-see-more svg {
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+
+    .btn-see-more:hover svg {
+      opacity: 1;
+    }
+
+    .btn-see-more-hint {
+      font-size: 0.65rem;
+      font-weight: 500;
+      opacity: 0.55;
+      margin-left: 2px;
+    }
+
     /* Distinct Pelagic/Cerulean Blue Section for In Progress */
     .column.col-inprogress {
       background: linear-gradient(180deg, rgba(4, 113, 166, 0.34) 0%, rgba(11, 78, 122, 0.30) 100%);
@@ -3644,6 +3687,25 @@
     }
 
     const expandedTasks = new Set();
+    const showAllInColumn = new Set();
+
+    function isBeyond48h(dateStr) {
+      if (!dateStr) return false;
+      const due = parseLocalDate(dateStr);
+      if (!due) return false;
+      const now = new Date();
+      return (due.getTime() - now.getTime()) > 48 * 60 * 60 * 1000;
+    }
+
+    function toggleShowAllColumn(status) {
+      if (showAllInColumn.has(status)) {
+        showAllInColumn.delete(status);
+      } else {
+        showAllInColumn.add(status);
+      }
+      renderBoard();
+    }
+
     function toggleTaskExpand(id) {
       if (expandedTasks.has(id)) {
         expandedTasks.delete(id);
@@ -4697,7 +4759,19 @@
           return;
         }
 
-        col.innerHTML = groups[status].map(t => {
+        // Split into visible (within 48h / overdue / no date / done) and deferred (beyond 48h)
+        const showAll = showAllInColumn.has(status);
+        const visibleTasks = [];
+        const deferredTasks = [];
+        groups[status].forEach(t => {
+          if (!showAll && status !== 'done' && isBeyond48h(t.date) && !isOverdue(t.date, t.status)) {
+            deferredTasks.push(t);
+          } else {
+            visibleTasks.push(t);
+          }
+        });
+
+        const renderTaskCard = (t) => {
           const isDone = (t.status === 'done');
           const overdue = isOverdue(t.date, t.status);
           const isCardExpanded = expandedTasks.has(t.id);
@@ -4980,7 +5054,24 @@
                 </div>
               </footer>
             </article>`;
-        }).join('');
+        };
+
+        let html = visibleTasks.map(renderTaskCard).join('');
+
+        if (deferredTasks.length > 0) {
+          html += `
+            <button type="button" class="btn-see-more" onclick="toggleShowAllColumn('${status}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+              <span>See ${deferredTasks.length} more task${deferredTasks.length > 1 ? 's' : ''}</span>
+              <span class="btn-see-more-hint">Due after 48 hrs</span>
+            </button>`;
+        }
+
+        if (showAll && deferredTasks.length === 0 && showAllInColumn.has(status)) {
+          // All tasks currently visible — but nothing is deferred, no button needed
+        }
+
+        col.innerHTML = html;
       });
 
       // Update Top Metrics Readout
