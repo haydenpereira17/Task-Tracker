@@ -2447,6 +2447,29 @@
       transform: translateY(-1px);
     }
 
+    .btn-analytics-link {
+      background: rgba(7, 38, 58, 0.65);
+      border: 1px solid var(--nx-border);
+      color: var(--pace-periwinkle);
+      padding: 5px 12px;
+      border-radius: var(--radius-pill);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s var(--ease);
+    }
+
+    .btn-analytics-link:hover {
+      background: rgba(4, 113, 166, 0.35);
+      border-color: var(--pace-periwinkle);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
     .rec-count-badge {
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.65rem;
@@ -2843,6 +2866,15 @@
           <span>Recurring</span>
           <span class="rec-count-badge hidden" id="header-rec-count">0</span>
         </button>
+
+        <a href="analytics.html" class="btn-analytics-link" title="View average completion time analytics per person">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span>Analytics</span>
+        </a>
 
         <button type="button" class="btn-lock-app" onclick="lockApp()" title="Lock workspace">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -3418,9 +3450,10 @@
       input.focus();
     }
 
-    function unlockApp() {
+    function unlockApp(instant = false) {
       if (isUnlocked) return;
       isUnlocked = true;
+      try { sessionStorage.setItem('workpulse_unlocked', PASS_HASH); } catch (e) {}
       const gate = document.getElementById('auth-gate');
       const card = document.getElementById('auth-card');
       const shackle = document.getElementById('auth-shackle');
@@ -3439,18 +3472,25 @@
       renderBoard();
 
       if (gate) {
-        gate.classList.add('is-unlocking');
         if (authUnlockTimer) clearTimeout(authUnlockTimer);
-        authUnlockTimer = setTimeout(() => {
+        if (instant) {
           gate.classList.add('hidden');
           gate.classList.remove('is-unlocking');
           stopAuthCanvas();
-        }, 280);
+        } else {
+          gate.classList.add('is-unlocking');
+          authUnlockTimer = setTimeout(() => {
+            gate.classList.add('hidden');
+            gate.classList.remove('is-unlocking');
+            stopAuthCanvas();
+          }, 280);
+        }
       }
     }
 
     function lockApp() {
       isUnlocked = false;
+      try { sessionStorage.removeItem('workpulse_unlocked'); } catch (e) {}
       if (authUnlockTimer) {
         clearTimeout(authUnlockTimer);
         authUnlockTimer = null;
@@ -5278,9 +5318,18 @@
       if (mobileKeypadEl) mobileKeypadEl.classList.remove('os-kbd-open');
     });
 
-    focusAuthInput();
-    window.addEventListener('DOMContentLoaded', focusAuthInput);
-    window.addEventListener('pageshow', () => setTimeout(focusAuthInput, 60));
+    let restoredSession = false;
+    try {
+      restoredSession = (sessionStorage.getItem('workpulse_unlocked') === PASS_HASH);
+    } catch (e) {}
+
+    if (restoredSession) {
+      unlockApp(true);
+    } else {
+      focusAuthInput();
+      window.addEventListener('DOMContentLoaded', focusAuthInput);
+      window.addEventListener('pageshow', () => setTimeout(focusAuthInput, 60));
+    }
   </script>
 </body>
 </html>
