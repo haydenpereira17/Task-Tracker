@@ -1612,6 +1612,52 @@
       flex-shrink: 0;
     }
 
+    .history-node.is-fb {
+      width: auto;
+      min-width: 24px;
+      height: 18px;
+      padding: 0 6px;
+      border-radius: var(--radius-pill);
+      background: rgba(245, 158, 11, 0.18);
+      border-color: rgba(251, 191, 36, 0.45);
+      color: #fde68a;
+    }
+
+    .fb-log-status {
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: var(--radius-pill);
+      border: 1px solid transparent;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .fb-log-status.is-pending {
+      background: rgba(245, 158, 11, 0.16);
+      border-color: rgba(251, 191, 36, 0.4);
+      color: #fde68a;
+    }
+
+    .fb-log-status.is-received {
+      background: rgba(56, 189, 248, 0.14);
+      border-color: rgba(56, 189, 248, 0.36);
+      color: #bae6fd;
+    }
+
+    .fb-log-status.is-approved {
+      background: var(--nx-emerald-bg);
+      border-color: var(--nx-emerald-border);
+      color: var(--nx-emerald);
+    }
+
+    .fb-log-submeta {
+      font-size: 0.68rem;
+      color: var(--nx-muted);
+      margin-left: 30px;
+      line-height: 1.35;
+    }
+
     .history-time {
       color: #ffffff;
       font-weight: 500;
@@ -3863,6 +3909,10 @@
       openHistoryNotes.clear();
       editingHistoryNotes.clear();
       histNoteDrafts.clear();
+      openFeedbackHistoryDrawers.clear();
+      openFeedbackNotes.clear();
+      editingFeedbackNotes.clear();
+      fbNoteDrafts.clear();
       expandedTasks.clear();
       v1EditorOpen.clear();
       v1Drafts.clear();
@@ -4145,6 +4195,49 @@
       renderBoard();
     }
 
+    function buildFeedbackHistoryOnSend(task, version, from, nowIso) {
+      const history = [...getTaskFeedbackHistory(task)];
+      if (task && task.pendingFeedback) {
+        const pendingIdx = history.findLastIndex
+          ? history.findLastIndex(e => e && e.status === 'pending')
+          : (() => { for (let i = history.length - 1; i >= 0; i--) { if (history[i] && history[i].status === 'pending') return i; } return -1; })();
+        if (pendingIdx >= 0) {
+          history[pendingIdx] = {
+            ...history[pendingIdx],
+            version,
+            from
+          };
+          return history;
+        }
+      }
+      history.push({
+        version,
+        sentAt: nowIso,
+        from,
+        status: 'pending',
+        receivedAt: '',
+        description: ''
+      });
+      return history;
+    }
+
+    function buildFeedbackHistoryOnClose(task, resolvedStatus, nowIso) {
+      const history = [...getTaskFeedbackHistory(task)];
+      let changed = false;
+      for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i] && history[i].status === 'pending') {
+          history[i] = {
+            ...history[i],
+            status: resolvedStatus,
+            receivedAt: nowIso
+          };
+          changed = true;
+          break;
+        }
+      }
+      return changed ? history : null;
+    }
+
     function savePendingFeedback(id) {
       const task = allTasks.find(t => t.id === id);
       if (!task) return;
@@ -4156,6 +4249,7 @@
       const version = String(rawVer || '').trim() || getNextVersionLabel(task);
       const from = String(rawFrom || '').trim();
       const nowIso = new Date().toISOString();
+      const nextFbHistory = buildFeedbackHistoryOnSend(task, version, from, nowIso);
 
       v1EditorOpen.delete(id);
       v1Drafts.delete(id);
@@ -4167,7 +4261,8 @@
         pendingFeedbackVersion: version,
         pendingFeedbackFrom: from,
         pendingFeedbackAt: (task.pendingFeedback && task.pendingFeedbackAt) ? task.pendingFeedbackAt : nowIso,
-        lastVersionNumber: parseVersionNum(version)
+        lastVersionNumber: parseVersionNum(version),
+        feedbackHistory: nextFbHistory
       });
     }
 
@@ -4175,15 +4270,19 @@
       const task = allTasks.find(t => t.id === id);
       if (!task) return;
       const prevVerNum = parseVersionNum(task.pendingFeedbackVersion || ('V' + (task.lastVersionNumber || 1)));
+      const nowIso = new Date().toISOString();
+      const nextFbHistory = buildFeedbackHistoryOnClose(task, 'received', nowIso);
       v1EditorOpen.delete(id);
       v1Drafts.delete(id);
       expandedTasks.delete(id);
 
-      tasksRef.child(id).update({
+      const patch = {
         pendingFeedback: false,
         pendingFeedbackVersion: '',
         lastVersionNumber: prevVerNum
-      });
+      };
+      if (nextFbHistory) patch.feedbackHistory = nextFbHistory;
+      tasksRef.child(id).update(patch);
     }
 
     function isBeyond48h(dateStr) {
@@ -4243,6 +4342,16 @@
         openHistoryDrawers.delete(id);
       } else {
         openHistoryDrawers.add(id);
+      }
+      renderBoard();
+    }
+
+    const openFeedbackHistoryDrawers = new Set();
+    function toggleFeedbackHistory(id) {
+      if (openFeedbackHistoryDrawers.has(id)) {
+        openFeedbackHistoryDrawers.delete(id);
+      } else {
+        openFeedbackHistoryDrawers.add(id);
       }
       renderBoard();
     }
@@ -4343,98 +4452,15 @@
     const editingHistoryNotes = new Set();
     const histNoteDrafts = new Map();
 
+    const openFeedbackNotes = new Set();
+    const editingFeedbackNotes = new Set();
+    const fbNoteDrafts = new Map();
+
     function getHistoryEntryText(entry) {
       if (!entry) return '';
       if (entry.description !== undefined && entry.description !== null) return String(entry.description);
       if (entry.note !== undefined && entry.note !== null) return String(entry.note);
       return '';
-    }
-
-    function toggleHistoryNote(id, idx) {
-      const key = `${id}:${idx}`;
-      const task = allTasks.find(t => t.id === id);
-      const history = getTaskHistory(task);
-      const entryText = getHistoryEntryText(history[idx]).trim();
-
-      if (openHistoryNotes.has(key)) {
-        openHistoryNotes.delete(key);
-        editingHistoryNotes.delete(key);
-        histNoteDrafts.delete(key);
-      } else {
-        openHistoryNotes.add(key);
-        if (!entryText) {
-          editingHistoryNotes.add(key);
-          histNoteDrafts.set(key, '');
-        } else {
-          editingHistoryNotes.delete(key);
-        }
-      }
-      renderBoard();
-      if (openHistoryNotes.has(key) && editingHistoryNotes.has(key)) {
-        setTimeout(() => {
-          const el = document.getElementById(`hist-note-input-${id}-${idx}`);
-          if (el) el.focus();
-        }, 15);
-      }
-    }
-
-    function startEditHistoryNote(id, idx) {
-      const key = `${id}:${idx}`;
-      const task = allTasks.find(t => t.id === id);
-      const history = getTaskHistory(task);
-      const entryText = getHistoryEntryText(history[idx]);
-      openHistoryNotes.add(key);
-      editingHistoryNotes.add(key);
-      histNoteDrafts.set(key, entryText);
-      renderBoard();
-      setTimeout(() => {
-        const el = document.getElementById(`hist-note-input-${id}-${idx}`);
-        if (el) el.focus();
-      }, 15);
-    }
-
-    function cancelEditHistoryNote(id, idx) {
-      const key = `${id}:${idx}`;
-      const task = allTasks.find(t => t.id === id);
-      const history = getTaskHistory(task);
-      const hasNote = Boolean(getHistoryEntryText(history[idx]).trim());
-      editingHistoryNotes.delete(key);
-      histNoteDrafts.delete(key);
-      if (!hasNote) {
-        openHistoryNotes.delete(key);
-      }
-      renderBoard();
-    }
-
-    function saveHistoryNote(id, idx) {
-      const key = `${id}:${idx}`;
-      const task = allTasks.find(t => t.id === id);
-      if (!task) return;
-      const history = [...getTaskHistory(task)];
-      if (idx < 0 || idx >= history.length) return;
-
-      const input = document.getElementById(`hist-note-input-${id}-${idx}`);
-      const val = (input ? input.value : (histNoteDrafts.get(key) || '')).trim();
-      const updatedEntry = { ...history[idx], description: val };
-      delete updatedEntry.note;
-      history[idx] = updatedEntry;
-
-      editingHistoryNotes.delete(key);
-      histNoteDrafts.delete(key);
-      if (!val) {
-        openHistoryNotes.delete(key);
-      } else {
-        openHistoryNotes.add(key);
-      }
-
-      tasksRef.child(id).update({ followupHistory: history });
-      renderBoard();
-    }
-
-    function copyHistoryNote(id, idx, btnEl) {
-      const task = allTasks.find(t => t.id === id);
-      const history = getTaskHistory(task);
-      copyStringToClipboard(getHistoryEntryText(history[idx]), btnEl);
     }
 
     function getTaskHistory(t) {
@@ -4450,6 +4476,149 @@
       }
       return [];
     }
+
+    function getTaskFeedbackHistory(t) {
+      if (!t) return [];
+      if (t.feedbackHistory) {
+        return Array.isArray(t.feedbackHistory) ? t.feedbackHistory : Object.values(t.feedbackHistory);
+      }
+      if (t.pendingFeedback) {
+        return [{
+          version: t.pendingFeedbackVersion || 'V1',
+          sentAt: t.pendingFeedbackAt || t.createdAt || '',
+          from: t.pendingFeedbackFrom || '',
+          status: 'pending',
+          receivedAt: '',
+          description: ''
+        }];
+      }
+      return [];
+    }
+
+    function getLogStateConfig(kind) {
+      if (kind === 'feedback') {
+        return {
+          openSet: openFeedbackNotes,
+          editSet: editingFeedbackNotes,
+          drafts: fbNoteDrafts,
+          field: 'feedbackHistory',
+          inputPrefix: 'fb-note-input-',
+          getHistory: getTaskFeedbackHistory
+        };
+      }
+      return {
+        openSet: openHistoryNotes,
+        editSet: editingHistoryNotes,
+        drafts: histNoteDrafts,
+        field: 'followupHistory',
+        inputPrefix: 'hist-note-input-',
+        getHistory: getTaskHistory
+      };
+    }
+
+    function toggleLogNote(kind, id, idx) {
+      const cfg = getLogStateConfig(kind);
+      const key = `${id}:${idx}`;
+      const task = allTasks.find(t => t.id === id);
+      const history = cfg.getHistory(task);
+      const entryText = getHistoryEntryText(history[idx]).trim();
+
+      if (cfg.openSet.has(key)) {
+        cfg.openSet.delete(key);
+        cfg.editSet.delete(key);
+        cfg.drafts.delete(key);
+      } else {
+        cfg.openSet.add(key);
+        if (!entryText) {
+          cfg.editSet.add(key);
+          cfg.drafts.set(key, '');
+        } else {
+          cfg.editSet.delete(key);
+        }
+      }
+      renderBoard();
+      if (cfg.openSet.has(key) && cfg.editSet.has(key)) {
+        setTimeout(() => {
+          const el = document.getElementById(`${cfg.inputPrefix}${id}-${idx}`);
+          if (el) el.focus();
+        }, 15);
+      }
+    }
+
+    function startEditLogNote(kind, id, idx) {
+      const cfg = getLogStateConfig(kind);
+      const key = `${id}:${idx}`;
+      const task = allTasks.find(t => t.id === id);
+      const history = cfg.getHistory(task);
+      const entryText = getHistoryEntryText(history[idx]);
+      cfg.openSet.add(key);
+      cfg.editSet.add(key);
+      cfg.drafts.set(key, entryText);
+      renderBoard();
+      setTimeout(() => {
+        const el = document.getElementById(`${cfg.inputPrefix}${id}-${idx}`);
+        if (el) el.focus();
+      }, 15);
+    }
+
+    function cancelEditLogNote(kind, id, idx) {
+      const cfg = getLogStateConfig(kind);
+      const key = `${id}:${idx}`;
+      const task = allTasks.find(t => t.id === id);
+      const history = cfg.getHistory(task);
+      const hasNote = Boolean(getHistoryEntryText(history[idx]).trim());
+      cfg.editSet.delete(key);
+      cfg.drafts.delete(key);
+      if (!hasNote) {
+        cfg.openSet.delete(key);
+      }
+      renderBoard();
+    }
+
+    function saveLogNote(kind, id, idx) {
+      const cfg = getLogStateConfig(kind);
+      const key = `${id}:${idx}`;
+      const task = allTasks.find(t => t.id === id);
+      if (!task) return;
+      const history = [...cfg.getHistory(task)];
+      if (idx < 0 || idx >= history.length) return;
+
+      const input = document.getElementById(`${cfg.inputPrefix}${id}-${idx}`);
+      const val = (input ? input.value : (cfg.drafts.get(key) || '')).trim();
+      const updatedEntry = { ...history[idx], description: val };
+      delete updatedEntry.note;
+      history[idx] = updatedEntry;
+
+      cfg.editSet.delete(key);
+      cfg.drafts.delete(key);
+      if (!val) {
+        cfg.openSet.delete(key);
+      } else {
+        cfg.openSet.add(key);
+      }
+
+      tasksRef.child(id).update({ [cfg.field]: history });
+      renderBoard();
+    }
+
+    function copyLogNote(kind, id, idx, btnEl) {
+      const cfg = getLogStateConfig(kind);
+      const task = allTasks.find(t => t.id === id);
+      const history = cfg.getHistory(task);
+      copyStringToClipboard(getHistoryEntryText(history[idx]), btnEl);
+    }
+
+    function toggleHistoryNote(id, idx) { toggleLogNote('followup', id, idx); }
+    function startEditHistoryNote(id, idx) { startEditLogNote('followup', id, idx); }
+    function cancelEditHistoryNote(id, idx) { cancelEditLogNote('followup', id, idx); }
+    function saveHistoryNote(id, idx) { saveLogNote('followup', id, idx); }
+    function copyHistoryNote(id, idx, btnEl) { copyLogNote('followup', id, idx, btnEl); }
+
+    function toggleFeedbackNote(id, idx) { toggleLogNote('feedback', id, idx); }
+    function startEditFeedbackNote(id, idx) { startEditLogNote('feedback', id, idx); }
+    function cancelEditFeedbackNote(id, idx) { cancelEditLogNote('feedback', id, idx); }
+    function saveFeedbackNote(id, idx) { saveLogNote('feedback', id, idx); }
+    function copyFeedbackNote(id, idx, btnEl) { copyLogNote('feedback', id, idx, btnEl); }
 
     function clearTaskValidation(errorId, ...els) {
       els.forEach(el => { if (el) el.classList.remove('is-invalid'); });
@@ -4567,7 +4736,11 @@
         if (task && task.completedAt) patch.completedAt = null;
       }
       if (newStatus !== 'inprogress') {
-        if (task && task.pendingFeedback) patch.pendingFeedback = false;
+        if (task && task.pendingFeedback) {
+          patch.pendingFeedback = false;
+          const closedHistory = buildFeedbackHistoryOnClose(task, newStatus === 'done' ? 'approved' : 'received', new Date().toISOString());
+          if (closedHistory) patch.feedbackHistory = closedHistory;
+        }
         v1EditorOpen.delete(id);
         v1Drafts.delete(id);
       }
@@ -4723,16 +4896,21 @@
 
       if (isPendingChecked) {
         const nextVer = document.getElementById('edit-pending-version').value.trim() || getNextVersionLabel(prevTask);
+        const nextFrom = document.getElementById('edit-pending-from').value.trim();
+        const nowIso = new Date().toISOString();
         patch.pendingFeedbackVersion = nextVer;
-        patch.pendingFeedbackFrom = document.getElementById('edit-pending-from').value.trim();
+        patch.pendingFeedbackFrom = nextFrom;
         patch.pendingFeedbackAt = (prevTask && prevTask.pendingFeedback && prevTask.pendingFeedbackAt)
           ? prevTask.pendingFeedbackAt
-          : new Date().toISOString();
+          : nowIso;
         patch.lastVersionNumber = parseVersionNum(nextVer);
+        patch.feedbackHistory = buildFeedbackHistoryOnSend(prevTask, nextVer, nextFrom, nowIso);
       } else {
         patch.pendingFeedbackVersion = '';
         if (prevTask && prevTask.pendingFeedback) {
           patch.lastVersionNumber = parseVersionNum(prevTask.pendingFeedbackVersion || ('V' + (prevTask.lastVersionNumber || 1)));
+          const closedHistory = buildFeedbackHistoryOnClose(prevTask, nextStatus === 'done' ? 'approved' : 'received', new Date().toISOString());
+          if (closedHistory) patch.feedbackHistory = closedHistory;
         }
       }
 
@@ -5595,10 +5773,78 @@
             from: t.pendingFeedbackFrom || ''
           };
           const suggestedNextVer = getNextVersionLabel(t);
+          const feedbackHistory = getTaskFeedbackHistory(t);
+          const isFeedbackHistoryOpen = openFeedbackHistoryDrawers.has(t.id);
 
-          const v1ReviewMarkup = (t.status === 'inprogress') ? `
+          const feedbackHistoryMarkup = (feedbackHistory.length > 0) ? `
+            <div class="history-bar">
+              <span>${feedbackHistory.length} past feedback round${feedbackHistory.length > 1 ? 's' : ''}</span>
+              <button type="button" class="btn-toggle-log" onclick="toggleFeedbackHistory('${t.id}')">
+                ${isFeedbackHistoryOpen ? 'Hide Feedback &blacktriangle;' : 'View All (' + feedbackHistory.length + ') &blacktriangledown;'}
+              </button>
+            </div>
+            ${isFeedbackHistoryOpen ? `
+              <div class="history-drawer">
+                <div class="history-title">Feedback Log (${feedbackHistory.length})</div>
+                ${feedbackHistory.map((fb, idx) => ({ fb, idx })).reverse().map(({ fb, idx }) => {
+                  const fKey = `${t.id}:${idx}`;
+                  const noteText = getHistoryEntryText(fb).trim();
+                  const hasNote = Boolean(noteText);
+                  const noteOpen = openFeedbackNotes.has(fKey);
+                  const isEditingNote = editingFeedbackNotes.has(fKey);
+                  const fbDraftVal = fbNoteDrafts.has(fKey) ? fbNoteDrafts.get(fKey) : getHistoryEntryText(fb);
+                  const fbStatus = fb.status || 'pending';
+                  const fbStatusLabel = fbStatus === 'approved' ? 'Approved' : (fbStatus === 'received' ? 'Received' : 'Pending');
+
+                  return `
+                    <div class="history-item" data-feedback-idx="${idx}">
+                      <div class="history-item-head">
+                        <div class="history-item-meta">
+                          <span class="history-node is-fb">${escapeHtml(fb.version || ('V' + (idx + 1)))}</span>
+                          <span class="history-time">${formatFullDateTime(fb.sentAt) || 'Sent'}</span>
+                          <span class="fb-log-status is-${fbStatus}">${fbStatusLabel}</span>
+                        </div>
+                        <button type="button" class="btn-history-note-toggle ${noteOpen ? 'is-open' : ''} ${hasNote ? 'has-note' : ''}" onclick="toggleFeedbackNote('${t.id}', ${idx})">
+                          ${noteOpen ? 'Hide &blacktriangle;' : (hasNote ? 'Description &blacktriangledown;' : '+ Description')}
+                        </button>
+                      </div>
+                      <div class="fb-log-submeta">
+                        ${fb.from ? `Waiting on: <strong>${escapeHtml(fb.from)}</strong>` : 'Reviewer / Approval'}${fb.receivedAt ? ` &middot; ${fbStatusLabel} ${escapeHtml(formatFullDateTime(fb.receivedAt))}` : ''}
+                      </div>
+                      ${noteOpen ? `
+                        <div class="history-note-drawer">
+                          ${isEditingNote ? `
+                            <textarea
+                              id="fb-note-input-${t.id}-${idx}"
+                              class="nx-input hist-note-textarea"
+                              rows="2"
+                              placeholder="Add feedback summary or revision comments…"
+                              oninput="fbNoteDrafts.set('${fKey}', this.value)"
+                              onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();saveFeedbackNote('${t.id}', ${idx});}"
+                            >${escapeHtml(fbDraftVal)}</textarea>
+                            <div class="fup-desc-actions">
+                              <button type="button" class="btn-desc-mini" onclick="cancelEditFeedbackNote('${t.id}', ${idx})">Cancel</button>
+                              <button type="button" class="btn-fup-save" onclick="saveFeedbackNote('${t.id}', ${idx})">Save</button>
+                            </div>
+                          ` : `
+                            <div class="history-note-body">${escapeHtml(getHistoryEntryText(fb))}</div>
+                            <div class="fup-desc-actions">
+                              <button type="button" class="btn-desc-mini" onclick="copyFeedbackNote('${t.id}', ${idx}, this)">Copy</button>
+                              <button type="button" class="btn-desc-mini" onclick="startEditFeedbackNote('${t.id}', ${idx})">Edit</button>
+                            </div>
+                          `}
+                        </div>
+                      ` : ''}
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : ''}
+          ` : '';
+
+          const v1ReviewMarkup = (t.status === 'inprogress' || feedbackHistory.length > 0) ? `
             <div class="v1-review-dock">
-              ${isV1EditOpen ? `
+              ${(t.status === 'inprogress') ? (isV1EditOpen ? `
                 <div class="v1-inline-form">
                   <div class="v1-inline-row">
                     <input
@@ -5648,7 +5894,8 @@
                   <span>&#9203; ${escapeHtml(suggestedNextVer)} Sent &middot; Pending Feedback / Approval?</span>
                   <span class="btn-desc-hint">+ Mark</span>
                 </button>
-              `)}
+              `)) : ''}
+              ${feedbackHistoryMarkup}
             </div>
           ` : '';
 
