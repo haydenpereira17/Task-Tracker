@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Work Pulse — Features</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --pace-navy: #061826;
+      --pace-panel: #07263a;
+      --pace-ocean: #0471a6;
+      --pace-blue: #3685b5;
+      --pace-periwinkle: #89aae6;
+      --pace-red: #b9162e;
+      --pace-white: #ffffff;
+      --pace-dim-on-dark: #cbd9ef;
+      --nx-bg: #061826;
+      --nx-card: rgba(7, 38, 58, 0.56);
+      --nx-card-hover: rgba(10, 50, 76, 0.78);
+      --nx-border: rgba(137, 170, 230, 0.22);
+      --nx-border-strong: rgba(137, 170, 230, 0.42);
+      --nx-text: #ffffff;
+      --nx-muted: #bacde4;
+      --nx-faint: rgba(203, 217, 239, 0.52);
+      --nx-emerald: #34d399;
+      --nx-emerald-bg: rgba(16, 185, 129, 0.14);
+      --nx-emerald-border: rgba(52, 211, 153, 0.32);
+      --nx-rose: #ff94a1;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --radius-pill: 9999px;
+      --shadow-card: 0 6px 24px -2px rgba(2, 10, 18, 0.45);
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    html {
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--nx-bg);
+      color: var(--nx-text);
+      min-height: 100vh;
+      max-width: 100%;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+      overflow-x: clip;
+      position: relative;
+    }
+
+    .ambient-glow {
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(820px, 100%);
+      max-width: 100vw;
+      height: 420px;
+      background: radial-gradient(circle, rgba(4, 113, 166, 0.24) 0%, rgba(185, 22, 46, 0.11) 42%, rgba(137, 170, 230, 0.06) 65%, transparent 78%);
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .dot-grid {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(137, 170, 230, 0.09) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: radial-gradient(ellipse 65% 55% at 50% 20%, #000 25%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse 65% 55% at 50% 20%, #000 25%, transparent 75%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hidden { display: none !important; }
+
+    /* ── Auth Gate ── */
+    .auth-gate {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background:
+        radial-gradient(ellipse 68% 54% at 50% 22%, rgba(4, 113, 166, 0.24), transparent 72%),
+        radial-gradient(circle at 82% 88%, rgba(185, 22, 46, 0.1), transparent 52%),
+        var(--pace-navy);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .auth-card {
+      width: min(400px, 100%);
+      background: rgba(7, 38, 58, 0.9);
+      border: 1px solid rgba(137, 170, 230, 0.24);
+      border-radius: 22px;
+      padding: 34px 28px 28px;
+      box-shadow: 0 28px 72px rgba(2, 10, 18, 0.72), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+      text-align: center;
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+    }
+
+    .auth-card.shake {
+      animation: card-shake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    }
+
+    @keyframes card-shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+
+    .auth-eyebrow {
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .auth-byline {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--pace-periwinkle);
+      margin-bottom: 10px;
+    }
+
+    .auth-title {
+      font-size: 1.32rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .auth-subtitle {
+      font-size: 0.78rem;
+      color: var(--nx-muted);
+      margin-bottom: 22px;
+    }
+
+    .auth-input {
+      width: 100%;
+      background: rgba(4, 18, 29, 0.75);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      letter-spacing: 0.28em;
+      text-align: center;
+      outline: none;
+      margin-bottom: 12px;
+      transition: border-color 0.2s var(--ease);
+    }
+
+    .auth-input:focus { border-color: var(--pace-periwinkle); }
+
+    .auth-submit {
+      width: 100%;
+      padding: 11px 16px;
+      border: none;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--pace-red), #d41c37);
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s var(--ease), opacity 0.2s var(--ease);
+    }
+
+    .auth-submit:hover { opacity: 0.94; transform: translateY(-1px); }
+
+    .auth-error {
+      min-height: 18px;
+      font-size: 0.74rem;
+      color: var(--nx-rose);
+      margin-bottom: 10px;
+      opacity: 0;
+      transition: opacity 0.2s var(--ease);
+    }
+
+    .auth-error.visible { opacity: 1; }
+
+    .auth-back-link {
+      display: inline-block;
+      margin-top: 14px;
+      font-size: 0.74rem;
+      color: var(--pace-periwinkle);
+      text-decoration: none;
+    }
+
+    .auth-back-link:hover { text-decoration: underline; color: #ffffff; }
+
+    /* ── Header ── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(6, 24, 38, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--nx-border);
+    }
+
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 10;
+    }
+
+    .brand-container {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+
+    .brand-logo-text {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+    }
+
+    .brand-subline {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--pace-periwinkle);
+      letter-spacing: 0.04em;
+      opacity: 0.8;
+      margin-top: 1px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .view-only-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: var(--radius-pill);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      background: rgba(137, 170, 230, 0.14);
+      border: 1px solid rgba(137, 170, 230, 0.38);
+      color: var(--pace-periwinkle);
+    }
+
+    .nav-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(7, 38, 58, 0.65);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-pill);
+      color: var(--pace-periwinkle);
+      font-family: inherit;
+      font-size: 0.74rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s var(--ease);
+      cursor: pointer;
+    }
+
+    .nav-pill:hover {
+      background: rgba(4, 113, 166, 0.35);
+      border-color: var(--pace-periwinkle);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .nav-pill.is-primary {
+      background: rgba(137, 170, 230, 0.14);
+      border-color: rgba(137, 170, 230, 0.32);
+    }
+
+    /* ── Main Content ── */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 34px 24px 72px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .hero-panel {
+      background: linear-gradient(135deg, rgba(4, 113, 166, 0.22) 0%, rgba(7, 38, 58, 0.72) 60%, rgba(185, 22, 46, 0.12) 100%);
+      border: 1px solid var(--nx-border-strong);
+      border-radius: var(--radius-xl);
+      padding: 28px 30px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .hero-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--pace-periwinkle);
+      margin-bottom: 10px;
+    }
+
+    .hero-title {
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+
+    .hero-desc {
+      font-size: 0.86rem;
+      color: var(--nx-muted);
+      max-width: 680px;
+      line-height: 1.6;
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .hero-stat-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      background: rgba(6, 24, 38, 0.72);
+      border: 1px solid var(--nx-border);
+      color: var(--pace-dim-on-dark);
+    }
+
+    /* ── Category Filter Bar ── */
+    .filter-chips {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+
+    .filter-chip {
+      background: rgba(7, 38, 58, 0.65);
+      border: 1px solid var(--nx-border);
+      color: var(--nx-muted);
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      font-family: inherit;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+    }
+
+    .filter-chip:hover {
+      border-color: var(--nx-border-strong);
+      color: #ffffff;
+    }
+
+    .filter-chip.is-active {
+      background: var(--pace-ocean);
+      border-color: rgba(137, 170, 230, 0.55);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(4, 113, 166, 0.32);
+    }
+
+    /* ── Features Grid ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .feature-card {
+      background: var(--nx-card);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: var(--shadow-card);
+      transition: transform 0.2s var(--ease), border-color 0.2s var(--ease), background 0.2s var(--ease);
+      min-width: 0;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--nx-border-strong);
+      background: var(--nx-card-hover);
+    }
+
+    .feature-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .feature-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(4, 113, 166, 0.22);
+      border: 1px solid rgba(137, 170, 230, 0.34);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--pace-periwinkle);
+      flex-shrink: 0;
+    }
+
+    .feature-icon.amber {
+      background: rgba(245, 158, 11, 0.14);
+      border-color: rgba(251, 191, 36, 0.36);
+      color: #fde68a;
+    }
+
+    .feature-icon.emerald {
+      background: var(--nx-emerald-bg);
+      border-color: var(--nx-emerald-border);
+      color: var(--nx-emerald);
+    }
+
+    .feature-icon.crimson {
+      background: rgba(185, 22, 46, 0.18);
+      border-color: rgba(185, 22, 46, 0.45);
+      color: var(--nx-rose);
+    }
+
+    .feature-cat-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.64rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 3px 9px;
+      border-radius: var(--radius-pill);
+      background: rgba(137, 170, 230, 0.1);
+      border: 1px solid var(--nx-border);
+      color: var(--nx-muted);
+    }
+
+    .feature-title {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      color: #ffffff;
+    }
+
+    .feature-summary {
+      font-size: 0.8rem;
+      color: var(--nx-muted);
+      line-height: 1.55;
+    }
+
+    .feature-points {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-top: 2px;
+    }
+
+    .feature-points li {
+      position: relative;
+      padding-left: 16px;
+      font-size: 0.77rem;
+      color: var(--pace-dim-on-dark);
+      line-height: 1.45;
+    }
+
+    .feature-points li::before {
+      content: '›';
+      position: absolute;
+      left: 2px;
+      top: -1px;
+      color: var(--pace-periwinkle);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .feature-points strong {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .inline-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      background: rgba(6, 24, 38, 0.72);
+      border: 1px solid var(--nx-border);
+      padding: 1px 6px;
+      border-radius: 5px;
+      color: var(--pace-periwinkle);
+    }
+
+    /* ── Footer ── */
+    .app-footer {
+      margin-top: 40px;
+      padding-top: 18px;
+      border-top: 1px dashed var(--nx-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-align: center;
+      font-size: 0.76rem;
+      color: var(--nx-muted);
+      letter-spacing: 0.01em;
+    }
+
+    .app-footer-heart {
+      color: #ff4d67;
+      font-size: 0.86rem;
+      line-height: 1;
+      vertical-align: -1px;
+    }
+
+    .app-version-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--pace-periwinkle);
+      background: rgba(137, 170, 230, 0.1);
+      border: 1px solid var(--nx-border);
+      padding: 2px 9px;
+      border-radius: var(--radius-pill);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 1020px) {
+      .features-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      .header-inner { padding: 12px 14px; }
+      main { padding: 20px 14px 48px; }
+      .hero-panel { padding: 20px 18px; }
+      .hero-title { font-size: 1.32rem; }
+      .features-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+      .feature-card { padding: 18px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="ambient-glow" aria-hidden="true"></div>
+  <div class="dot-grid" aria-hidden="true"></div>
+
+  <!-- Passcode Gate (shown only if opened directly without an unlocked session) -->
+  <div id="features-auth-gate" class="auth-gate hidden" role="dialog" aria-modal="true" aria-labelledby="features-auth-title">
+    <div class="auth-card" id="features-auth-card">
+      <div class="auth-eyebrow">Work Pulse</div>
+      <div class="auth-byline">Product of Hayd's AI Maxing</div>
+      <h1 class="auth-title" id="features-auth-title">Workspace Features</h1>
+      <p class="auth-subtitle">Enter workspace passcode to view features</p>
+      <form onsubmit="verifyFeaturesPasscode(event)" novalidate>
+        <input
+          type="password"
+          id="features-passcode"
+          class="auth-input"
+          inputmode="numeric"
+          autocomplete="off"
+          placeholder="••••"
+          aria-label="Workspace passcode"
+          autofocus
+        />
+        <div class="auth-error" id="features-auth-error" role="alert">Incorrect passcode. Please try again.</div>
+        <button type="submit" class="auth-submit">Continue</button>
+      </form>
+      <a href="index.html" class="auth-back-link">&larr; Back to Board</a>
+    </div>
+  </div>
+
+  <div id="features-shell" class="hidden">
+    <header>
+      <div class="header-inner">
+        <div class="brand-container">
+          <div>
+            <div class="brand-logo-text">Work Pulse</div>
+            <div class="brand-subline">Feature Overview</div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <span class="view-only-pill hidden" id="view-only-pill" title="Read-only access">View Only</span>
+          <a href="analytics.html" class="nav-pill" title="Completion Time Analytics">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Analytics</span>
+          </a>
+          <a href="index.html" class="nav-pill is-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Back to Board</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero-panel">
+        <div>
+          <div class="hero-kicker">Work Pulse Capabilities</div>
+          <h1 class="hero-title">Everything Built Into Work Pulse</h1>
+          <p class="hero-desc">
+            A streamlined overview of task workflows, revision tracking, automation rules, and live team insights powering the workspace.
+          </p>
+        </div>
+        <div class="hero-badges">
+          <span class="hero-stat-pill">9 Core Modules</span>
+          <span class="hero-stat-pill">Firebase Realtime Sync</span>
+        </div>
+      </section>
+
+      <div class="filter-chips" role="tablist" aria-label="Filter features by category">
+        <button type="button" class="filter-chip is-active" onclick="filterFeatures('all', this)">All Features</button>
+        <button type="button" class="filter-chip" onclick="filterFeatures('workflow', this)">Board &amp; Workflow</button>
+        <button type="button" class="filter-chip" onclick="filterFeatures('logs', this)">Logs &amp; Context</button>
+        <button type="button" class="filter-chip" onclick="filterFeatures('automation', this)">Automation</button>
+        <button type="button" class="filter-chip" onclick="filterFeatures('insights', this)">Insights &amp; Access</button>
+      </div>
+
+      <section class="features-grid" id="features-grid">
+        <!-- 1. Kanban & V1 Review -->
+        <article class="feature-card" data-category="workflow">
+          <div class="feature-card-top">
+            <div class="feature-icon amber">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <span class="feature-cat-tag">Workflow</span>
+          </div>
+          <h2 class="feature-title">V1 Sent &amp; Pending Feedback Stage</h2>
+          <p class="feature-summary">
+            Separately tracks tasks in progress whose draft has already been shared for review or client sign-off.
+          </p>
+          <ul class="feature-points">
+            <li>Groups awaiting-feedback tasks under an amber <strong>V1 Sent</strong> sub-section inside In Progress.</li>
+            <li>Records sent version (<span class="inline-code">V1</span>, <span class="inline-code">V2</span>…), reviewer name, and live waiting days.</li>
+            <li>One-click <strong>Got Feedback · Resume</strong> returns the task to active work and bumps the next suggested version.</li>
+          </ul>
+        </article>
+
+        <!-- 2. Clean 48h Collapse -->
+        <article class="feature-card" data-category="workflow">
+          <div class="feature-card-top">
+            <div class="feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+            </div>
+            <span class="feature-cat-tag">Workflow</span>
+          </div>
+          <h2 class="feature-title">48-Hour Focus &amp; Collapsed Cards</h2>
+          <p class="feature-summary">
+            Keeps the board scannable by surfacing immediate priorities and hiding distant or older items behind one toggle.
+          </p>
+          <ul class="feature-points">
+            <li>All cards start compact across <strong>To Do</strong>, <strong>In Progress</strong>, <strong>V1 Sent</strong>, and <strong>Completed</strong>.</li>
+            <li>Tasks due beyond 48 hours or completed over 48 hours ago fold under <strong>See more tasks</strong>.</li>
+            <li><strong>Completed</strong> lane automatically orders tasks newest to oldest, while overdue items always stay pinned up top.</li>
+          </ul>
+        </article>
+
+        <!-- 3. Ownership & External Partners -->
+        <article class="feature-card" data-category="workflow">
+          <div class="feature-card-top">
+            <div class="feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <span class="feature-cat-tag">Workflow</span>
+          </div>
+          <h2 class="feature-title">Owners, 2nd Owners &amp; External Names</h2>
+          <p class="feature-summary">
+            Every task captures clear accountability across internal team members and outside collaborators.
+          </p>
+          <ul class="feature-points">
+            <li>Enforces mandatory <strong>Task Title</strong> and primary <strong>Owner</strong> on create, edit, and recurring forms.</li>
+            <li>Optional <strong>Secondary Owner (<span class="inline-code">2nd</span>)</strong> tag for shared execution.</li>
+            <li><strong>Other (Type name…)</strong> option lets you assign tasks to external partners or clients and filter by them.</li>
+          </ul>
+        </article>
+
+        <!-- 4. Follow-up Log & Mail Trail -->
+        <article class="feature-card" data-category="logs">
+          <div class="feature-card-top">
+            <div class="feature-icon crimson">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <span class="feature-cat-tag">Logs</span>
+          </div>
+          <h2 class="feature-title">Follow-up Log &amp; Mail Trail</h2>
+          <p class="feature-summary">
+            Preserves complete communication context and follow-up cadence directly inside every expanded card.
+          </p>
+          <ul class="feature-points">
+            <li>Set follow-up dates, click <strong>✓ Followed Up</strong>, and schedule next touchpoints (<span class="inline-code">+1d</span>, <span class="inline-code">+3d</span>, <span class="inline-code">+1 Week</span>).</li>
+            <li>Timestamped <strong>Follow-up Log</strong> entries support adding, editing, and copying per-entry notes.</li>
+            <li>Collapsible <strong>Mail Trail / Description</strong> and <strong>Follow-up Description</strong> drawers keep threads handy.</li>
+          </ul>
+        </article>
+
+        <!-- 5. Feedback Log -->
+        <article class="feature-card" data-category="logs">
+          <div class="feature-card-top">
+            <div class="feature-icon amber">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <span class="feature-cat-tag">Logs</span>
+          </div>
+          <h2 class="feature-title">Versioned Feedback Log</h2>
+          <p class="feature-summary">
+            Automatically builds an audit trail of every version sent for approval and any feedback received.
+          </p>
+          <ul class="feature-points">
+            <li>Logs each round (<span class="inline-code">V1</span>, <span class="inline-code">V2</span>…) with reviewer, sent time, and status (<strong>Pending</strong>, <strong>Received</strong>, <strong>Approved</strong>).</li>
+            <li>Attach, edit, and copy revision summaries directly inside any round in <strong>Feedback Log</strong>.</li>
+            <li>History remains inspectable even after resuming work or moving the task to Completed.</li>
+          </ul>
+        </article>
+
+        <!-- 6. 14-Day Heatmap -->
+        <article class="feature-card" data-category="insights">
+          <div class="feature-card-top">
+            <div class="feature-icon emerald">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <span class="feature-cat-tag">Insights</span>
+          </div>
+          <h2 class="feature-title">14-Day Open Workload Heatmap</h2>
+          <p class="feature-summary">
+            Visualizes upcoming deadline load across Current Week and Next Week without completed work skewing intensity.
+          </p>
+          <ul class="feature-points">
+            <li>Cell intensity reflects strictly <strong>open</strong> tasks, keeping active bottlenecks unmistakable.</li>
+            <li>Past and mixed days display completed task counts clearly in emerald <strong>green</strong> badges.</li>
+            <li>Click any day cell to instantly filter all board columns to that date.</li>
+          </ul>
+        </article>
+
+        <!-- 7. Recurring Tasks -->
+        <article class="feature-card" data-category="automation">
+          <div class="feature-card-top">
+            <div class="feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </div>
+            <span class="feature-cat-tag">Automation</span>
+          </div>
+          <h2 class="feature-title">Recurring Schedules Engine</h2>
+          <p class="feature-summary">
+            Automates routine team deliverables cleanly across flexible cadences with zero manual re-entry.
+          </p>
+          <ul class="feature-points">
+            <li>Supports <strong>Daily</strong>, <strong>Weekdays</strong>, <strong>Weekly</strong> (day picker), <strong>Biweekly</strong>, <strong>Monthly</strong>, and <strong>Custom</strong> day intervals.</li>
+            <li>Choose between <em>Auto-next on completion</em> or filling the <em>14-day horizon</em>.</li>
+            <li>Includes <strong>+ Spawn Next</strong>, pause/resume, and full edit controls.</li>
+          </ul>
+        </article>
+
+        <!-- 8. 11 PM Auto-Rollover -->
+        <article class="feature-card" data-category="automation">
+          <div class="feature-card-top">
+            <div class="feature-icon crimson">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            </div>
+            <span class="feature-cat-tag">Automation</span>
+          </div>
+          <h2 class="feature-title">11:00 PM Deadline Auto-Rollover</h2>
+          <p class="feature-summary">
+            Automatically carries missed open tasks forward into the current work cycle so nothing slips through.
+          </p>
+          <ul class="feature-points">
+            <li>Moves past-due open tasks after <strong>11:00 PM</strong> while leaving completed work untouched.</li>
+            <li>Preserves original due dates and increments a visible <span class="inline-code">&rarr; Moved &times;N</span> audit badge.</li>
+            <li>Filterable anytime via <strong>Auto-Moved (11 PM)</strong> and suppressed in View-Only mode.</li>
+          </ul>
+        </article>
+
+        <!-- 9. Analytics & Access Roles -->
+        <article class="feature-card" data-category="insights">
+          <div class="feature-card-top">
+            <div class="feature-icon emerald">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <span class="feature-cat-tag">Insights &amp; Access</span>
+          </div>
+          <h2 class="feature-title">Completion Analytics &amp; View-Only Mode</h2>
+          <p class="feature-summary">
+            Measures per-owner execution speed and safeguards the workspace with two distinct passcode tiers.
+          </p>
+          <ul class="feature-points">
+            <li><a href="analytics.html" style="color:var(--pace-periwinkle); font-weight:600;">Analytics</a> calculates average days from creation to completion per owner with min–max &amp; drilldowns.</li>
+            <li>Dedicated <strong>View-Only (<span class="inline-code">0000</span>)</strong> login hides edit controls and blocks background or manual writes.</li>
+            <li>Top bar displays live <strong>Total / In Progress / Done</strong> metrics synced across devices.</li>
+          </ul>
+        </article>
+      </section>
+
+      <footer class="app-footer">
+        <span class="app-footer-love">Made with <span class="app-footer-heart" aria-label="love">&hearts;</span> in India</span>
+        <span class="app-version-pill">v1.49.2</span>
+      </footer>
+    </main>
+  </div>
+
+<script>
+  const PASS_HASH = '95b78002';
+  const VIEW_PASS_HASH = 'b5edd2d5';
+  const SESSION_KEY = 'workpulse_unlocked';
+  const ROLE_SESSION_KEY = 'workpulse_role';
+
+  function hashPassword(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(16).padStart(8, '0');
+  }
+
+  function getPasscodeRole(code) {
+    const h = hashPassword(String(code || '').trim());
+    if (h === PASS_HASH) return 'full';
+    if (h === VIEW_PASS_HASH) return 'view';
+    return null;
+  }
+
+  function getSessionRole() {
+    try {
+      const token = sessionStorage.getItem(SESSION_KEY);
+      if (token === PASS_HASH) return 'full';
+      if (token === VIEW_PASS_HASH) return 'view';
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveUnlockedSession(role = 'full') {
+    try {
+      sessionStorage.setItem(SESSION_KEY, role === 'view' ? VIEW_PASS_HASH : PASS_HASH);
+      sessionStorage.setItem(ROLE_SESSION_KEY, role);
+    } catch (e) {}
+  }
+
+  function filterFeatures(category, btnEl) {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('is-active'));
+    if (btnEl) btnEl.classList.add('is-active');
+    document.querySelectorAll('.feature-card').forEach(card => {
+      const cat = card.getAttribute('data-category');
+      const show = (category === 'all' || cat === category);
+      card.classList.toggle('hidden', !show);
+    });
+  }
+
+  function startFeaturesApp(role = 'full') {
+    document.getElementById('features-auth-gate').classList.add('hidden');
+    document.getElementById('features-shell').classList.remove('hidden');
+    const viewPill = document.getElementById('view-only-pill');
+    if (viewPill) viewPill.classList.toggle('hidden', role !== 'view');
+  }
+
+  function verifyFeaturesPasscode(event) {
+    if (event) event.preventDefault();
+    const input = document.getElementById('features-passcode');
+    const errEl = document.getElementById('features-auth-error');
+    const card = document.getElementById('features-auth-card');
+    const role = getPasscodeRole(input.value);
+
+    if (role) {
+      errEl.classList.remove('visible');
+      saveUnlockedSession(role);
+      startFeaturesApp(role);
+    } else {
+      errEl.classList.add('visible');
+      card.classList.remove('shake');
+      void card.offsetWidth;
+      card.classList.add('shake');
+      input.value = '';
+      input.focus();
+    }
+  }
+
+  const passInputEl = document.getElementById('features-passcode');
+  if (passInputEl) {
+    passInputEl.addEventListener('input', () => {
+      document.getElementById('features-auth-error').classList.remove('visible');
+      const role = getPasscodeRole(passInputEl.value);
+      if (role) {
+        saveUnlockedSession(role);
+        startFeaturesApp(role);
+      }
+    });
+  }
+
+  const initialRole = getSessionRole();
+  if (initialRole) {
+    startFeaturesApp(initialRole);
+  } else {
+    document.getElementById('features-auth-gate').classList.remove('hidden');
+  }
+</script>
+
+</body>
+</html>
