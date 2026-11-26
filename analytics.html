@@ -294,6 +294,20 @@
       color: var(--nx-rose);
     }
 
+    .view-only-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: var(--radius-pill);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      background: rgba(137, 170, 230, 0.14);
+      border: 1px solid rgba(137, 170, 230, 0.38);
+      color: var(--pace-periwinkle);
+    }
+
     .nav-back {
       display: inline-flex;
       align-items: center;
@@ -765,6 +779,7 @@
           </div>
         </div>
         <div class="header-actions">
+          <span class="view-only-pill hidden" id="view-only-pill" title="Read-only access (0000)">View Only</span>
           <div class="sync-status-pill" id="sync-pill" title="Firebase Realtime Sync">
             <span class="sync-pulse-dot"></span>
             <span id="sync-status">Connecting…</span>
@@ -851,7 +866,9 @@
 
 <script>
   const PASS_HASH = '95b78002';
+  const VIEW_PASS_HASH = 'b5edd2d5';
   const SESSION_KEY = 'workpulse_unlocked';
+  const ROLE_SESSION_KEY = 'workpulse_role';
 
   function hashPassword(str) {
     let h = 2166136261;
@@ -862,17 +879,28 @@
     return (h >>> 0).toString(16).padStart(8, '0');
   }
 
-  function hasUnlockedSession() {
+  function getPasscodeRole(code) {
+    const h = hashPassword(String(code || '').trim());
+    if (h === PASS_HASH) return 'full';
+    if (h === VIEW_PASS_HASH) return 'view';
+    return null;
+  }
+
+  function getSessionRole() {
     try {
-      return sessionStorage.getItem(SESSION_KEY) === PASS_HASH;
+      const token = sessionStorage.getItem(SESSION_KEY);
+      if (token === PASS_HASH) return 'full';
+      if (token === VIEW_PASS_HASH) return 'view';
+      return null;
     } catch (e) {
-      return false;
+      return null;
     }
   }
 
-  function saveUnlockedSession() {
+  function saveUnlockedSession(role = 'full') {
     try {
-      sessionStorage.setItem(SESSION_KEY, PASS_HASH);
+      sessionStorage.setItem(SESSION_KEY, role === 'view' ? VIEW_PASS_HASH : PASS_HASH);
+      sessionStorage.setItem(ROLE_SESSION_KEY, role);
     } catch (e) {}
   }
 
@@ -1140,9 +1168,11 @@
     `;
   }
 
-  function startAnalyticsApp() {
+  function startAnalyticsApp(role = 'full') {
     document.getElementById('analytics-auth-gate').classList.add('hidden');
     document.getElementById('analytics-shell').classList.remove('hidden');
+    const viewPill = document.getElementById('view-only-pill');
+    if (viewPill) viewPill.classList.toggle('hidden', role !== 'view');
 
     if (listenersAttached) return;
     listenersAttached = true;
@@ -1175,11 +1205,12 @@
     const errEl = document.getElementById('analytics-auth-error');
     const card = document.getElementById('analytics-auth-card');
     const val = (input.value || '').trim();
+    const role = getPasscodeRole(val);
 
-    if (hashPassword(val) === PASS_HASH) {
+    if (role) {
       errEl.classList.remove('visible');
-      saveUnlockedSession();
-      startAnalyticsApp();
+      saveUnlockedSession(role);
+      startAnalyticsApp(role);
     } else {
       errEl.classList.add('visible');
       card.classList.remove('shake');
@@ -1195,16 +1226,17 @@
   if (passInputEl) {
     passInputEl.addEventListener('input', () => {
       document.getElementById('analytics-auth-error').classList.remove('visible');
-      const val = passInputEl.value.trim();
-      if (val && hashPassword(val) === PASS_HASH) {
-        saveUnlockedSession();
-        startAnalyticsApp();
+      const role = getPasscodeRole(passInputEl.value);
+      if (role) {
+        saveUnlockedSession(role);
+        startAnalyticsApp(role);
       }
     });
   }
 
-  if (hasUnlockedSession()) {
-    startAnalyticsApp();
+  const initialRole = getSessionRole();
+  if (initialRole) {
+    startAnalyticsApp(initialRole);
   } else {
     document.getElementById('analytics-auth-gate').classList.remove('hidden');
   }
