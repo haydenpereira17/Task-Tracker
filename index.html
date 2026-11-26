@@ -1905,6 +1905,251 @@
       background: var(--nx-rose-bg);
     }
 
+    /* ── V1 Sent / Pending Feedback Stage (inside In Progress) ── */
+    .lane-subdivider {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 6px 0 2px;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .lane-subdivider.is-active {
+      color: #bae6fd;
+      background: rgba(56, 189, 248, 0.09);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+    }
+
+    .lane-subdivider.is-pending {
+      color: #fcd34d;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(251, 191, 36, 0.32);
+    }
+
+    .lane-subcount {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.66rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: var(--radius-pill);
+      background: rgba(6, 24, 38, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .col-inprogress .task-card.is-pending-feedback {
+      border-left: 3px solid #f59e0b;
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.12), rgba(6, 62, 98, 0.74));
+      border-color: rgba(251, 191, 36, 0.34);
+    }
+
+    .col-inprogress .task-card.is-pending-feedback:hover {
+      border-color: rgba(251, 191, 36, 0.58);
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.16), rgba(8, 78, 122, 0.86));
+    }
+
+    .col-inprogress .task-card.is-pending-feedback.is-overdue {
+      border-left: 3px solid var(--pace-red);
+      box-shadow: inset 0 1px 0 rgba(251, 191, 36, 0.28), var(--shadow-sm);
+    }
+
+    .nx-badge.badge-v1-pending {
+      background: rgba(245, 158, 11, 0.16);
+      border-color: rgba(251, 191, 36, 0.42);
+      color: #fde68a;
+      font-weight: 600;
+      max-width: 100%;
+    }
+
+    .v1-review-dock {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .btn-v1-trigger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px dashed rgba(251, 191, 36, 0.34);
+      color: #fde68a;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+    }
+
+    .btn-v1-trigger:hover {
+      background: rgba(245, 158, 11, 0.18);
+      border-color: rgba(251, 191, 36, 0.6);
+      color: #ffffff;
+    }
+
+    .v1-pending-box {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.34);
+      border-radius: var(--radius-sm);
+      padding: 9px 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .v1-pending-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .v1-pending-status {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #fde68a;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .v1-pending-age {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.66rem;
+      font-weight: 600;
+      color: #fcd34d;
+      opacity: 0.9;
+    }
+
+    .v1-pending-from {
+      font-size: 0.74rem;
+      color: var(--pace-dim-on-dark);
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .v1-pending-from strong {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .v1-pending-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+    }
+
+    .btn-v1-resume {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.69rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      background: rgba(16, 185, 129, 0.18);
+      border: 1px solid rgba(52, 211, 153, 0.42);
+      color: #6ee7b7;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+    }
+
+    .btn-v1-resume:hover {
+      background: rgba(16, 185, 129, 0.34);
+      color: #ffffff;
+    }
+
+    .v1-inline-form {
+      background: rgba(6, 24, 38, 0.72);
+      border: 1px solid rgba(251, 191, 36, 0.36);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .v1-inline-row {
+      display: grid;
+      grid-template-columns: 74px minmax(0, 1fr);
+      gap: 8px;
+    }
+
+    .v1-inline-row .nx-input {
+      padding: 7px 10px;
+      font-size: 0.78rem;
+    }
+
+    .v1-inline-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .btn-v1-confirm {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: var(--radius-sm);
+      background: rgba(245, 158, 11, 0.22);
+      border: 1px solid rgba(251, 191, 36, 0.55);
+      color: #fde68a;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+    }
+
+    .btn-v1-confirm:hover {
+      background: rgba(245, 158, 11, 0.38);
+      color: #ffffff;
+    }
+
+    .edit-pending-box {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(251, 191, 36, 0.28);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+
+    .edit-pending-check-label {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #fde68a;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .edit-pending-check-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #f59e0b;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .edit-pending-grid {
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+
     .empty-state {
       text-align: center;
       padding: 48px 16px;
@@ -3002,6 +3247,8 @@
         <select id="filter-overdue" onchange="renderBoard()">
           <option value="">All Tasks</option>
           <option value="overdue">Overdue Only</option>
+          <option value="pending_feedback">V1 Sent / Pending Feedback</option>
+          <option value="active_inprogress">Active In Progress Only</option>
           <option value="rolled">Auto-Moved (11 PM)</option>
         </select>
       </div>
@@ -3097,12 +3344,31 @@
 
       <div class="field-group" style="margin-bottom: 16px;">
         <label class="field-label" for="edit-status">Status</label>
-        <select id="edit-status" class="nx-select">
+        <select id="edit-status" class="nx-select" onchange="toggleEditPendingFieldsVisibility()">
           <option value="todo">To Do</option>
           <option value="inprogress">In Progress</option>
           <option value="done">Completed</option>
         </select>
       </div>
+
+      <div class="edit-pending-box hidden" id="edit-pending-feedback-group">
+        <label class="edit-pending-check-label" for="edit-pending-feedback">
+          <input type="checkbox" id="edit-pending-feedback" onchange="toggleEditPendingInputsVisibility()" />
+          <span>Version sent &mdash; pending feedback / approval</span>
+        </label>
+        <div class="edit-pending-grid hidden" id="edit-pending-inputs">
+          <div class="field-group">
+            <label class="field-label" for="edit-pending-version">Version</label>
+            <input type="text" id="edit-pending-version" class="nx-input" placeholder="V1" maxlength="12" />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="edit-pending-from">Waiting On <span style="opacity:0.65; font-weight:500;">(Opt.)</span></label>
+            <input type="text" id="edit-pending-from" class="nx-input" list="team-members-datalist" placeholder="Person, client, or team…" />
+          </div>
+        </div>
+      </div>
+
+      <datalist id="team-members-datalist"></datalist>
 
       <div class="form-validation-msg" id="edit-form-error" role="alert" style="margin-top:0; margin-bottom:12px;"></div>
 
@@ -3271,6 +3537,10 @@
           TEAM_MEMBERS.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
         el.value = prevVal;
       });
+      const datalistEl = document.getElementById('team-members-datalist');
+      if (datalistEl) {
+        datalistEl.innerHTML = TEAM_MEMBERS.map(name => `<option value="${escapeHtml(name)}"></option>`).join('');
+      }
     }
 
     const firebaseConfig = {
@@ -3534,6 +3804,8 @@
       editingHistoryNotes.clear();
       histNoteDrafts.clear();
       expandedTasks.clear();
+      v1EditorOpen.clear();
+      v1Drafts.clear();
       closeEditModal();
       closeRecurringModal();
       document.getElementById('app-shell').classList.add('hidden');
@@ -3756,6 +4028,99 @@
 
     const expandedTasks = new Set();
     const showAllInColumn = new Set();
+    const v1EditorOpen = new Set();
+    const v1Drafts = new Map();
+
+    function isTaskPendingFeedback(t) {
+      return Boolean(t && t.status === 'inprogress' && t.pendingFeedback);
+    }
+
+    function parseVersionNum(label) {
+      const m = String(label || '').match(/(\d+)/);
+      return m ? Math.max(1, parseInt(m[1], 10)) : 1;
+    }
+
+    function getNextVersionLabel(t) {
+      const current = (t && t.pendingFeedbackVersion) ? String(t.pendingFeedbackVersion).trim() : '';
+      if (current) return current;
+      const prevNum = Number(t && t.lastVersionNumber) || 0;
+      return 'V' + (prevNum + 1);
+    }
+
+    function formatPendingWaitAge(isoStr) {
+      if (!isoStr) return '';
+      const ms = new Date(isoStr).getTime();
+      if (isNaN(ms)) return '';
+      const diffDays = Math.floor((Date.now() - ms) / 86400000);
+      if (diffDays <= 0) return 'Today';
+      if (diffDays === 1) return '1d waiting';
+      return diffDays + 'd waiting';
+    }
+
+    function openV1Editor(id) {
+      const task = allTasks.find(t => t.id === id);
+      if (!task) return;
+      v1Drafts.set(id, {
+        version: getNextVersionLabel(task),
+        from: task.pendingFeedbackFrom || ''
+      });
+      v1EditorOpen.add(id);
+      expandedTasks.add(id);
+      renderBoard();
+      setTimeout(() => {
+        const el = document.getElementById('v1-from-' + id);
+        if (el) el.focus();
+      }, 20);
+    }
+
+    function updateV1Draft(id, field, value) {
+      const prev = v1Drafts.get(id) || {};
+      prev[field] = value;
+      v1Drafts.set(id, prev);
+    }
+
+    function cancelV1Editor(id) {
+      v1EditorOpen.delete(id);
+      v1Drafts.delete(id);
+      renderBoard();
+    }
+
+    function savePendingFeedback(id) {
+      const task = allTasks.find(t => t.id === id);
+      if (!task) return;
+      const verEl = document.getElementById('v1-ver-' + id);
+      const fromEl = document.getElementById('v1-from-' + id);
+      const draft = v1Drafts.get(id) || {};
+      const rawVer = verEl ? verEl.value : draft.version;
+      const rawFrom = fromEl ? fromEl.value : draft.from;
+      const version = String(rawVer || '').trim() || getNextVersionLabel(task);
+      const from = String(rawFrom || '').trim();
+      const nowIso = new Date().toISOString();
+
+      tasksRef.child(id).update({
+        status: 'inprogress',
+        pendingFeedback: true,
+        pendingFeedbackVersion: version,
+        pendingFeedbackFrom: from,
+        pendingFeedbackAt: (task.pendingFeedback && task.pendingFeedbackAt) ? task.pendingFeedbackAt : nowIso,
+        lastVersionNumber: parseVersionNum(version)
+      });
+      v1EditorOpen.delete(id);
+      v1Drafts.delete(id);
+    }
+
+    function resumeFromFeedback(id) {
+      const task = allTasks.find(t => t.id === id);
+      if (!task) return;
+      const prevVerNum = parseVersionNum(task.pendingFeedbackVersion || ('V' + (task.lastVersionNumber || 1)));
+      tasksRef.child(id).update({
+        pendingFeedback: false,
+        pendingFeedbackVersion: '',
+        lastVersionNumber: prevVerNum
+      });
+      v1EditorOpen.delete(id);
+      v1Drafts.delete(id);
+    }
 
     function isBeyond48h(dateStr) {
       if (!dateStr) return false;
@@ -4123,6 +4488,11 @@
       } else if (newStatus !== 'done') {
         if (task && task.completedAt) patch.completedAt = null;
       }
+      if (newStatus !== 'inprogress') {
+        if (task && task.pendingFeedback) patch.pendingFeedback = false;
+        v1EditorOpen.delete(id);
+        v1Drafts.delete(id);
+      }
       tasksRef.child(id).update(patch);
       if (newStatus === 'done' && task && task.status !== 'done') {
         maybeAdvanceRecurringOnDone(task);
@@ -4193,6 +4563,25 @@
     // ══════════════════════════════════════
     // ── Edit Modal Logic ──
     // ══════════════════════════════════════
+    function toggleEditPendingInputsVisibility() {
+      const checked = document.getElementById('edit-pending-feedback').checked;
+      const inputsBox = document.getElementById('edit-pending-inputs');
+      if (inputsBox) inputsBox.classList.toggle('hidden', !checked);
+    }
+
+    function toggleEditPendingFieldsVisibility() {
+      const status = document.getElementById('edit-status').value;
+      const box = document.getElementById('edit-pending-feedback-group');
+      if (!box) return;
+      const isIP = (status === 'inprogress');
+      box.classList.toggle('hidden', !isIP);
+      if (!isIP) {
+        const cb = document.getElementById('edit-pending-feedback');
+        if (cb) cb.checked = false;
+      }
+      toggleEditPendingInputsVisibility();
+    }
+
     function openEditModal(id, focusDesc = false) {
       const task = allTasks.find(t => t.id === id);
       if (!task) return;
@@ -4208,6 +4597,10 @@
       document.getElementById('edit-followup').value = task.followup || '';
       document.getElementById('edit-followup-desc').value = task.followupDescription || '';
       document.getElementById('edit-status').value = task.status || 'todo';
+      document.getElementById('edit-pending-feedback').checked = isTaskPendingFeedback(task);
+      document.getElementById('edit-pending-version').value = getNextVersionLabel(task);
+      document.getElementById('edit-pending-from').value = task.pendingFeedbackFrom || '';
+      toggleEditPendingFieldsVisibility();
       clearTaskValidation('edit-form-error', editTitleEl, editPersonEl);
       document.getElementById('edit-modal').classList.remove('hidden');
       if (focusDesc) {
@@ -4234,6 +4627,7 @@
       const nextStatus = document.getElementById('edit-status').value;
 
       const editPersonVal = editPersonEl.value.trim();
+      const isPendingChecked = (nextStatus === 'inprogress') && document.getElementById('edit-pending-feedback').checked;
       const patch = {
         title: editTitleEl.value.trim(),
         description: document.getElementById('edit-desc').value.trim(),
@@ -4242,13 +4636,34 @@
         date: document.getElementById('edit-date').value,
         followup: document.getElementById('edit-followup').value,
         followupDescription: document.getElementById('edit-followup-desc').value.trim(),
-        status: nextStatus
+        status: nextStatus,
+        pendingFeedback: isPendingChecked
       };
+
+      if (isPendingChecked) {
+        const nextVer = document.getElementById('edit-pending-version').value.trim() || getNextVersionLabel(prevTask);
+        patch.pendingFeedbackVersion = nextVer;
+        patch.pendingFeedbackFrom = document.getElementById('edit-pending-from').value.trim();
+        patch.pendingFeedbackAt = (prevTask && prevTask.pendingFeedback && prevTask.pendingFeedbackAt)
+          ? prevTask.pendingFeedbackAt
+          : new Date().toISOString();
+        patch.lastVersionNumber = parseVersionNum(nextVer);
+      } else {
+        patch.pendingFeedbackVersion = '';
+        if (prevTask && prevTask.pendingFeedback) {
+          patch.lastVersionNumber = parseVersionNum(prevTask.pendingFeedbackVersion || ('V' + (prevTask.lastVersionNumber || 1)));
+        }
+      }
+
       if (nextStatus === 'done' && (!prevTask || prevTask.status !== 'done')) {
         patch.completedAt = new Date().toISOString();
         expandedTasks.delete(id);
       } else if (nextStatus !== 'done') {
         if (prevTask && prevTask.completedAt) patch.completedAt = null;
+      }
+      if (nextStatus !== 'inprogress') {
+        v1EditorOpen.delete(id);
+        v1Drafts.delete(id);
       }
       tasksRef.child(id).update(patch);
 
@@ -4854,8 +5269,16 @@
         if (selectedHeatmapDate && t.date !== selectedHeatmapDate) return false;
         if (filterPerson && !getTaskAssignees(t).includes(filterPerson)) return false;
         if (filterOverdue === 'overdue' && !isOverdue(t.date, t.status)) return false;
+        if (filterOverdue === 'pending_feedback' && !isTaskPendingFeedback(t)) return false;
+        if (filterOverdue === 'active_inprogress' && (t.status !== 'inprogress' || isTaskPendingFeedback(t))) return false;
         if (filterOverdue === 'rolled' && !(t.rolloverCount > 0)) return false;
-        if (searchTerm && !t.title.toLowerCase().includes(searchTerm) && !getTaskAssignees(t).some(n => n.toLowerCase().includes(searchTerm)) && !(t.description || '').toLowerCase().includes(searchTerm)) return false;
+        if (searchTerm) {
+          const matchTitle = t.title.toLowerCase().includes(searchTerm);
+          const matchPerson = getTaskAssignees(t).some(n => n.toLowerCase().includes(searchTerm));
+          const matchDesc = (t.description || '').toLowerCase().includes(searchTerm);
+          const matchPending = (t.pendingFeedbackFrom || '').toLowerCase().includes(searchTerm) || (t.pendingFeedbackVersion || '').toLowerCase().includes(searchTerm);
+          if (!matchTitle && !matchPerson && !matchDesc && !matchPending) return false;
+        }
         return true;
       });
 
@@ -4900,8 +5323,15 @@
         const renderTaskCard = (t) => {
           const isDone = (t.status === 'done');
           const overdue = isOverdue(t.date, t.status);
+          const pendingFb = isTaskPendingFeedback(t);
           const isCardExpanded = expandedTasks.has(t.id);
           const completionMeta = isDone ? getCompletionDateMeta(t) : null;
+          const vLabel = pendingFb ? getNextVersionLabel(t) : '';
+          const waitAge = pendingFb ? formatPendingWaitAge(t.pendingFeedbackAt) : '';
+          const pendingFromText = pendingFb ? (t.pendingFeedbackFrom || '').trim() : '';
+          const pendingBadgeHtml = pendingFb
+            ? `<span class="nx-badge badge-v1-pending" title="Waiting on feedback / approval">&#9203; ${escapeHtml(vLabel)}${pendingFromText ? ' &middot; Waiting: ' + escapeHtml(pendingFromText) : ' &middot; Pending Feedback'}${waitAge ? ' (' + escapeHtml(waitAge) + ')' : ''}</span>`
+            : '';
 
           if (!isCardExpanded) {
             const collapsedDateBadge = isDone
@@ -4911,7 +5341,7 @@
                   : `<span class="nx-badge badge-date">No due date</span>`);
 
             return `
-              <article class="task-card is-collapsed ${overdue ? 'is-overdue' : ''}" data-task-id="${t.id}">
+              <article class="task-card is-collapsed ${overdue ? 'is-overdue' : ''} ${pendingFb ? 'is-pending-feedback' : ''}" data-task-id="${t.id}">
                 <div class="card-expand-head">
                   <div class="task-title">${escapeHtml(t.title)}</div>
                   <button type="button" class="btn-card-expand" onclick="toggleTaskExpand('${t.id}')" aria-expanded="false" title="Expand task details">
@@ -4921,6 +5351,7 @@
                 </div>
                 <div class="meta-row">
                   ${renderAssigneeBadgesHtml(t.person, t.secondaryPerson, true)}
+                  ${pendingBadgeHtml}
                   ${collapsedDateBadge}
                 </div>
               </article>
@@ -5072,8 +5503,71 @@
             ` : ''}
           ` : '';
 
+          const isV1EditOpen = v1EditorOpen.has(t.id);
+          const v1Draft = v1Drafts.get(t.id) || {
+            version: getNextVersionLabel(t),
+            from: t.pendingFeedbackFrom || ''
+          };
+          const suggestedNextVer = getNextVersionLabel(t);
+
+          const v1ReviewMarkup = (t.status === 'inprogress') ? `
+            <div class="v1-review-dock">
+              ${isV1EditOpen ? `
+                <div class="v1-inline-form">
+                  <div class="v1-inline-row">
+                    <input
+                      type="text"
+                      id="v1-ver-${t.id}"
+                      class="nx-input"
+                      value="${escapeAttr(v1Draft.version || 'V1')}"
+                      placeholder="V1"
+                      maxlength="12"
+                      aria-label="Version sent"
+                      oninput="updateV1Draft('${t.id}', 'version', this.value)"
+                      onkeydown="if(event.key==='Enter'){event.preventDefault();savePendingFeedback('${t.id}');}"
+                    />
+                    <input
+                      type="text"
+                      id="v1-from-${t.id}"
+                      class="nx-input"
+                      list="team-members-datalist"
+                      value="${escapeAttr(v1Draft.from || '')}"
+                      placeholder="Pending feedback from… (e.g. Client, teammate)"
+                      aria-label="Waiting on feedback from"
+                      oninput="updateV1Draft('${t.id}', 'from', this.value)"
+                      onkeydown="if(event.key==='Enter'){event.preventDefault();savePendingFeedback('${t.id}');}"
+                    />
+                  </div>
+                  <div class="v1-inline-actions">
+                    <button type="button" class="btn-desc-mini" onclick="cancelV1Editor('${t.id}')">Cancel</button>
+                    <button type="button" class="btn-v1-confirm" onclick="savePendingFeedback('${t.id}')">&#9203; Mark Pending Approval</button>
+                  </div>
+                </div>
+              ` : (pendingFb ? `
+                <div class="v1-pending-box">
+                  <div class="v1-pending-head">
+                    <span class="v1-pending-status">&#9203; ${escapeHtml(vLabel)} Sent &middot; Pending Feedback</span>
+                    ${waitAge ? `<span class="v1-pending-age" title="${t.pendingFeedbackAt ? escapeAttr(formatFullDateTime(t.pendingFeedbackAt)) : ''}">${escapeHtml(waitAge)}</span>` : ''}
+                  </div>
+                  <div class="v1-pending-from">
+                    Waiting on: <strong>${escapeHtml(pendingFromText || 'Reviewer / Approval')}</strong>
+                  </div>
+                  <div class="v1-pending-actions">
+                    <button type="button" class="btn-v1-resume" onclick="resumeFromFeedback('${t.id}')" title="Feedback received — resume active work">Got Feedback &middot; Resume</button>
+                    <button type="button" class="btn-desc-mini" onclick="openV1Editor('${t.id}')">Edit</button>
+                  </div>
+                </div>
+              ` : `
+                <button type="button" class="btn-v1-trigger" onclick="openV1Editor('${t.id}')" title="Mark ${escapeAttr(suggestedNextVer)} as sent and awaiting feedback or approval">
+                  <span>&#9203; ${escapeHtml(suggestedNextVer)} Sent &middot; Pending Feedback / Approval?</span>
+                  <span class="btn-desc-hint">+ Mark</span>
+                </button>
+              `)}
+            </div>
+          ` : '';
+
           return `
-            <article class="task-card ${overdue ? 'is-overdue' : ''}" data-task-id="${t.id}">
+            <article class="task-card ${overdue ? 'is-overdue' : ''} ${pendingFb ? 'is-pending-feedback' : ''}" data-task-id="${t.id}">
               <div class="card-expand-head">
                 <div class="task-title">${escapeHtml(t.title)}</div>
                 <button type="button" class="btn-card-expand is-open" onclick="toggleTaskExpand('${t.id}')" aria-expanded="true" title="Collapse task">
@@ -5084,6 +5578,8 @@
 
               <div class="meta-row">
                 ${renderAssigneeBadgesHtml(t.person, t.secondaryPerson, false)}
+
+                ${pendingBadgeHtml}
 
                 ${isDone ? `
                   <span class="nx-badge badge-completed" title="${escapeHtml(completionMeta.title)}">
@@ -5170,6 +5666,8 @@
                 </div>
               `}
 
+              ${v1ReviewMarkup}
+
               <footer class="card-footer">
                 <div class="flow-actions">
                   ${statusButtons}
@@ -5182,7 +5680,24 @@
             </article>`;
         };
 
-        let html = visibleTasks.map(renderTaskCard).join('');
+        let html = '';
+        if (status === 'inprogress') {
+          const activeVisible = visibleTasks.filter(t => !isTaskPendingFeedback(t));
+          const pendingVisible = visibleTasks.filter(t => isTaskPendingFeedback(t));
+
+          if (pendingVisible.length > 0) {
+            if (activeVisible.length > 0) {
+              html += `<div class="lane-subdivider is-active"><span>Active Work</span><span class="lane-subcount">${activeVisible.length}</span></div>`;
+              html += activeVisible.map(renderTaskCard).join('');
+            }
+            html += `<div class="lane-subdivider is-pending"><span>&#9203; V1 Sent &middot; Pending Feedback</span><span class="lane-subcount">${pendingVisible.length}</span></div>`;
+            html += pendingVisible.map(renderTaskCard).join('');
+          } else {
+            html = visibleTasks.map(renderTaskCard).join('');
+          }
+        } else {
+          html = visibleTasks.map(renderTaskCard).join('');
+        }
 
         if (deferredTasks.length > 0) {
           html += `
@@ -5201,8 +5716,17 @@
       });
 
       // Update Top Metrics Readout
+      const inProgressTasks = tasks.filter(t => t.status === 'inprogress');
+      const pendingFbCount = inProgressTasks.filter(isTaskPendingFeedback).length;
+      const activeIpCount = inProgressTasks.length - pendingFbCount;
       document.getElementById('stat-total').textContent = String(tasks.length).padStart(2, '0');
-      document.getElementById('stat-inprogress').textContent = String(tasks.filter(t => t.status === 'inprogress').length).padStart(2, '0');
+      const ipStatEl = document.getElementById('stat-inprogress');
+      ipStatEl.textContent = String(inProgressTasks.length).padStart(2, '0');
+      if (ipStatEl.parentElement) {
+        ipStatEl.parentElement.title = pendingFbCount > 0
+          ? `${activeIpCount} active · ${pendingFbCount} V1 sent / pending feedback`
+          : `${inProgressTasks.length} active in progress`;
+      }
       document.getElementById('stat-done').textContent = String(tasks.filter(t => t.status === 'done').length).padStart(2, '0');
     }
 
