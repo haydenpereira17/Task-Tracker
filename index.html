@@ -786,14 +786,31 @@
       line-height: 1.1;
     }
 
+    .cell-badge-row {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      flex-wrap: wrap;
+      margin-top: 3px;
+      max-width: 100%;
+    }
+
     .cell-task-badge {
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.65rem;
       font-weight: 600;
-      margin-top: 3px;
       padding: 1px 6px;
       border-radius: var(--radius-pill);
       background: rgba(6, 24, 38, 0.45);
+      line-height: 1.25;
+    }
+
+    .cell-task-badge.is-done-count {
+      color: var(--nx-emerald);
+      background: rgba(16, 185, 129, 0.16);
+      border: 1px solid rgba(52, 211, 153, 0.42);
+      font-weight: 700;
     }
 
     .active-filter-indicator {
@@ -5577,22 +5594,37 @@
       function renderWeekGrid(weekDays, weekTitle) {
         const cellsHtml = weekDays.map(d => {
           const dayTasks = tasks.filter(t => t.date === d.dateStr);
-          const count = dayTasks.length;
+          const openCount = dayTasks.filter(t => t.status !== 'done').length;
+          const doneCount = dayTasks.filter(t => t.status === 'done').length;
 
+          // Density is strictly driven by open (uncompleted) tasks
           let heatLevel = 'heat-0';
-          if (count >= 5) heatLevel = 'heat-3';
-          else if (count >= 3) heatLevel = 'heat-2';
-          else if (count >= 1) heatLevel = 'heat-1';
+          if (openCount >= 5) heatLevel = 'heat-3';
+          else if (openCount >= 3) heatLevel = 'heat-2';
+          else if (openCount >= 1) heatLevel = 'heat-1';
 
           const isSelected = (selectedHeatmapDate === d.dateStr);
+
+          let badgesHtml = '';
+          if (openCount > 0 && doneCount > 0) {
+            badgesHtml = `<span class="cell-task-badge">${openCount}</span><span class="cell-task-badge is-done-count" title="${doneCount} completed">${doneCount}</span>`;
+          } else if (openCount === 0 && doneCount > 0) {
+            badgesHtml = `<span class="cell-task-badge is-done-count" title="${doneCount} completed">${doneCount}</span>`;
+          } else {
+            badgesHtml = `<span class="cell-task-badge">${openCount}</span>`;
+          }
+
+          const titleParts = [];
+          if (openCount > 0 || doneCount === 0) titleParts.push(`${openCount} open`);
+          if (doneCount > 0) titleParts.push(`${doneCount} completed`);
 
           return `
             <div class="heatmap-day-cell ${heatLevel} ${d.isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}"
                  onclick="filterByHeatmapDay('${d.dateStr}')"
-                 title="${d.dayName}, ${d.monthName} ${d.dayNum}: ${count} task${count !== 1 ? 's' : ''}${d.isToday ? ' (Today)' : ''}">
+                 title="${d.dayName}, ${d.monthName} ${d.dayNum}: ${titleParts.join(' · ')}${d.isToday ? ' (Today)' : ''}">
               <span class="cell-weekday">${d.dayName}</span>
               <span class="cell-date-num">${d.dayNum}</span>
-              <span class="cell-task-badge">${count}</span>
+              <span class="cell-badge-row">${badgesHtml}</span>
             </div>
           `;
         }).join('');
