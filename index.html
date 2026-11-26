@@ -4187,6 +4187,10 @@
       const from = String(rawFrom || '').trim();
       const nowIso = new Date().toISOString();
 
+      v1EditorOpen.delete(id);
+      v1Drafts.delete(id);
+      expandedTasks.delete(id);
+
       tasksRef.child(id).update({
         status: 'inprogress',
         pendingFeedback: true,
@@ -4195,21 +4199,21 @@
         pendingFeedbackAt: (task.pendingFeedback && task.pendingFeedbackAt) ? task.pendingFeedbackAt : nowIso,
         lastVersionNumber: parseVersionNum(version)
       });
-      v1EditorOpen.delete(id);
-      v1Drafts.delete(id);
     }
 
     function resumeFromFeedback(id) {
       const task = allTasks.find(t => t.id === id);
       if (!task) return;
       const prevVerNum = parseVersionNum(task.pendingFeedbackVersion || ('V' + (task.lastVersionNumber || 1)));
+      v1EditorOpen.delete(id);
+      v1Drafts.delete(id);
+      expandedTasks.delete(id);
+
       tasksRef.child(id).update({
         pendingFeedback: false,
         pendingFeedbackVersion: '',
         lastVersionNumber: prevVerNum
       });
-      v1EditorOpen.delete(id);
-      v1Drafts.delete(id);
     }
 
     function isBeyond48h(dateStr) {
@@ -4762,6 +4766,9 @@
         }
       }
 
+      if (isPendingChecked && (!prevTask || !prevTask.pendingFeedback)) {
+        expandedTasks.delete(id);
+      }
       if (nextStatus === 'done' && (!prevTask || prevTask.status !== 'done')) {
         patch.completedAt = new Date().toISOString();
         expandedTasks.delete(id);
