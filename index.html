@@ -362,12 +362,12 @@
 
     .form-grid {
       display: grid;
-      grid-template-columns: 2.3fr 1.5fr 1.2fr auto;
-      gap: 14px;
+      grid-template-columns: 1.9fr 1.15fr 1.15fr 1.05fr auto;
+      gap: 12px;
       align-items: flex-end;
     }
 
-    @media (max-width: 960px) {
+    @media (max-width: 1080px) {
       .form-grid { grid-template-columns: 1fr 1fr; }
       .submit-cell { grid-column: span 2; }
     }
@@ -1283,6 +1283,25 @@
       align-items: center;
       justify-content: center;
       font-weight: 700;
+    }
+
+    .badge-person.is-secondary {
+      background: rgba(6, 24, 38, 0.45);
+      border: 1px dashed rgba(137, 170, 230, 0.38);
+      color: var(--nx-muted);
+    }
+
+    .badge-person.is-secondary .avatar {
+      background: rgba(54, 133, 181, 0.72);
+    }
+
+    .secondary-role-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--pace-periwinkle);
+      opacity: 0.9;
+      margin-left: 1px;
     }
 
     .badge-date {
@@ -2874,6 +2893,11 @@
         </div>
 
         <div class="field-group">
+          <label class="field-label" for="task-secondary-person">Secondary Assignee <span style="opacity:0.65; font-weight:500;">(Opt.)</span></label>
+          <select id="task-secondary-person" class="nx-select"></select>
+        </div>
+
+        <div class="field-group">
           <label class="field-label" for="task-date">Due Date</label>
           <input type="date" id="task-date" class="nx-input" />
         </div>
@@ -2977,6 +3001,11 @@
       </div>
 
       <div class="field-group" style="margin-bottom: 16px;">
+        <label class="field-label" for="edit-secondary-person">Secondary Assignee <span style="opacity:0.65; font-weight:500;">(Optional)</span></label>
+        <select id="edit-secondary-person" class="nx-select"></select>
+      </div>
+
+      <div class="field-group" style="margin-bottom: 16px;">
         <label class="field-label" for="edit-date">Due Date</label>
         <input type="date" id="edit-date" class="nx-input" />
       </div>
@@ -3022,14 +3051,19 @@
       <form class="rec-form-box" id="recurring-form" onsubmit="saveRecurringRule(event)">
         <input type="hidden" id="rec-edit-id" />
 
+        <div class="field-group" style="margin-bottom: 12px;">
+          <label class="field-label" for="rec-title">Task Title</label>
+          <input type="text" id="rec-title" class="nx-input" placeholder="e.g. Weekly status review" required />
+        </div>
+
         <div class="rec-grid-2">
-          <div class="field-group">
-            <label class="field-label" for="rec-title">Task Title</label>
-            <input type="text" id="rec-title" class="nx-input" placeholder="e.g. Weekly status review" required />
-          </div>
           <div class="field-group">
             <label class="field-label" for="rec-person">Assignee</label>
             <select id="rec-person" class="nx-select"></select>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="rec-secondary-person">Secondary Assignee <span style="opacity:0.65; font-weight:500;">(Opt.)</span></label>
+            <select id="rec-secondary-person" class="nx-select"></select>
           </div>
         </div>
 
@@ -3136,15 +3170,19 @@
       'Shreya Nair',
       'Maithali',
       'Hashim Omer',
-      'Analyst'
+      'Analyst',
+      'Suchita'
     ];
 
     function populatePersonSelects() {
       const configs = [
         { id: 'task-person', placeholder: 'Select team member…' },
+        { id: 'task-secondary-person', placeholder: 'Optional secondary…' },
         { id: 'edit-person', placeholder: 'Select team member…' },
+        { id: 'edit-secondary-person', placeholder: 'Optional secondary…' },
         { id: 'filter-person', placeholder: 'All Assignees' },
-        { id: 'rec-person', placeholder: 'Select team member…' }
+        { id: 'rec-person', placeholder: 'Select team member…' },
+        { id: 'rec-secondary-person', placeholder: 'Optional secondary…' }
       ];
       configs.forEach(cfg => {
         const el = document.getElementById(cfg.id);
@@ -3588,6 +3626,38 @@
       return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
     }
 
+    function normalizeSecondaryPerson(primary, secondary) {
+      const p1 = (primary || '').trim();
+      const p2 = (secondary || '').trim();
+      return (p2 && p2 !== p1) ? p2 : '';
+    }
+
+    function getTaskAssignees(t) {
+      if (!t) return [];
+      const p1 = (t.person || '').trim();
+      const p2 = normalizeSecondaryPerson(p1, t.secondaryPerson);
+      const list = [];
+      if (p1) list.push(p1);
+      if (p2) list.push(p2);
+      return list;
+    }
+
+    function renderAssigneeBadgesHtml(primary, secondary, showUnassigned = false) {
+      const p1 = (primary || '').trim();
+      const p2 = normalizeSecondaryPerson(p1, secondary);
+      if (!p1 && !p2) {
+        return showUnassigned ? '<span class="nx-badge badge-person">Unassigned</span>' : '';
+      }
+      let html = '';
+      if (p1) {
+        html += `<span class="nx-badge badge-person"><span class="avatar">${getInitials(p1)}</span>${escapeHtml(p1)}</span>`;
+      }
+      if (p2) {
+        html += `<span class="nx-badge badge-person is-secondary" title="Secondary assignee"><span class="avatar">${getInitials(p2)}</span>${escapeHtml(p2)}<span class="secondary-role-tag">2nd</span></span>`;
+      }
+      return html;
+    }
+
     function setDefaultDueDate() {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -3852,6 +3922,7 @@
     function addTask() {
       const title = document.getElementById('task-title').value.trim();
       const person = document.getElementById('task-person').value;
+      const secondaryPerson = normalizeSecondaryPerson(person, document.getElementById('task-secondary-person').value);
       const date = document.getElementById('task-date').value;
       const descEl = document.getElementById('task-desc');
       const description = descEl.value.trim();
@@ -3864,6 +3935,7 @@
       tasksRef.push({
         title,
         person,
+        secondaryPerson,
         date,
         description,
         followup: '',
@@ -3874,6 +3946,7 @@
 
       document.getElementById('task-title').value = '';
       document.getElementById('task-person').value = '';
+      document.getElementById('task-secondary-person').value = '';
       descEl.value = '';
       descEl.classList.remove('has-content');
       setDefaultDueDate();
@@ -3976,6 +4049,7 @@
       document.getElementById('edit-title').value = task.title;
       document.getElementById('edit-desc').value = task.description || '';
       document.getElementById('edit-person').value = task.person || '';
+      document.getElementById('edit-secondary-person').value = normalizeSecondaryPerson(task.person, task.secondaryPerson);
       document.getElementById('edit-date').value = task.date || '';
       document.getElementById('edit-followup').value = task.followup || '';
       document.getElementById('edit-followup-desc').value = task.followupDescription || '';
@@ -3995,10 +4069,12 @@
       const prevTask = allTasks.find(t => t.id === id);
       const nextStatus = document.getElementById('edit-status').value;
 
+      const editPersonVal = document.getElementById('edit-person').value;
       const patch = {
         title: document.getElementById('edit-title').value.trim(),
         description: document.getElementById('edit-desc').value.trim(),
-        person: document.getElementById('edit-person').value,
+        person: editPersonVal,
+        secondaryPerson: normalizeSecondaryPerson(editPersonVal, document.getElementById('edit-secondary-person').value),
         date: document.getElementById('edit-date').value,
         followup: document.getElementById('edit-followup').value,
         followupDescription: document.getElementById('edit-followup-desc').value.trim(),
@@ -4092,9 +4168,11 @@
     function buildDraftRuleFromForm() {
       const freq = document.getElementById('rec-freq').value;
       const startDate = document.getElementById('rec-start').value || formatLocalDateStr(new Date());
+      const recPerson = document.getElementById('rec-person').value;
       return {
         title: document.getElementById('rec-title').value.trim(),
-        person: document.getElementById('rec-person').value,
+        person: recPerson,
+        secondaryPerson: normalizeSecondaryPerson(recPerson, document.getElementById('rec-secondary-person').value),
         description: document.getElementById('rec-desc').value.trim(),
         frequency: freq,
         startDate,
@@ -4152,6 +4230,7 @@
       document.getElementById('rec-edit-id').value = '';
       document.getElementById('rec-title').value = '';
       document.getElementById('rec-person').value = '';
+      document.getElementById('rec-secondary-person').value = '';
       const recDescEl = document.getElementById('rec-desc');
       recDescEl.value = '';
       recDescEl.classList.remove('has-content');
@@ -4174,6 +4253,7 @@
       document.getElementById('rec-edit-id').value = id;
       document.getElementById('rec-title').value = rule.title || '';
       document.getElementById('rec-person').value = rule.person || '';
+      document.getElementById('rec-secondary-person').value = normalizeSecondaryPerson(rule.person, rule.secondaryPerson);
       const recDescEl = document.getElementById('rec-desc');
       recDescEl.value = rule.description || '';
       recDescEl.classList.toggle('has-content', Boolean(rule.description));
@@ -4206,6 +4286,7 @@
         recurringRef.child(editId).update({
           title: draft.title,
           person: draft.person,
+          secondaryPerson: draft.secondaryPerson,
           description: draft.description,
           frequency: draft.frequency,
           startDate: draft.startDate,
@@ -4314,6 +4395,7 @@
         return {
           title: rule.title,
           person: rule.person || '',
+          secondaryPerson: normalizeSecondaryPerson(rule.person, rule.secondaryPerson),
           date: dateStr,
           description: rule.description || '',
           followup: '',
@@ -4443,12 +4525,7 @@
             </div>
 
             <div class="rec-rule-meta">
-              ${r.person ? `
-                <span class="nx-badge badge-person">
-                  <span class="avatar">${getInitials(r.person)}</span>
-                  ${escapeHtml(r.person)}
-                </span>
-              ` : ''}
+              ${renderAssigneeBadgesHtml(r.person, r.secondaryPerson, false)}
               <span class="nx-badge badge-recurring">&#8635; ${escapeHtml(formatRecurrenceFull(r))}</span>
               <span class="nx-badge badge-date">${r.mode === 'horizon' ? '14-day horizon' : 'Auto-next'}</span>
             </div>
@@ -4611,10 +4688,10 @@
       // Filter tasks
       const filtered = tasks.filter(t => {
         if (selectedHeatmapDate && t.date !== selectedHeatmapDate) return false;
-        if (filterPerson && t.person !== filterPerson) return false;
+        if (filterPerson && !getTaskAssignees(t).includes(filterPerson)) return false;
         if (filterOverdue === 'overdue' && !isOverdue(t.date, t.status)) return false;
         if (filterOverdue === 'rolled' && !(t.rolloverCount > 0)) return false;
-        if (searchTerm && !t.title.toLowerCase().includes(searchTerm) && !(t.person || '').toLowerCase().includes(searchTerm) && !(t.description || '').toLowerCase().includes(searchTerm)) return false;
+        if (searchTerm && !t.title.toLowerCase().includes(searchTerm) && !getTaskAssignees(t).some(n => n.toLowerCase().includes(searchTerm)) && !(t.description || '').toLowerCase().includes(searchTerm)) return false;
         return true;
       });
 
@@ -4667,9 +4744,7 @@
                   </button>
                 </div>
                 <div class="meta-row">
-                  <span class="nx-badge badge-person">
-                    ${t.person ? `<span class="avatar">${getInitials(t.person)}</span>${escapeHtml(t.person)}` : 'Unassigned'}
-                  </span>
+                  ${renderAssigneeBadgesHtml(t.person, t.secondaryPerson, true)}
                   ${collapsedDateBadge}
                 </div>
               </article>
@@ -4832,12 +4907,7 @@
               </div>
 
               <div class="meta-row">
-                ${t.person ? `
-                  <span class="nx-badge badge-person">
-                    <span class="avatar">${getInitials(t.person)}</span>
-                    ${escapeHtml(t.person)}
-                  </span>
-                ` : ''}
+                ${renderAssigneeBadgesHtml(t.person, t.secondaryPerson, false)}
 
                 ${isDone ? `
                   <span class="nx-badge badge-completed" title="${escapeHtml(completionMeta.title)}">
@@ -4968,9 +5038,9 @@
       const counts = new Map();
       tasks.forEach(t => {
         if (t.status === 'done') return;
-        const name = (t.person || '').trim();
-        if (!name) return;
-        counts.set(name, (counts.get(name) || 0) + 1);
+        getTaskAssignees(t).forEach(name => {
+          counts.set(name, (counts.get(name) || 0) + 1);
+        });
       });
 
       const entries = Array.from(counts.entries())
