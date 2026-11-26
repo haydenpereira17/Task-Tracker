@@ -246,8 +246,8 @@
       font-weight: 600;
     }
 
-    .stat-badge.overdue strong {
-      color: var(--nx-rose);
+    .stat-badge.inprogress strong {
+      color: #38bdf8;
     }
 
     .stat-divider {
@@ -2805,7 +2805,7 @@
         <div class="stats-shelf">
           <div class="stat-badge">Total: <strong id="stat-total">00</strong></div>
           <span class="stat-divider">/</span>
-          <div class="stat-badge overdue">Overdue: <strong id="stat-overdue">00</strong></div>
+          <div class="stat-badge inprogress">In Progress: <strong id="stat-inprogress">00</strong></div>
           <span class="stat-divider">/</span>
           <div class="stat-badge">Done: <strong id="stat-done">00</strong></div>
         </div>
@@ -5009,7 +5009,7 @@
 
       // Update Top Metrics Readout
       document.getElementById('stat-total').textContent = String(tasks.length).padStart(2, '0');
-      document.getElementById('stat-overdue').textContent = String(tasks.filter(t => isOverdue(t.date, t.status)).length).padStart(2, '0');
+      document.getElementById('stat-inprogress').textContent = String(tasks.filter(t => t.status === 'inprogress').length).padStart(2, '0');
       document.getElementById('stat-done').textContent = String(tasks.filter(t => t.status === 'done').length).padStart(2, '0');
     }
 
