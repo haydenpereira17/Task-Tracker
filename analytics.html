@@ -799,8 +799,8 @@
             <option value="count-desc">Sort: Most Tasks</option>
             <option value="name-asc">Sort: Name (A–Z)</option>
           </select>
-          <button type="button" id="toggle-secondary-btn" class="control-toggle is-active" onclick="toggleSecondaryInclusion()" aria-pressed="true" title="Toggle counting tasks where person was secondary assignee">
-            Include 2nd Assignee
+          <button type="button" id="toggle-secondary-btn" class="control-toggle is-active" onclick="toggleSecondaryInclusion()" aria-pressed="true" title="Toggle counting tasks where person was secondary owner">
+            Include 2nd Owner
           </button>
         </div>
       </div>
@@ -1084,7 +1084,7 @@
                   <div class="detail-task">
                     <span class="detail-task-title">${escapeHtml(e.title)}</span>
                     <span class="detail-task-meta">
-                      <span>${e.role === '2nd' ? '2nd assignee &middot; ' : ''}${formatShortCompletionDate(e.completedMs)}</span>
+                      <span>${e.role === '2nd' ? '2nd owner &middot; ' : ''}${formatShortCompletionDate(e.completedMs)}</span>
                       <strong class="avg-days-${speedClass(e.days)}">${(Math.round(e.days * 10) / 10).toFixed(1)}d</strong>
                     </span>
                   </div>
