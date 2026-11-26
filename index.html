@@ -269,6 +269,25 @@
       box-shadow: 0 0 12px rgba(185, 22, 46, 0.24);
     }
 
+    .view-only-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: var(--radius-pill);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      background: rgba(137, 170, 230, 0.14);
+      border: 1px solid rgba(137, 170, 230, 0.38);
+      color: var(--pace-periwinkle);
+    }
+
+    body.is-view-only .nex-card,
+    body.is-view-only .btn-recurring-menu {
+      display: none !important;
+    }
+
     @keyframes pulse-ring {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.5; transform: scale(0.85); }
@@ -3156,6 +3175,11 @@
           <span id="sync-status">Synced</span>
         </div>
 
+        <span class="view-only-pill hidden" id="view-only-pill" title="View-only access (passcode 0000)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>View Only</span>
+        </span>
+
         <button type="button" class="btn-recurring-menu" onclick="openRecurringModal()" title="Create and manage recurring tasks">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10"></polyline>
@@ -3698,8 +3722,10 @@
         });
         tasksLoaded = true;
         renderBoard();
-        rollOverMissedDeadlines();
-        syncRecurringTasks();
+        if (!isViewOnly) {
+          rollOverMissedDeadlines();
+          syncRecurringTasks();
+        }
       });
 
       recurringRef.on('value', snapshot => {
@@ -3709,7 +3735,9 @@
         });
         recurringLoaded = true;
         renderRecurringList();
-        syncRecurringTasks();
+        if (!isViewOnly) {
+          syncRecurringTasks();
+        }
       });
     }
 
@@ -3727,7 +3755,9 @@
     // ── Password Gate ──
     // ══════════════════════════════════════
     const PASS_HASH = '95b78002';
+    const VIEW_PASS_HASH = 'b5edd2d5';
     let isUnlocked = false;
+    let isViewOnly = false;
 
     function hashPassword(str) {
       let h = 2166136261;
@@ -3736,6 +3766,13 @@
         h = Math.imul(h, 16777619);
       }
       return (h >>> 0).toString(16).padStart(8, '0');
+    }
+
+    function getPasscodeRole(entered) {
+      const h = hashPassword(String(entered || '').trim());
+      if (h === PASS_HASH) return 'full';
+      if (h === VIEW_PASS_HASH) return 'view';
+      return null;
     }
 
     let authUnlockTimer = null;
@@ -3774,10 +3811,10 @@
       const input = document.getElementById('auth-password');
       const errorEl = document.getElementById('auth-error');
       const card = document.getElementById('auth-card');
-      const entered = input.value.trim();
+      const role = getPasscodeRole(input.value);
 
-      if (hashPassword(entered) === PASS_HASH) {
-        unlockApp();
+      if (role) {
+        unlockApp(false, role);
       } else {
         errorEl.classList.add('visible');
         card.classList.remove('shake');
@@ -3810,9 +3847,9 @@
     function maybeAutoUnlock() {
       if (isUnlocked) return;
       const input = document.getElementById('auth-password');
-      const val = input.value.trim();
-      if (val && hashPassword(val) === PASS_HASH) {
-        unlockApp();
+      const role = getPasscodeRole(input.value);
+      if (role) {
+        unlockApp(false, role);
       }
     }
 
@@ -3853,10 +3890,17 @@
       input.focus();
     }
 
-    function unlockApp(instant = false) {
+    function unlockApp(instant = false, role = 'full') {
       if (isUnlocked) return;
       isUnlocked = true;
-      try { sessionStorage.setItem('workpulse_unlocked', PASS_HASH); } catch (e) {}
+      isViewOnly = (role === 'view');
+      document.body.classList.toggle('is-view-only', isViewOnly);
+      const viewPill = document.getElementById('view-only-pill');
+      if (viewPill) viewPill.classList.toggle('hidden', !isViewOnly);
+      try {
+        sessionStorage.setItem('workpulse_unlocked', isViewOnly ? VIEW_PASS_HASH : PASS_HASH);
+        sessionStorage.setItem('workpulse_role', isViewOnly ? 'view' : 'full');
+      } catch (e) {}
       const gate = document.getElementById('auth-gate');
       const card = document.getElementById('auth-card');
       const shackle = document.getElementById('auth-shackle');
@@ -3869,9 +3913,11 @@
       document.getElementById('auth-password').value = '';
       clearAuthError();
       attachFirebaseListeners();
-      scheduleNext11pmRollover();
-      setDefaultDueDate();
-      resetRecurringForm();
+      if (!isViewOnly) {
+        scheduleNext11pmRollover();
+        setDefaultDueDate();
+        resetRecurringForm();
+      }
       renderBoard();
 
       if (gate) {
@@ -3893,7 +3939,14 @@
 
     function lockApp() {
       isUnlocked = false;
-      try { sessionStorage.removeItem('workpulse_unlocked'); } catch (e) {}
+      isViewOnly = false;
+      document.body.classList.remove('is-view-only');
+      const viewPill = document.getElementById('view-only-pill');
+      if (viewPill) viewPill.classList.add('hidden');
+      try {
+        sessionStorage.removeItem('workpulse_unlocked');
+        sessionStorage.removeItem('workpulse_role');
+      } catch (e) {}
       if (authUnlockTimer) {
         clearTimeout(authUnlockTimer);
         authUnlockTimer = null;
@@ -3958,7 +4011,7 @@
     }
 
     async function rollOverMissedDeadlines(now = new Date()) {
-      if (!tasksLoaded || isRollingOver || !isUnlocked) return;
+      if (!tasksLoaded || isRollingOver || !isUnlocked || isViewOnly) return;
       isRollingOver = true;
 
       try {
@@ -3989,6 +4042,7 @@
 
     function scheduleNext11pmRollover() {
       stopRolloverScheduler();
+      if (isViewOnly) return;
 
       const now = new Date();
       const next11pm = new Date(now);
@@ -4020,7 +4074,7 @@
     }
 
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && isUnlocked) {
+      if (!document.hidden && isUnlocked && !isViewOnly) {
         rollOverMissedDeadlines();
       }
     });
@@ -4167,6 +4221,7 @@
     }
 
     function openV1Editor(id) {
+      if (isViewOnly) return;
       const task = allTasks.find(t => t.id === id);
       if (!task) return;
       v1Drafts.set(id, {
@@ -4238,6 +4293,7 @@
     }
 
     function savePendingFeedback(id) {
+      if (isViewOnly) return;
       const task = allTasks.find(t => t.id === id);
       if (!task) return;
       const verEl = document.getElementById('v1-ver-' + id);
@@ -4266,6 +4322,7 @@
     }
 
     function resumeFromFeedback(id) {
+      if (isViewOnly) return;
       const task = allTasks.find(t => t.id === id);
       if (!task) return;
       const prevVerNum = parseVersionNum(task.pendingFeedbackVersion || ('V' + (task.lastVersionNumber || 1)));
@@ -4397,13 +4454,14 @@
     function toggleFollowupDesc(id) {
       const task = allTasks.find(t => t.id === id);
       const hasFupDesc = Boolean(task && task.followupDescription && task.followupDescription.trim());
+      if (isViewOnly && !hasFupDesc) return;
       if (openFollowupDescDrawers.has(id)) {
         openFollowupDescDrawers.delete(id);
         editingFollowupDesc.delete(id);
         fupDescDrafts.delete(id);
       } else {
         openFollowupDescDrawers.add(id);
-        if (!hasFupDesc) {
+        if (!hasFupDesc && !isViewOnly) {
           editingFollowupDesc.add(id);
           fupDescDrafts.set(id, '');
         } else {
@@ -4411,7 +4469,7 @@
         }
       }
       renderBoard();
-      if (openFollowupDescDrawers.has(id) && editingFollowupDesc.has(id)) {
+      if (!isViewOnly && openFollowupDescDrawers.has(id) && editingFollowupDesc.has(id)) {
         setTimeout(() => {
           const el = document.getElementById('fup-desc-input-' + id);
           if (el) el.focus();
@@ -4420,6 +4478,7 @@
     }
 
     function startEditFollowupDesc(id) {
+      if (isViewOnly) return;
       const task = allTasks.find(t => t.id === id);
       openFollowupDescDrawers.add(id);
       editingFollowupDesc.add(id);
@@ -4443,6 +4502,7 @@
     }
 
     function saveFollowupDesc(id) {
+      if (isViewOnly) return;
       const input = document.getElementById('fup-desc-input-' + id);
       const val = (input ? input.value : (fupDescDrafts.get(id) || '')).trim();
       editingFollowupDesc.delete(id);
@@ -4546,6 +4606,7 @@
       const task = allTasks.find(t => t.id === id);
       const history = cfg.getHistory(task);
       const entryText = getHistoryEntryText(history[idx]).trim();
+      if (isViewOnly && !entryText) return;
 
       if (cfg.openSet.has(key)) {
         cfg.openSet.delete(key);
@@ -4553,7 +4614,7 @@
         cfg.drafts.delete(key);
       } else {
         cfg.openSet.add(key);
-        if (!entryText) {
+        if (!entryText && !isViewOnly) {
           cfg.editSet.add(key);
           cfg.drafts.set(key, '');
         } else {
@@ -4561,7 +4622,7 @@
         }
       }
       renderBoard();
-      if (cfg.openSet.has(key) && cfg.editSet.has(key)) {
+      if (!isViewOnly && cfg.openSet.has(key) && cfg.editSet.has(key)) {
         setTimeout(() => {
           const el = document.getElementById(`${cfg.inputPrefix}${id}-${idx}`);
           if (el) el.focus();
@@ -4570,6 +4631,7 @@
     }
 
     function startEditLogNote(kind, id, idx) {
+      if (isViewOnly) return;
       const cfg = getLogStateConfig(kind);
       const key = `${id}:${idx}`;
       const task = allTasks.find(t => t.id === id);
@@ -4600,6 +4662,7 @@
     }
 
     function saveLogNote(kind, id, idx) {
+      if (isViewOnly) return;
       const cfg = getLogStateConfig(kind);
       const key = `${id}:${idx}`;
       const task = allTasks.find(t => t.id === id);
@@ -4707,6 +4770,7 @@
     // ── Add Task ──
     // ══════════════════════════════════════
     function addTask() {
+      if (isViewOnly) return;
       const titleEl = document.getElementById('task-title');
       const personEl = document.getElementById('task-person');
       const otherPersonEl = document.getElementById('task-person-other');
@@ -4751,6 +4815,7 @@
     // ── Update & Delete Handlers ──
     // ══════════════════════════════════════
     function moveTask(id, newStatus) {
+      if (isViewOnly) return;
       const task = allTasks.find(t => t.id === id);
       const patch = { status: newStatus };
       if (newStatus === 'done' && (!task || task.status !== 'done')) {
@@ -4775,6 +4840,7 @@
     }
 
     function markFollowedUp(id) {
+      if (isViewOnly) return;
       const task = allTasks.find(t => t.id === id);
       const currentCount = (task && task.followupCount) ? task.followupCount : 0;
       const todayIso = new Date().toISOString();
@@ -4805,6 +4871,7 @@
     }
 
     function scheduleNextFollowup(id, daysAhead) {
+      if (isViewOnly) return;
       const nextDate = new Date();
       nextDate.setDate(nextDate.getDate() + daysAhead);
       const yyyy = nextDate.getFullYear();
@@ -4818,12 +4885,14 @@
     }
 
     function dismissNextFollowup(id) {
+      if (isViewOnly) return;
       tasksRef.child(id).update({
         promptNextFollowup: false
       });
     }
 
     function updateFollowup(id, val) {
+      if (isViewOnly) return;
       tasksRef.child(id).update({
         followup: val,
         promptNextFollowup: false
@@ -4831,6 +4900,7 @@
     }
 
     function deleteTask(id) {
+      if (isViewOnly) return;
       if (!confirm('Are you sure you want to delete this task?')) return;
       tasksRef.child(id).remove();
     }
@@ -4858,6 +4928,7 @@
     }
 
     function openEditModal(id, focusDesc = false) {
+      if (isViewOnly) return;
       const task = allTasks.find(t => t.id === id);
       if (!task) return;
 
@@ -4895,6 +4966,7 @@
     }
 
     function saveEdit() {
+      if (isViewOnly) return;
       const editTitleEl = document.getElementById('edit-title');
       const editPersonEl = document.getElementById('edit-person');
       const editPersonOtherEl = document.getElementById('edit-person-other');
@@ -4961,6 +5033,7 @@
     }
 
     function deleteTaskFromModal() {
+      if (isViewOnly) return;
       const id = document.getElementById('edit-id').value;
       closeEditModal();
       deleteTask(id);
@@ -4979,6 +5052,7 @@
     let isSyncingRecurring = false;
 
     function openRecurringModal() {
+      if (isViewOnly) return;
       renderRecurringList();
       updateRecurringFormFields();
       document.getElementById('recurring-modal').classList.remove('hidden');
@@ -5140,6 +5214,7 @@
 
     function saveRecurringRule(event) {
       if (event) event.preventDefault();
+      if (isViewOnly) return;
       const titleInput = document.getElementById('rec-title');
       const personSelect = document.getElementById('rec-person');
       const personOtherInput = document.getElementById('rec-person-other');
@@ -5175,12 +5250,14 @@
     }
 
     function toggleRecurringRuleActive(id) {
+      if (isViewOnly) return;
       const rule = allRecurring.find(r => r.id === id);
       if (!rule) return;
       recurringRef.child(id).update({ active: rule.active === false });
     }
 
     function deleteRecurringRule(id) {
+      if (isViewOnly) return;
       if (!confirm('Delete this recurring schedule? Existing tasks on the board will remain.')) return;
       recurringRef.child(id).remove();
       if (document.getElementById('rec-edit-id').value === id) {
@@ -5275,7 +5352,7 @@
     }
 
     async function spawnNextForRule(rule) {
-      if (!rule) return;
+      if (isViewOnly || !rule) return;
       const todayStr = formatLocalDateStr(new Date());
       const startFloor = rule.startDate || todayStr;
       const searchFrom = rule.lastGeneratedDate
@@ -5289,7 +5366,7 @@
     }
 
     function maybeAdvanceRecurringOnDone(task) {
-      if (!task || !task.recurringId) return;
+      if (isViewOnly || !task || !task.recurringId) return;
       const rule = allRecurring.find(r => r.id === task.recurringId);
       if (!rule || rule.active === false || rule.mode === 'horizon') return;
       const otherOpen = allTasks.some(t => t.id !== task.id && t.recurringId === rule.id && t.status !== 'done');
@@ -5299,7 +5376,7 @@
     }
 
     async function syncRecurringTasks() {
-      if (!tasksLoaded || !recurringLoaded || isSyncingRecurring || !isUnlocked) return;
+      if (!tasksLoaded || !recurringLoaded || isSyncingRecurring || !isUnlocked || isViewOnly) return;
       isSyncingRecurring = true;
 
       try {
@@ -5657,6 +5734,7 @@
               </article>
             `;
           }
+          const readOnly = isViewOnly;
           const taskHistory = getTaskHistory(t);
           const isHistoryOpen = openHistoryDrawers.has(t.id);
           const hasDesc = Boolean(t.description && t.description.trim());
@@ -5677,7 +5755,7 @@
                     <span class="desc-drawer-label">Mail Trail / Context</span>
                     <div class="desc-drawer-tools">
                       <button type="button" class="btn-desc-mini" onclick="copyTaskText('${t.id}', 'description', this)">Copy</button>
-                      <button type="button" class="btn-desc-mini" onclick="openEditModal('${t.id}', true)">Edit</button>
+                      ${readOnly ? '' : `<button type="button" class="btn-desc-mini" onclick="openEditModal('${t.id}', true)">Edit</button>`}
                     </div>
                   </div>
                   <div class="desc-content">${escapeHtml(t.description)}</div>
@@ -5688,10 +5766,10 @@
 
           const hasFupDesc = Boolean(t.followupDescription && t.followupDescription.trim());
           const isFupDescOpen = openFollowupDescDrawers.has(t.id);
-          const isEditingFupDesc = editingFollowupDesc.has(t.id);
+          const isEditingFupDesc = !readOnly && editingFollowupDesc.has(t.id);
           const fupDraftVal = fupDescDrafts.has(t.id) ? fupDescDrafts.get(t.id) : (t.followupDescription || '');
 
-          const followupDescMarkup = `
+          const followupDescMarkup = (readOnly && !hasFupDesc) ? '' : `
             <div class="tile-fup-desc-dock">
               <button type="button" class="btn-desc-toggle btn-fup-desc-toggle ${isFupDescOpen ? 'is-open' : ''} ${hasFupDesc ? 'has-content' : ''}" onclick="toggleFollowupDesc('${t.id}')" aria-expanded="${isFupDescOpen}">
                 <span class="btn-desc-left">
@@ -5707,7 +5785,7 @@
                     <div class="desc-drawer-tools">
                       ${(!isEditingFupDesc && hasFupDesc) ? `
                         <button type="button" class="btn-desc-mini" onclick="copyTaskText('${t.id}', 'followupDescription', this)">Copy</button>
-                        <button type="button" class="btn-desc-mini" onclick="startEditFollowupDesc('${t.id}')">Edit</button>
+                        ${readOnly ? '' : `<button type="button" class="btn-desc-mini" onclick="startEditFollowupDesc('${t.id}')">Edit</button>`}
                       ` : ''}
                     </div>
                   </div>
@@ -5732,7 +5810,7 @@
             </div>
           `;
 
-          const statusButtons = ['todo', 'inprogress', 'done']
+          const statusButtons = readOnly ? '' : ['todo', 'inprogress', 'done']
             .filter(s => s !== t.status)
             .map(s => {
               const labels = {
@@ -5757,8 +5835,8 @@
                   const hKey = `${t.id}:${idx}`;
                   const noteText = getHistoryEntryText(h).trim();
                   const hasNote = Boolean(noteText);
-                  const noteOpen = openHistoryNotes.has(hKey);
-                  const isEditingNote = editingHistoryNotes.has(hKey);
+                  const noteOpen = openHistoryNotes.has(hKey) && (!readOnly || hasNote);
+                  const isEditingNote = !readOnly && editingHistoryNotes.has(hKey);
                   const histDraftVal = histNoteDrafts.has(hKey) ? histNoteDrafts.get(hKey) : getHistoryEntryText(h);
 
                   return `
@@ -5768,9 +5846,11 @@
                           <span class="history-node">#${h.number || (idx + 1)}</span>
                           <span class="history-time">${formatFullDateTime(h.completedAt)}</span>
                         </div>
-                        <button type="button" class="btn-history-note-toggle ${noteOpen ? 'is-open' : ''} ${hasNote ? 'has-note' : ''}" onclick="toggleHistoryNote('${t.id}', ${idx})">
-                          ${noteOpen ? 'Hide &blacktriangle;' : (hasNote ? 'Description &blacktriangledown;' : '+ Description')}
-                        </button>
+                        ${(readOnly && !hasNote) ? '' : `
+                          <button type="button" class="btn-history-note-toggle ${noteOpen ? 'is-open' : ''} ${hasNote ? 'has-note' : ''}" onclick="toggleHistoryNote('${t.id}', ${idx})">
+                            ${noteOpen ? 'Hide &blacktriangle;' : (hasNote ? 'Description &blacktriangledown;' : '+ Description')}
+                          </button>
+                        `}
                       </div>
                       ${noteOpen ? `
                         <div class="history-note-drawer">
@@ -5791,7 +5871,7 @@
                             <div class="history-note-body">${escapeHtml(getHistoryEntryText(h))}</div>
                             <div class="fup-desc-actions">
                               <button type="button" class="btn-desc-mini" onclick="copyHistoryNote('${t.id}', ${idx}, this)">Copy</button>
-                              <button type="button" class="btn-desc-mini" onclick="startEditHistoryNote('${t.id}', ${idx})">Edit</button>
+                              ${readOnly ? '' : `<button type="button" class="btn-desc-mini" onclick="startEditHistoryNote('${t.id}', ${idx})">Edit</button>`}
                             </div>
                           `}
                         </div>
@@ -5803,7 +5883,7 @@
             ` : ''}
           ` : '';
 
-          const isV1EditOpen = v1EditorOpen.has(t.id);
+          const isV1EditOpen = !readOnly && v1EditorOpen.has(t.id);
           const v1Draft = v1Drafts.get(t.id) || {
             version: getNextVersionLabel(t),
             from: t.pendingFeedbackFrom || ''
@@ -5826,8 +5906,8 @@
                   const fKey = `${t.id}:${idx}`;
                   const noteText = getHistoryEntryText(fb).trim();
                   const hasNote = Boolean(noteText);
-                  const noteOpen = openFeedbackNotes.has(fKey);
-                  const isEditingNote = editingFeedbackNotes.has(fKey);
+                  const noteOpen = openFeedbackNotes.has(fKey) && (!readOnly || hasNote);
+                  const isEditingNote = !readOnly && editingFeedbackNotes.has(fKey);
                   const fbDraftVal = fbNoteDrafts.has(fKey) ? fbNoteDrafts.get(fKey) : getHistoryEntryText(fb);
                   const fbStatus = fb.status || 'pending';
                   const fbStatusLabel = fbStatus === 'approved' ? 'Approved' : (fbStatus === 'received' ? 'Received' : 'Pending');
@@ -5840,9 +5920,11 @@
                           <span class="history-time">${formatFullDateTime(fb.sentAt) || 'Sent'}</span>
                           <span class="fb-log-status is-${fbStatus}">${fbStatusLabel}</span>
                         </div>
-                        <button type="button" class="btn-history-note-toggle ${noteOpen ? 'is-open' : ''} ${hasNote ? 'has-note' : ''}" onclick="toggleFeedbackNote('${t.id}', ${idx})">
-                          ${noteOpen ? 'Hide &blacktriangle;' : (hasNote ? 'Description &blacktriangledown;' : '+ Description')}
-                        </button>
+                        ${(readOnly && !hasNote) ? '' : `
+                          <button type="button" class="btn-history-note-toggle ${noteOpen ? 'is-open' : ''} ${hasNote ? 'has-note' : ''}" onclick="toggleFeedbackNote('${t.id}', ${idx})">
+                            ${noteOpen ? 'Hide &blacktriangle;' : (hasNote ? 'Description &blacktriangledown;' : '+ Description')}
+                          </button>
+                        `}
                       </div>
                       <div class="fb-log-submeta">
                         ${fb.from ? `Waiting on: <strong>${escapeHtml(fb.from)}</strong>` : 'Reviewer / Approval'}${fb.receivedAt ? ` &middot; ${fbStatusLabel} ${escapeHtml(formatFullDateTime(fb.receivedAt))}` : ''}
@@ -5866,7 +5948,7 @@
                             <div class="history-note-body">${escapeHtml(getHistoryEntryText(fb))}</div>
                             <div class="fup-desc-actions">
                               <button type="button" class="btn-desc-mini" onclick="copyFeedbackNote('${t.id}', ${idx}, this)">Copy</button>
-                              <button type="button" class="btn-desc-mini" onclick="startEditFeedbackNote('${t.id}', ${idx})">Edit</button>
+                              ${readOnly ? '' : `<button type="button" class="btn-desc-mini" onclick="startEditFeedbackNote('${t.id}', ${idx})">Edit</button>`}
                             </div>
                           `}
                         </div>
@@ -5878,7 +5960,8 @@
             ` : ''}
           ` : '';
 
-          const v1ReviewMarkup = (t.status === 'inprogress' || feedbackHistory.length > 0) ? `
+          const showV1Section = (t.status === 'inprogress' && (!readOnly || pendingFb)) || feedbackHistory.length > 0;
+          const v1ReviewMarkup = showV1Section ? `
             <div class="v1-review-dock">
               ${(t.status === 'inprogress') ? (isV1EditOpen ? `
                 <div class="v1-inline-form">
@@ -5920,70 +6003,37 @@
                   <div class="v1-pending-from">
                     Waiting on: <strong>${escapeHtml(pendingFromText || 'Reviewer / Approval')}</strong>
                   </div>
-                  <div class="v1-pending-actions">
-                    <button type="button" class="btn-v1-resume" onclick="resumeFromFeedback('${t.id}')" title="Feedback received — resume active work">Got Feedback &middot; Resume</button>
-                    <button type="button" class="btn-desc-mini" onclick="openV1Editor('${t.id}')">Edit</button>
-                  </div>
+                  ${readOnly ? '' : `
+                    <div class="v1-pending-actions">
+                      <button type="button" class="btn-v1-resume" onclick="resumeFromFeedback('${t.id}')" title="Feedback received — resume active work">Got Feedback &middot; Resume</button>
+                      <button type="button" class="btn-desc-mini" onclick="openV1Editor('${t.id}')">Edit</button>
+                    </div>
+                  `}
                 </div>
-              ` : `
+              ` : (readOnly ? '' : `
                 <button type="button" class="btn-v1-trigger" onclick="openV1Editor('${t.id}')" title="Mark ${escapeAttr(suggestedNextVer)} as sent and awaiting feedback or approval">
                   <span>&#9203; ${escapeHtml(suggestedNextVer)} Sent &middot; Pending Feedback / Approval?</span>
                   <span class="btn-desc-hint">+ Mark</span>
                 </button>
-              `)) : ''}
+              `))) : ''}
               ${feedbackHistoryMarkup}
             </div>
           ` : '';
 
-          return `
-            <article class="task-card ${overdue ? 'is-overdue' : ''} ${pendingFb ? 'is-pending-feedback' : ''}" data-task-id="${t.id}">
-              <div class="card-expand-head">
-                <div class="task-title">${escapeHtml(t.title)}</div>
-                <button type="button" class="btn-card-expand is-open" onclick="toggleTaskExpand('${t.id}')" aria-expanded="true" title="Collapse task">
-                  <span>Collapse</span>
-                  <span>&blacktriangle;</span>
-                </button>
-              </div>
-
-              <div class="meta-row">
-                ${renderAssigneeBadgesHtml(t.person, t.secondaryPerson, false)}
-
-                ${pendingBadgeHtml}
-
-                ${isDone ? `
-                  <span class="nx-badge badge-completed" title="${escapeHtml(completionMeta.title)}">
-                    &check; Done ${escapeHtml(completionMeta.label)}
-                  </span>
-                ` : ''}
-
-                ${t.date ? `
-                  <span class="nx-badge ${overdue ? 'badge-overdue' : 'badge-date'}">
-                    ${overdue ? '&bull; Overdue' : '&bull; Due'} ${formatDate(t.date)}
-                  </span>
-                ` : ''}
-
-                ${t.rolloverCount ? `
-                  <span class="nx-badge badge-rollover" title="Originally due ${formatDate(t.originalDate || t.lastRolledFrom)} (auto-moved after 11:00 PM)">
-                    &#8618; Moved${t.rolloverCount > 1 ? ` &times;${t.rolloverCount}` : ''}${t.lastRolledFrom ? ` from ${formatShortDate(t.lastRolledFrom)}` : ''}
-                  </span>
-                ` : ''}
-
-                ${t.recurrenceLabel ? `
-                  <span class="nx-badge badge-recurring" title="Recurring task">
-                    &#8635; ${escapeHtml(t.recurrenceLabel)}
-                  </span>
-                ` : ''}
-
-                ${t.createdAt ? `
-                  <span class="badge-created" title="Captured date">
-                    Entered ${formatCreated(t.createdAt)}
-                  </span>
-                ` : ''}
-              </div>
-
-              ${descMarkup}
-
-              ${t.promptNextFollowup ? `
+          const followupDockMarkup = readOnly
+            ? ((t.followup || hasFupDesc || taskHistory.length > 0) ? `
+                <div class="followup-dock">
+                  ${t.followup ? `
+                    <div class="followup-row">
+                      <span class="followup-tag"><span>Follow-up</span></span>
+                      <span class="nx-badge badge-date">${escapeHtml(formatDate(t.followup))}</span>
+                    </div>
+                  ` : ''}
+                  ${followupDescMarkup}
+                  ${historyMarkup}
+                </div>
+              ` : '')
+            : (t.promptNextFollowup ? `
                 <div class="followup-dock">
                   <div class="next-prompt-box">
                     <div class="next-prompt-header">
@@ -6033,19 +6083,71 @@
                   ${followupDescMarkup}
                   ${historyMarkup}
                 </div>
-              `}
+              `);
+
+          return `
+            <article class="task-card ${overdue ? 'is-overdue' : ''} ${pendingFb ? 'is-pending-feedback' : ''}" data-task-id="${t.id}">
+              <div class="card-expand-head">
+                <div class="task-title">${escapeHtml(t.title)}</div>
+                <button type="button" class="btn-card-expand is-open" onclick="toggleTaskExpand('${t.id}')" aria-expanded="true" title="Collapse task">
+                  <span>Collapse</span>
+                  <span>&blacktriangle;</span>
+                </button>
+              </div>
+
+              <div class="meta-row">
+                ${renderAssigneeBadgesHtml(t.person, t.secondaryPerson, false)}
+
+                ${pendingBadgeHtml}
+
+                ${isDone ? `
+                  <span class="nx-badge badge-completed" title="${escapeHtml(completionMeta.title)}">
+                    &check; Done ${escapeHtml(completionMeta.label)}
+                  </span>
+                ` : ''}
+
+                ${t.date ? `
+                  <span class="nx-badge ${overdue ? 'badge-overdue' : 'badge-date'}">
+                    ${overdue ? '&bull; Overdue' : '&bull; Due'} ${formatDate(t.date)}
+                  </span>
+                ` : ''}
+
+                ${t.rolloverCount ? `
+                  <span class="nx-badge badge-rollover" title="Originally due ${formatDate(t.originalDate || t.lastRolledFrom)} (auto-moved after 11:00 PM)">
+                    &#8618; Moved${t.rolloverCount > 1 ? ` &times;${t.rolloverCount}` : ''}${t.lastRolledFrom ? ` from ${formatShortDate(t.lastRolledFrom)}` : ''}
+                  </span>
+                ` : ''}
+
+                ${t.recurrenceLabel ? `
+                  <span class="nx-badge badge-recurring" title="Recurring task">
+                    &#8635; ${escapeHtml(t.recurrenceLabel)}
+                  </span>
+                ` : ''}
+
+                ${t.createdAt ? `
+                  <span class="badge-created" title="Captured date">
+                    Entered ${formatCreated(t.createdAt)}
+                  </span>
+                ` : ''}
+              </div>
+
+              ${descMarkup}
+
+              ${followupDockMarkup}
 
               ${v1ReviewMarkup}
 
-              <footer class="card-footer">
-                <div class="flow-actions">
-                  ${statusButtons}
-                </div>
-                <div class="card-tools">
-                  <button class="btn-tool" onclick="openEditModal('${t.id}')" title="Edit task details">Edit</button>
-                  <button class="btn-tool delete" onclick="deleteTask('${t.id}')" title="Delete task">&times;</button>
-                </div>
-              </footer>
+              ${readOnly ? '' : `
+                <footer class="card-footer">
+                  <div class="flow-actions">
+                    ${statusButtons}
+                  </div>
+                  <div class="card-tools">
+                    <button class="btn-tool" onclick="openEditModal('${t.id}')" title="Edit task details">Edit</button>
+                    <button class="btn-tool delete" onclick="deleteTask('${t.id}')" title="Delete task">&times;</button>
+                  </div>
+                </footer>
+              `}
             </article>`;
         };
 
@@ -6298,13 +6400,15 @@
       if (mobileKeypadEl) mobileKeypadEl.classList.remove('os-kbd-open');
     });
 
-    let restoredSession = false;
+    let restoredRole = null;
     try {
-      restoredSession = (sessionStorage.getItem('workpulse_unlocked') === PASS_HASH);
+      const storedToken = sessionStorage.getItem('workpulse_unlocked');
+      if (storedToken === PASS_HASH) restoredRole = 'full';
+      else if (storedToken === VIEW_PASS_HASH) restoredRole = 'view';
     } catch (e) {}
 
-    if (restoredSession) {
-      unlockApp(true);
+    if (restoredRole) {
+      unlockApp(true, restoredRole);
     } else {
       focusAuthInput();
       window.addEventListener('DOMContentLoaded', focusAuthInput);
