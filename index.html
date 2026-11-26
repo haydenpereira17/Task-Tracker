@@ -3231,15 +3231,15 @@
         </div>
 
         <div class="field-group">
-          <label class="field-label" for="task-person">Assignee <span class="required-star" aria-hidden="true">*</span></label>
+          <label class="field-label" for="task-person">Owner <span class="required-star" aria-hidden="true">*</span></label>
           <select id="task-person" class="nx-select" required aria-required="true" onchange="handlePersonSelectChange(this, 'task-person-other', 'create-form-error')"></select>
-          <input type="text" id="task-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external person's name…" aria-label="External assignee name" oninput="clearTaskFieldError(this, 'create-form-error')" />
+          <input type="text" id="task-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external owner's name…" aria-label="External owner name" oninput="clearTaskFieldError(this, 'create-form-error')" />
         </div>
 
         <div class="field-group">
-          <label class="field-label" for="task-secondary-person">Secondary Assignee <span style="opacity:0.65; font-weight:500;">(Opt.)</span></label>
+          <label class="field-label" for="task-secondary-person">Secondary Owner <span style="opacity:0.65; font-weight:500;">(Opt.)</span></label>
           <select id="task-secondary-person" class="nx-select" onchange="handlePersonSelectChange(this, 'task-secondary-person-other', null)"></select>
-          <input type="text" id="task-secondary-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external 2nd assignee…" aria-label="External secondary assignee name" />
+          <input type="text" id="task-secondary-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external 2nd owner…" aria-label="External secondary owner name" />
         </div>
 
         <div class="field-group">
@@ -3280,12 +3280,12 @@
       </div>
 
       <div class="filter-search-box">
-        <input type="text" id="filter-search" class="nx-input" placeholder="Search tasks or assignees…" oninput="renderBoard()" />
+        <input type="text" id="filter-search" class="nx-input" placeholder="Search tasks or owners…" oninput="renderBoard()" />
       </div>
     </section>
 
     <!-- Open Tasks by Person Strip -->
-    <section class="open-people-strip" id="open-people-strip" aria-label="Open Tasks by Assignee"></section>
+    <section class="open-people-strip" id="open-people-strip" aria-label="Open Tasks by Owner"></section>
 
     <!-- Kanban Columns -->
     <section class="board-grid" aria-label="Task Board">
@@ -3344,15 +3344,15 @@
       </div>
 
       <div class="field-group" style="margin-bottom: 16px;">
-        <label class="field-label" for="edit-person">Assignee <span class="required-star" aria-hidden="true">*</span></label>
+        <label class="field-label" for="edit-person">Owner <span class="required-star" aria-hidden="true">*</span></label>
         <select id="edit-person" class="nx-select" required aria-required="true" onchange="handlePersonSelectChange(this, 'edit-person-other', 'edit-form-error')"></select>
-        <input type="text" id="edit-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external person's name…" aria-label="External assignee name" oninput="clearTaskFieldError(this, 'edit-form-error')" />
+        <input type="text" id="edit-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external owner's name…" aria-label="External owner name" oninput="clearTaskFieldError(this, 'edit-form-error')" />
       </div>
 
       <div class="field-group" style="margin-bottom: 16px;">
-        <label class="field-label" for="edit-secondary-person">Secondary Assignee <span style="opacity:0.65; font-weight:500;">(Optional)</span></label>
+        <label class="field-label" for="edit-secondary-person">Secondary Owner <span style="opacity:0.65; font-weight:500;">(Optional)</span></label>
         <select id="edit-secondary-person" class="nx-select" onchange="handlePersonSelectChange(this, 'edit-secondary-person-other', null)"></select>
-        <input type="text" id="edit-secondary-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external 2nd assignee…" aria-label="External secondary assignee name" />
+        <input type="text" id="edit-secondary-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external 2nd owner…" aria-label="External secondary owner name" />
       </div>
 
       <div class="field-group" style="margin-bottom: 16px;">
@@ -3429,14 +3429,14 @@
 
         <div class="rec-grid-2">
           <div class="field-group">
-            <label class="field-label" for="rec-person">Assignee <span class="required-star" aria-hidden="true">*</span></label>
+            <label class="field-label" for="rec-person">Owner <span class="required-star" aria-hidden="true">*</span></label>
             <select id="rec-person" class="nx-select" required aria-required="true" onchange="handlePersonSelectChange(this, 'rec-person-other', 'rec-form-error')"></select>
-            <input type="text" id="rec-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external person's name…" aria-label="External assignee name" oninput="clearTaskFieldError(this, 'rec-form-error')" />
+            <input type="text" id="rec-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external owner's name…" aria-label="External owner name" oninput="clearTaskFieldError(this, 'rec-form-error')" />
           </div>
           <div class="field-group">
-            <label class="field-label" for="rec-secondary-person">Secondary Assignee <span style="opacity:0.65; font-weight:500;">(Opt.)</span></label>
+            <label class="field-label" for="rec-secondary-person">Secondary Owner <span style="opacity:0.65; font-weight:500;">(Opt.)</span></label>
             <select id="rec-secondary-person" class="nx-select" onchange="handlePersonSelectChange(this, 'rec-secondary-person-other', null)"></select>
-            <input type="text" id="rec-secondary-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external 2nd assignee…" aria-label="External secondary assignee name" />
+            <input type="text" id="rec-secondary-person-other" class="nx-input other-assignee-input hidden" placeholder="Type external 2nd owner…" aria-label="External secondary owner name" />
           </div>
         </div>
 
@@ -3557,7 +3557,7 @@
         { id: 'task-secondary-person', placeholder: 'Optional secondary…', allowOther: true },
         { id: 'edit-person', placeholder: 'Select team member…', allowOther: true },
         { id: 'edit-secondary-person', placeholder: 'Optional secondary…', allowOther: true },
-        { id: 'filter-person', placeholder: 'All Assignees', allowOther: false },
+        { id: 'filter-person', placeholder: 'All Owners', allowOther: false },
         { id: 'rec-person', placeholder: 'Select team member…', allowOther: true },
         { id: 'rec-secondary-person', placeholder: 'Optional secondary…', allowOther: true }
       ];
@@ -3589,7 +3589,7 @@
       });
       if (currentVal && !teamSet.has(currentVal)) externalSet.add(currentVal);
       const externalList = Array.from(externalSet).sort((a, b) => a.localeCompare(b));
-      sel.innerHTML = '<option value="">All Assignees</option>' +
+      sel.innerHTML = '<option value="">All Owners</option>' +
         TEAM_MEMBERS.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('') +
         (externalList.length ? `<optgroup label="External / Other">${externalList.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('')}</optgroup>` : '');
       sel.value = currentVal;
@@ -4122,7 +4122,7 @@
         html += `<span class="nx-badge badge-person"><span class="avatar">${getInitials(p1)}</span>${escapeHtml(p1)}</span>`;
       }
       if (p2) {
-        html += `<span class="nx-badge badge-person is-secondary" title="Secondary assignee"><span class="avatar">${getInitials(p2)}</span>${escapeHtml(p2)}<span class="secondary-role-tag">2nd</span></span>`;
+        html += `<span class="nx-badge badge-person is-secondary" title="Secondary owner"><span class="avatar">${getInitials(p2)}</span>${escapeHtml(p2)}<span class="secondary-role-tag">2nd</span></span>`;
       }
       return html;
     }
@@ -4291,6 +4291,31 @@
       if (!due) return false;
       const now = new Date();
       return (due.getTime() - now.getTime()) > 48 * 60 * 60 * 1000;
+    }
+
+    function getCompletionTimestampMs(t) {
+      if (t && t.completedAt) {
+        const ms = new Date(t.completedAt).getTime();
+        if (!isNaN(ms)) return ms;
+      }
+      if (t && t.date) {
+        const d = parseLocalDate(t.date);
+        if (d) {
+          d.setHours(23, 59, 59, 999);
+          return d.getTime();
+        }
+      }
+      if (t && t.createdAt) {
+        const ms = new Date(t.createdAt).getTime();
+        if (!isNaN(ms)) return ms;
+      }
+      return 0;
+    }
+
+    function isCompletedOver48h(t) {
+      const compMs = getCompletionTimestampMs(t);
+      if (!compMs) return false;
+      return (Date.now() - compMs) > 48 * 60 * 60 * 1000;
     }
 
     function toggleShowAllColumn(status) {
@@ -4656,14 +4681,14 @@
         let msg = '';
         if (!titleVal && !personVal) {
           msg = isOther
-            ? "Please enter a task title and type the external assignee's name."
-            : 'Please enter a task title and select an assignee.';
+            ? "Please enter a task title and type the external owner's name."
+            : 'Please enter a task title and select an owner.';
         } else if (!titleVal) {
           msg = 'Please enter a task title.';
         } else {
           msg = isOther
-            ? "Please type the external assignee's name."
-            : 'Please select an assignee.';
+            ? "Please type the external owner's name."
+            : 'Please select an owner.';
         }
         if (errEl) {
           errEl.textContent = msg;
@@ -5561,6 +5586,15 @@
         if (groups[t.status]) groups[t.status].push(t);
       });
 
+      // Completed tasks sorted newest to oldest
+      groups.done.sort((a, b) => {
+        const diff = getCompletionTimestampMs(b) - getCompletionTimestampMs(a);
+        if (diff !== 0) return diff;
+        const bCreated = b && b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        const aCreated = a && a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        return (isNaN(bCreated) ? 0 : bCreated) - (isNaN(aCreated) ? 0 : aCreated);
+      });
+
       // Render each column
       ['todo', 'inprogress', 'done'].forEach(status => {
         const col = document.getElementById('col-' + status);
@@ -5572,12 +5606,15 @@
           return;
         }
 
-        // Split into visible (within 48h / overdue / no date / done) and deferred (beyond 48h)
+        // Split into visible and deferred (>48h ahead for active lanes; completed >48h ago for done)
         const showAll = showAllInColumn.has(status);
         const visibleTasks = [];
         const deferredTasks = [];
         groups[status].forEach(t => {
-          if (!showAll && status !== 'done' && isBeyond48h(t.date) && !isOverdue(t.date, t.status)) {
+          const shouldDefer = (status === 'done')
+            ? isCompletedOver48h(t)
+            : (isBeyond48h(t.date) && !isOverdue(t.date, t.status));
+          if (!showAll && shouldDefer) {
             deferredTasks.push(t);
           } else {
             visibleTasks.push(t);
@@ -6033,11 +6070,12 @@
         }
 
         if (deferredTasks.length > 0) {
+          const deferHint = (status === 'done') ? 'Completed 48+ hrs ago' : 'Due after 48 hrs';
           html += `
             <button type="button" class="btn-see-more" onclick="toggleShowAllColumn('${status}')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
               <span>See ${deferredTasks.length} more task${deferredTasks.length > 1 ? 's' : ''}</span>
-              <span class="btn-see-more-hint">Due after 48 hrs</span>
+              <span class="btn-see-more-hint">${deferHint}</span>
             </button>`;
         }
 
@@ -6109,7 +6147,7 @@
         : '<span class="open-people-empty">No open assigned tasks</span>';
 
       const clearBtnHtml = activePerson
-        ? '<button type="button" class="btn-open-person-clear" onclick="togglePersonChipFilter(\'\')" title="Show all assignees">Clear &times;</button>'
+        ? '<button type="button" class="btn-open-person-clear" onclick="togglePersonChipFilter(\'\')" title="Show all owners">Clear &times;</button>'
         : '';
 
       strip.innerHTML = `
