@@ -1151,7 +1151,7 @@
 
     db.ref('.info/connected').on('value', snap => {
       if (snap.val() === true) {
-        syncStatusEl.textContent = 'Live Synced';
+        syncStatusEl.textContent = 'Synced';
         syncPillEl.className = 'sync-status-pill';
       } else {
         syncStatusEl.textContent = 'Offline';
