@@ -718,6 +718,42 @@
       font-size: 0.85rem;
     }
 
+    .app-footer {
+      margin-top: 36px;
+      padding-top: 18px;
+      border-top: 1px dashed var(--nx-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 0.76rem;
+      color: var(--nx-muted);
+      letter-spacing: 0.01em;
+    }
+
+    .app-footer-heart {
+      color: #ff4d67;
+      font-size: 0.86rem;
+      line-height: 1;
+      vertical-align: -1px;
+    }
+
+    .app-footer-sep {
+      opacity: 0.45;
+    }
+
+    .app-version-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--pace-periwinkle);
+      background: rgba(137, 170, 230, 0.1);
+      border: 1px solid var(--nx-border);
+      padding: 2px 9px;
+      border-radius: var(--radius-pill);
+    }
+
     /* ── Responsive ── */
     @media (max-width: 900px) {
       .summary-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -861,6 +897,12 @@
           </div>
         </div>
       </div>
+
+      <footer class="app-footer">
+        <span class="app-footer-love">Made with <span class="app-footer-heart" aria-label="love">&hearts;</span> in India</span>
+        <span class="app-footer-sep" aria-hidden="true">&middot;</span>
+        <span class="app-version-pill">v1.49.2</span>
+      </footer>
     </main>
   </div>
 
