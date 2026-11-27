@@ -191,6 +191,122 @@
 
     .auth-submit:hover { opacity: 0.94; transform: translateY(-1px); }
 
+    .auth-user-pill-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding: 6px 11px;
+      border-radius: 10px;
+      background: rgba(4, 113, 166, 0.16);
+      border: 1px solid rgba(137, 170, 230, 0.28);
+      font-size: 0.74rem;
+      color: var(--nx-muted);
+    }
+
+    .auth-user-pill-row strong {
+      font-family: 'JetBrains Mono', monospace;
+      color: #ffffff;
+    }
+
+    .btn-auth-switch-user {
+      background: transparent;
+      border: none;
+      color: var(--pace-periwinkle);
+      font-family: inherit;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-auth-switch-user:hover { color: #ffffff; }
+
+    .alpha-keypad {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      margin: 0 0 12px;
+    }
+
+    .alpha-keypad.is-desk-open { display: flex; }
+
+    .alpha-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .alpha-row-mid { padding: 0 10px; }
+
+    .keypad-btn {
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      height: 36px;
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 0;
+      border-radius: 8px;
+      background: rgba(8, 36, 56, 0.68);
+      border: 1px solid rgba(137, 170, 230, 0.22);
+      color: #ffffff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+    }
+
+    .keypad-btn:hover { background: rgba(4, 113, 166, 0.3); }
+
+    .alpha-key-wide {
+      flex: 1.45 1 0;
+      font-size: 0.7rem;
+      color: var(--nx-muted);
+    }
+
+    .mobile-keypad {
+      display: none;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+      margin: 0 0 12px;
+    }
+
+    .mobile-keypad.is-desk-open { display: grid; }
+
+    .auth-input-inline {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .auth-input-inline .auth-input { padding-right: 40px; }
+
+    .btn-pad-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-68%);
+      background: transparent;
+      border: none;
+      color: var(--nx-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-pad-toggle:hover { color: #ffffff; background: rgba(137, 170, 230, 0.14); }
+
+    @media (pointer: coarse), (max-width: 640px) {
+      .alpha-keypad { display: flex; }
+      .mobile-keypad { display: grid; }
+      .btn-pad-toggle { display: none; }
+    }
+
     .auth-error {
       min-height: 18px;
       font-size: 0.74rem;
@@ -951,19 +1067,70 @@
       <div class="auth-eyebrow">Work Pulse</div>
       <div class="auth-title" style="font-size:0.76rem; font-weight:600; color:var(--pace-periwinkle); margin-bottom:10px;">Product of Hayd's AI Maxing</div>
       <h1 class="auth-title" id="analytics-auth-title">Completion Analytics</h1>
-      <p class="auth-subtitle" id="analytics-auth-subtitle">Enter full-access passcode to view team metrics</p>
-      <form onsubmit="verifyAnalyticsPasscode(event)" novalidate>
-        <input
-          type="password"
-          id="analytics-passcode"
-          class="auth-input"
-          inputmode="numeric"
-          autocomplete="off"
-          placeholder="••••"
-          aria-label="Workspace passcode"
-          autofocus
-        />
-        <div class="auth-error" id="analytics-auth-error" role="alert">Incorrect passcode. Please try again.</div>
+      <p class="auth-subtitle" id="analytics-auth-subtitle">Enter full-access User ID to continue</p>
+      <form onsubmit="handleAnalyticsAuthSubmit(event)" novalidate>
+        <div id="analytics-step-userid">
+          <div class="auth-input-inline">
+            <input
+              type="text"
+              id="analytics-userid"
+              class="auth-input"
+              style="letter-spacing:0.1em; text-transform:lowercase;"
+              inputmode="text"
+              pattern="[A-Za-z]*"
+              autocapitalize="none"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="User ID"
+              aria-label="User ID"
+              autofocus
+            />
+            <button type="button" class="btn-pad-toggle" onclick="document.getElementById('analytics-alpha-keypad').classList.toggle('is-desk-open')" title="Toggle alpha keyboard" aria-label="Toggle alpha keyboard">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/></svg>
+            </button>
+          </div>
+          <div class="alpha-keypad" id="analytics-alpha-keypad" role="group" aria-label="Alpha-only onscreen keyboard">
+            <div class="alpha-row">
+              <button type="button" class="keypad-btn" onclick="anaAlphaAppend('q')">Q</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('w')">W</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('e')">E</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('r')">R</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('t')">T</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('y')">Y</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('u')">U</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('i')">I</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('o')">O</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('p')">P</button>
+            </div>
+            <div class="alpha-row alpha-row-mid">
+              <button type="button" class="keypad-btn" onclick="anaAlphaAppend('a')">A</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('s')">S</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('d')">D</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('f')">F</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('g')">G</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('h')">H</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('j')">J</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('k')">K</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('l')">L</button>
+            </div>
+            <div class="alpha-row">
+              <button type="button" class="keypad-btn alpha-key-wide" onclick="anaAlphaClear()">Clr</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('z')">Z</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('x')">X</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('c')">C</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('v')">V</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('b')">B</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('n')">N</button><button type="button" class="keypad-btn" onclick="anaAlphaAppend('m')">M</button><button type="button" class="keypad-btn alpha-key-wide" onclick="anaAlphaBackspace()">&larr;</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="analytics-step-passcode" class="hidden">
+          <div class="auth-user-pill-row">
+            <span>User: <strong id="analytics-active-user">hayd</strong></span>
+            <button type="button" class="btn-auth-switch-user" onclick="backToAnaUserId()">&larr; Change</button>
+          </div>
+          <div class="auth-input-inline">
+            <input
+              type="password"
+              id="analytics-passcode"
+              class="auth-input"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              autocomplete="off"
+              placeholder="••••"
+              aria-label="Workspace passcode"
+            />
+            <button type="button" class="btn-pad-toggle" onclick="document.getElementById('analytics-num-keypad').classList.toggle('is-desk-open')" title="Toggle numeric keypad" aria-label="Toggle numeric keypad">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/></svg>
+            </button>
+          </div>
+          <div class="mobile-keypad" id="analytics-num-keypad" role="group" aria-label="Numeric keypad">
+            <button type="button" class="keypad-btn" onclick="anaNumAppend('1')">1</button><button type="button" class="keypad-btn" onclick="anaNumAppend('2')">2</button><button type="button" class="keypad-btn" onclick="anaNumAppend('3')">3</button>
+            <button type="button" class="keypad-btn" onclick="anaNumAppend('4')">4</button><button type="button" class="keypad-btn" onclick="anaNumAppend('5')">5</button><button type="button" class="keypad-btn" onclick="anaNumAppend('6')">6</button>
+            <button type="button" class="keypad-btn" onclick="anaNumAppend('7')">7</button><button type="button" class="keypad-btn" onclick="anaNumAppend('8')">8</button><button type="button" class="keypad-btn" onclick="anaNumAppend('9')">9</button>
+            <button type="button" class="keypad-btn alpha-key-wide" onclick="anaNumClear()">Clear</button><button type="button" class="keypad-btn" onclick="anaNumAppend('0')">0</button><button type="button" class="keypad-btn alpha-key-wide" onclick="anaNumBackspace()">&larr;</button>
+          </div>
+        </div>
+
+        <div class="auth-error" id="analytics-auth-error" role="alert">Incorrect credentials. Please try again.</div>
         <button type="submit" class="auth-submit">Continue</button>
       </form>
       <a href="index.html" class="auth-back-link">&larr; Back to Board</a>
@@ -1548,8 +1715,28 @@
     });
   }
 
-  function showAnalyticsAuthError(message) {
-    const input = document.getElementById('analytics-passcode');
+  const USER_HAYD_HASH = 'c6df031f';
+  const USER_VISITOR_HASH = 'e9505321';
+  const USER_SESSION_KEY = 'workpulse_user_id';
+  let authStep = 'userid';
+  let pendingAuthRole = null;
+  let pendingAuthUser = '';
+
+  function getUserRoleFromId(userId) {
+    const clean = String(userId || '').trim().toLowerCase();
+    const h = hashPassword(clean);
+    if (h === USER_HAYD_HASH) return 'full';
+    if (h === USER_VISITOR_HASH) return 'view';
+    return null;
+  }
+
+  function verifyRoleAndPasscode(expectedRole, code) {
+    const r = getPasscodeRole(code);
+    if (expectedRole && r !== expectedRole) return null;
+    return r;
+  }
+
+  function showAnalyticsAuthError(message, step = authStep) {
     const errEl = document.getElementById('analytics-auth-error');
     const card = document.getElementById('analytics-auth-card');
     if (errEl) {
@@ -1561,10 +1748,94 @@
       void card.offsetWidth;
       card.classList.add('shake');
     }
-    if (input) {
-      input.value = '';
-      input.focus();
+    const target = document.getElementById(step === 'userid' ? 'analytics-userid' : 'analytics-passcode');
+    if (target) {
+      target.value = '';
+      target.focus();
     }
+  }
+
+  function goToAnaPasscode(userLabel) {
+    authStep = 'passcode';
+    pendingAuthRole = 'full';
+    pendingAuthUser = userLabel;
+    document.getElementById('analytics-active-user').textContent = userLabel;
+    document.getElementById('analytics-auth-subtitle').textContent = 'Enter full-access passcode to view team metrics';
+    document.getElementById('analytics-step-userid').classList.add('hidden');
+    document.getElementById('analytics-step-passcode').classList.remove('hidden');
+    document.getElementById('analytics-auth-error').classList.remove('visible');
+    const p = document.getElementById('analytics-passcode');
+    p.value = '';
+    p.focus();
+  }
+
+  function backToAnaUserId() {
+    authStep = 'userid';
+    pendingAuthRole = null;
+    pendingAuthUser = '';
+    document.getElementById('analytics-auth-subtitle').textContent = 'Enter full-access User ID to continue';
+    document.getElementById('analytics-step-passcode').classList.add('hidden');
+    document.getElementById('analytics-step-userid').classList.remove('hidden');
+    document.getElementById('analytics-auth-error').classList.remove('visible');
+    document.getElementById('analytics-passcode').value = '';
+    const u = document.getElementById('analytics-userid');
+    u.value = '';
+    u.focus();
+  }
+
+  function checkAnaUserId(val) {
+    const clean = String(val || '').replace(/[^a-zA-Z]/g, '').toLowerCase();
+    const role = getUserRoleFromId(clean);
+    if (role === 'full') goToAnaPasscode(clean);
+    else if (role === 'view') showAnalyticsAuthError('Analytics is not available for View-Only (visitor).', 'userid');
+  }
+
+  function anaAlphaAppend(ch) {
+    const letter = String(ch || '').replace(/[^a-zA-Z]/g, '').toLowerCase();
+    const u = document.getElementById('analytics-userid');
+    document.getElementById('analytics-auth-error').classList.remove('visible');
+    u.value = String(u.value || '').replace(/[^a-zA-Z]/g, '').toLowerCase() + letter;
+    checkAnaUserId(u.value);
+  }
+  function anaAlphaBackspace() {
+    const u = document.getElementById('analytics-userid');
+    document.getElementById('analytics-auth-error').classList.remove('visible');
+    u.value = String(u.value || '').slice(0, -1);
+  }
+  function anaAlphaClear() {
+    document.getElementById('analytics-auth-error').classList.remove('visible');
+    document.getElementById('analytics-userid').value = '';
+  }
+
+  function anaNumAppend(d) {
+    const p = document.getElementById('analytics-passcode');
+    document.getElementById('analytics-auth-error').classList.remove('visible');
+    p.value = String(p.value || '') + String(d);
+    const role = verifyRoleAndPasscode('full', p.value);
+    if (role === 'full') { saveUnlockedSession('full'); try { sessionStorage.setItem(USER_SESSION_KEY, pendingAuthUser || 'hayd'); } catch (e) {} startAnalyticsApp('full'); }
+    else if (getPasscodeRole(p.value) === 'view') { showAnalyticsAuthError('Analytics is not available with View-Only (0000) access.', 'passcode'); }
+  }
+  function anaNumBackspace() {
+    const p = document.getElementById('analytics-passcode');
+    document.getElementById('analytics-auth-error').classList.remove('visible');
+    p.value = String(p.value || '').slice(0, -1);
+  }
+  function anaNumClear() {
+    document.getElementById('analytics-auth-error').classList.remove('visible');
+    document.getElementById('analytics-passcode').value = '';
+  }
+
+  function handleAnalyticsAuthSubmit(event) {
+    if (event) event.preventDefault();
+    if (authStep === 'userid') {
+      const clean = String(document.getElementById('analytics-userid').value || '').trim().toLowerCase();
+      const role = getUserRoleFromId(clean);
+      if (role === 'full') goToAnaPasscode(clean);
+      else if (role === 'view') showAnalyticsAuthError('Analytics is not available for View-Only (visitor).', 'userid');
+      else showAnalyticsAuthError('Unknown User ID. Please try again.', 'userid');
+      return;
+    }
+    verifyAnalyticsPasscode(event);
   }
 
   function verifyAnalyticsPasscode(event) {
@@ -1572,30 +1843,42 @@
     const input = document.getElementById('analytics-passcode');
     const errEl = document.getElementById('analytics-auth-error');
     const val = (input.value || '').trim();
-    const role = getPasscodeRole(val);
+    const role = verifyRoleAndPasscode(pendingAuthRole || 'full', val);
 
     if (role === 'full') {
       errEl.classList.remove('visible');
       saveUnlockedSession('full');
+      try { sessionStorage.setItem(USER_SESSION_KEY, pendingAuthUser || 'hayd'); } catch (e) {}
       startAnalyticsApp('full');
-    } else if (role === 'view') {
-      showAnalyticsAuthError('Analytics is not available with View-Only (0000) access.');
+    } else if (getPasscodeRole(val) === 'view') {
+      showAnalyticsAuthError('Analytics is not available with View-Only (0000) access.', 'passcode');
     } else {
-      showAnalyticsAuthError('Incorrect passcode. Please try again.');
+      showAnalyticsAuthError('Incorrect passcode. Please try again.', 'passcode');
     }
   }
 
   // ── Init ──
+  const anaUserInputEl = document.getElementById('analytics-userid');
+  if (anaUserInputEl) {
+    anaUserInputEl.addEventListener('input', () => {
+      const clean = String(anaUserInputEl.value || '').replace(/[^a-zA-Z]/g, '').toLowerCase();
+      if (anaUserInputEl.value !== clean) anaUserInputEl.value = clean;
+      document.getElementById('analytics-auth-error').classList.remove('visible');
+      checkAnaUserId(clean);
+    });
+  }
+
   const passInputEl = document.getElementById('analytics-passcode');
   if (passInputEl) {
     passInputEl.addEventListener('input', () => {
       document.getElementById('analytics-auth-error').classList.remove('visible');
-      const role = getPasscodeRole(passInputEl.value);
+      const role = verifyRoleAndPasscode(pendingAuthRole || 'full', passInputEl.value);
       if (role === 'full') {
         saveUnlockedSession('full');
+        try { sessionStorage.setItem(USER_SESSION_KEY, pendingAuthUser || 'hayd'); } catch (e) {}
         startAnalyticsApp('full');
-      } else if (role === 'view') {
-        showAnalyticsAuthError('Analytics is not available with View-Only (0000) access.');
+      } else if (getPasscodeRole(passInputEl.value) === 'view') {
+        showAnalyticsAuthError('Analytics is not available with View-Only (0000) access.', 'passcode');
       }
     });
   }
@@ -1633,7 +1916,7 @@
     if (initialRole === 'view') {
       const subEl = document.getElementById('analytics-auth-subtitle');
       if (subEl) {
-        subEl.textContent = 'View-Only (0000) sessions cannot open Analytics. Enter full-access passcode.';
+        subEl.textContent = 'View-Only (visitor / 0000) sessions cannot open Analytics. Sign in as hayd.';
       }
     }
   }
