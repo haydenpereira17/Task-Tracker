@@ -1696,6 +1696,7 @@
   let meowSpriteTex = null;
   let purrSpriteTex = null;
   let catNapSpriteTex = null;
+  let wakeSpriteTex = null;
   let pantryBubbleTextures = [];
   let pantrySignTexture = null;
 
@@ -1915,6 +1916,7 @@
     meowSpriteTex = makePixelBubbleTex('#fb923c', 'heart', '#f43f5e', 'MEOW!');
     purrSpriteTex = makePixelBubbleTex('#fbbf24', 'heart', '#fb923c', 'PURR~');
     catNapSpriteTex = makePixelBubbleTex('#818cf8', 'moon', '#fde68a', 'Zzz..');
+    wakeSpriteTex = makePixelBubbleTex('#38bdf8', 'laugh', '#fbbf24', 'HUH?!', '#fef08a');
     pantryBubbleTextures = [
       makePixelBubbleTex('#38bdf8', 'laugh', '#fbbf24', 'HAHA!', '#e0f2fe'),
       makePixelBubbleTex('#f43f5e', 'laugh', '#34d399', 'LOL!!', '#ffe4e6'),
@@ -2473,6 +2475,7 @@
     parentGroup.add(charRoot);
 
     const zzzSprites = [];
+    let wakeBubbleSprite = null;
     if (isSleeping && zzzSpriteTex) {
       for (let z = 0; z < 3; z++) {
         const spMat = new THREE.SpriteMaterial({
@@ -2486,6 +2489,19 @@
         sp.scale.setScalar(0.26);
         parentGroup.add(sp);
         zzzSprites.push(sp);
+      }
+      if (wakeSpriteTex) {
+        const wMat = new THREE.SpriteMaterial({
+          map: wakeSpriteTex,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false
+        });
+        wakeBubbleSprite = new THREE.Sprite(wMat);
+        wakeBubbleSprite.position.set(-0.22, 2.04, -0.1);
+        wakeBubbleSprite.scale.set(0.95, 0.36, 1);
+        wakeBubbleSprite.visible = false;
+        parentGroup.add(wakeBubbleSprite);
       }
       upperBody.rotation.x = -0.78;
       upperBody.position.z = -0.06;
@@ -2511,7 +2527,8 @@
       steam2,
       activeDeskFolder,
       scrMat,
-      zzzSprites
+      zzzSprites,
+      wakeBubbleSprite
     };
   }
 
@@ -2696,7 +2713,9 @@
       scrMat: rig.scrMat,
       beacon,
       ring,
-      zzzSprites: rig.zzzSprites
+      zzzSprites: rig.zzzSprites,
+      wakeBubbleSprite: rig.wakeBubbleSprite,
+      wakeTimer: 0
     });
 
     worldGroup.add(cabin);
@@ -3062,6 +3081,8 @@
       beacon,
       ring,
       zzzSprites: rig.zzzSprites,
+      wakeBubbleSprite: rig.wakeBubbleSprite,
+      wakeTimer: 0,
       entryWorld,
       deskStandWorld
     });
@@ -3690,7 +3711,8 @@
     });
 
     const handlePointerEnd = (e, allowClick) => {
-      const wasClick = allowClick && activePointers.size === 1 && movedDist < 6;
+      const tapMaxDist = (e.pointerType === 'touch') ? 14 : 6;
+      const wasClick = allowClick && activePointers.size === 1 && movedDist < tapMaxDist;
       activePointers.delete(e.pointerId);
       syncTwoFingerGestureState();
       if (activePointers.size === 0) canvas.classList.remove('is-dragging');
@@ -3729,6 +3751,11 @@
                 cv.ring.material.emissive.setHex(isSel ? 0x38bdf8 : 0x000000);
               }
               cv.ring.material.emissiveIntensity = isSel ? 0.65 : 0;
+              if (isSel && ud.hitType !== 'pantry_worker' && cv.isSleeping && !cv.atPantry) {
+                cv.wakeTimer = 3.2;
+                if (cv.zzzSprites) cv.zzzSprites.forEach(s => { s.visible = false; });
+                if (cv.wakeBubbleSprite) cv.wakeBubbleSprite.visible = true;
+              }
             });
             renderDossierPanel();
           }
@@ -4468,11 +4495,49 @@
             for (let z = 0; z < cv.zzzSprites.length; z++) {
               cv.zzzSprites[z].visible = false;
             }
+            if (cv.wakeBubbleSprite) cv.wakeBubbleSprite.visible = false;
+          } else if (cv.wakeTimer > 0 && (cv.wakeTimer = Math.max(0, cv.wakeTimer - dt)) > 0) {
+            // Tapped while napping: jolt upright, look left/right, frantic fake-typing, then slump back asleep!
+            const wt = cv.wakeTimer;
+            const joltUp = Math.min(1, (3.2 - wt) / 0.18);
+            const slumpBack = Math.min(1, wt / 0.45);
+            const awakeMix = Math.min(joltUp, slumpBack);
+
+            cv.upperBody.rotation.x = -0.78 * (1 - awakeMix) + (0.04 + Math.sin(ph * 22) * 0.03) * awakeMix;
+            cv.upperBody.position.y = 0.06 + (0.04 + Math.abs(Math.sin(ph * 10)) * 0.03) * awakeMix;
+            cv.upperBody.position.z = -0.06 * (1 - awakeMix);
+            cv.headGroup.rotation.x = -0.36 * (1 - awakeMix) + 0.08 * awakeMix;
+            cv.headGroup.rotation.z = 0.28 * (1 - awakeMix);
+            cv.headGroup.rotation.y = Math.sin(ph * 6.5) * 0.42 * awakeMix;
+            cv.armLGroup.rotation.y = -0.46 * (1 - awakeMix);
+            cv.armRGroup.rotation.y = 0.46 * (1 - awakeMix);
+            cv.armLGroup.rotation.x = (-0.22) * (1 - awakeMix) + (Math.sin(ph * 18) * 0.34 - 0.12) * awakeMix;
+            cv.armRGroup.rotation.x = (-0.22) * (1 - awakeMix) + (Math.sin(ph * 18 + Math.PI) * 0.34 - 0.12) * awakeMix;
+
+            if (cv.scrMat.map !== screenWorkingFrames[workFrameIdx]) {
+              cv.scrMat.map = screenWorkingFrames[workFrameIdx];
+              cv.scrMat.needsUpdate = true;
+            }
+            for (let z = 0; z < cv.zzzSprites.length; z++) {
+              cv.zzzSprites[z].visible = false;
+            }
+            if (cv.wakeBubbleSprite) {
+              cv.wakeBubbleSprite.visible = wt > 0.1;
+              cv.wakeBubbleSprite.position.y = 2.04 + Math.sin(t * 7) * 0.045;
+              cv.wakeBubbleSprite.material.opacity = Math.min(1, wt * 2.5);
+            }
           } else {
             // Sleeping hunched onto desk with slow chest breath & floating Zzzs!
+            if (cv.wakeBubbleSprite) cv.wakeBubbleSprite.visible = false;
+            cv.armLGroup.rotation.x = -0.22;
+            cv.armLGroup.rotation.y = -0.46;
+            cv.armRGroup.rotation.x = -0.22;
+            cv.armRGroup.rotation.y = 0.46;
+            cv.upperBody.position.z = -0.06;
             cv.upperBody.rotation.x = -0.78 + breath * 0.045;
             cv.upperBody.position.y = 0.06 + breath * 0.015;
             cv.headGroup.rotation.x = -0.36 + breath * 0.04;
+            cv.headGroup.rotation.y = 0;
             cv.headGroup.rotation.z = 0.28;
             for (let z = 0; z < cv.zzzSprites.length; z++) {
               const sp = cv.zzzSprites[z];
