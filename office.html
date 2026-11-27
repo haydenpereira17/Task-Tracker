@@ -651,6 +651,7 @@
     }
 
     #office-canvas.is-dragging { cursor: grabbing; }
+    #office-canvas.is-dragging.is-panning { cursor: move; }
     #office-canvas.is-hovering { cursor: pointer; }
 
     /* Retro Pixel CRT Overlay & Controls inside Viewport */
@@ -1168,7 +1169,7 @@
           <span class="retro-stat-badge">Done Tray: <strong id="stat-done-folders" style="color:var(--nx-emerald);">0</strong></span>
         </div>
         <div class="toolbar-controls">
-          <input type="search" id="office-search" class="retro-input" placeholder="Find person or task…" aria-label="Search cubicles" oninput="rebuildOfficeFromFilter()" />
+          <input type="search" id="office-search" class="retro-input" placeholder="Find person or task…" aria-label="Search cubicles" oninput="scheduleRebuildFromFilter()" />
           <button type="button" id="btn-busy-only" class="retro-btn" onclick="toggleBusyOnly()" aria-pressed="false" title="Show only cubicles with open folders">Busy Desks Only</button>
           <button type="button" id="btn-fixed-seats" class="retro-btn" onclick="toggleFixedSeats()" aria-pressed="false" title="Keep everyone in permanent roster seats instead of moving busiest desks to front row">Fixed Seats</button>
           <button type="button" id="btn-shift-mode" class="retro-btn" onclick="cycleShiftMode()" title="Auto follows local clock (after-hours cleaning crew 7 PM–8:45 AM), or preview Night / Day shift">Shift: Auto</button>
@@ -1195,7 +1196,7 @@
             <button type="button" class="cam-btn" onclick="focusOnCat()" title="Jump camera to Mochi the Office Cat" style="color:#fdba74;">Find Cat</button>
           </div>
 
-          <div class="hud-hint-bottom-right">Touch: 1-finger pan · 2-finger rotate/pivot/zoom</div>
+          <div class="hud-hint-bottom-right">PC: drag orbit · 2× tap+drag / right-drag pan · Touch: 1-finger pan</div>
 
           <div id="office-tooltip" class="office-tooltip hidden" role="status">
             <div class="tt-eyebrow" id="tt-eyebrow">CUBICLE</div>
@@ -1431,10 +1432,9 @@
   let selectedTaskId = null;
   let cubicleWorkersCache = [];
 
+  const HTML_ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
   function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str == null ? '' : String(str);
-    return div.innerHTML;
+    return str == null ? '' : String(str).replace(/[&<>"']/g, ch => HTML_ESCAPE_MAP[ch]);
   }
 
   function getInitials(name) {
@@ -1442,7 +1442,17 @@
     return name.trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
   }
 
-  function getLocalYmd(d = new Date()) {
+  let cachedLocalYmd = '';
+  let cachedLocalYmdAt = 0;
+  function getLocalYmd(d) {
+    if (!d) {
+      const now = Date.now();
+      if (cachedLocalYmd && now - cachedLocalYmdAt < 30000) return cachedLocalYmd;
+      const cur = new Date(now);
+      cachedLocalYmd = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
+      cachedLocalYmdAt = now;
+      return cachedLocalYmd;
+    }
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
@@ -1706,8 +1716,18 @@
   const SKIN_COLORS = [0xfcd5b5, 0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524];
   const HAIR_COLORS = [0x1e293b, 0x3f2316, 0x7c4a26, 0xd4a359, 0x0f172a, 0x5c2c2c];
 
-  // Texture caches for crisp pixel-art nameplates, animated CRT screens & Zzz sprites
+  // Texture & geometry/material caches for crisp pixel-art sprites and fast WebGL rendering
   const nameplateTextureCache = new Map();
+  const boxGeoCache = new Map();
+  const planeGeoCache = new Map();
+  const lambertMatCache = new Map();
+  const sharedGlResources = new WeakSet();
+  let sharedInvisibleHitMat = null;
+  let canvasRectCache = null;
+  const hoverProbe = { pending: false, clientX: 0, clientY: 0 };
+  let lastLightingBucketKey = '';
+  let lastLightingLampBase = 0;
+  let lastMoodApplied = '';
   let carpetTileTexture = null;
   let pantryTileTexture = null;
   let screenWorkingFrames = [];
@@ -1897,6 +1917,7 @@
     const tex = new THREE.CanvasTexture(c);
     tex.magFilter = THREE.NearestFilter;
     tex.minFilter = THREE.NearestFilter;
+    sharedGlResources.add(tex);
     return tex;
   }
 
@@ -2129,17 +2150,76 @@
     return first.slice(0, 11);
   }
 
-  function makeBox(w, h, d, color, opts = {}) {
-    const geo = new THREE.BoxGeometry(w, h, d);
-    const mat = new THREE.MeshLambertMaterial({
-      color,
-      emissive: opts.emissive || 0x000000,
-      emissiveIntensity: opts.emissiveIntensity || 0,
-      map: opts.map || null
+  function getSharedBoxGeo(w, h, d) {
+    const key = w + '|' + h + '|' + d;
+    let geo = boxGeoCache.get(key);
+    if (!geo) {
+      geo = new THREE.BoxGeometry(w, h, d);
+      sharedGlResources.add(geo);
+      boxGeoCache.set(key, geo);
+    }
+    return geo;
+  }
+
+  function getSharedPlaneGeo(w, h) {
+    const key = w + '|' + h;
+    let geo = planeGeoCache.get(key);
+    if (!geo) {
+      geo = new THREE.PlaneGeometry(w, h);
+      sharedGlResources.add(geo);
+      planeGeoCache.set(key, geo);
+    }
+    return geo;
+  }
+
+  function getSharedLambertMat(color, emissive = 0x000000, emissiveIntensity = 0, map = null) {
+    const key = color + '|' + emissive + '|' + emissiveIntensity + '|' + (map ? map.uuid : '0');
+    let mat = lambertMatCache.get(key);
+    if (!mat) {
+      mat = new THREE.MeshLambertMaterial({ color, emissive, emissiveIntensity, map });
+      sharedGlResources.add(mat);
+      lambertMatCache.set(key, mat);
+    }
+    return mat;
+  }
+
+  function getSharedHitMat() {
+    if (!sharedInvisibleHitMat) {
+      sharedInvisibleHitMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+      sharedGlResources.add(sharedInvisibleHitMat);
+    }
+    return sharedInvisibleHitMat;
+  }
+
+  function disposeGroupContents(group) {
+    if (!group) return;
+    group.traverse(obj => {
+      if (obj.geometry && !sharedGlResources.has(obj.geometry)) {
+        obj.geometry.dispose();
+      }
+      if (obj.material) {
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        for (let i = 0; i < mats.length; i++) {
+          const m = mats[i];
+          if (m.map && !sharedGlResources.has(m.map)) m.map.dispose();
+          if (!sharedGlResources.has(m)) m.dispose();
+        }
+      }
     });
+    while (group.children.length > 0) group.remove(group.children[0]);
+  }
+
+  function makeBox(w, h, d, color, opts = {}) {
+    const geo = getSharedBoxGeo(w, h, d);
+    const emissive = opts.emissive || 0x000000;
+    const emissiveIntensity = opts.emissiveIntensity || 0;
+    const map = opts.map || null;
+    const mat = opts.uniqueMat
+      ? new THREE.MeshLambertMaterial({ color, emissive, emissiveIntensity, map })
+      : getSharedLambertMat(color, emissive, emissiveIntensity, map);
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+    mesh.castShadow = opts.castShadow !== false;
+    mesh.receiveShadow = opts.receiveShadow !== false;
     return mesh;
   }
 
@@ -2160,11 +2240,11 @@
     }
 
     const folderGroup = new THREE.Group();
-    const bottomCover = makeBox(0.62, 0.03, 0.48, coverHex);
+    const bottomCover = makeBox(0.62, 0.03, 0.48, coverHex, { castShadow: false });
     bottomCover.position.y = 0.015;
     folderGroup.add(bottomCover);
 
-    const paperBlock = makeBox(0.56, 0.045, 0.42, 0xf8fafc);
+    const paperBlock = makeBox(0.56, 0.045, 0.42, 0xf8fafc, { castShadow: false });
     paperBlock.position.y = 0.048;
     folderGroup.add(paperBlock);
 
@@ -2173,18 +2253,23 @@
     folderGroup.add(topCover);
 
     // Classic sticking-out index tab
-    const tab = makeBox(0.18, 0.032, 0.1, tabHex);
+    const tab = makeBox(0.18, 0.032, 0.1, tabHex, { castShadow: false });
     tab.position.set(-0.18, 0.082, 0.25);
     folderGroup.add(tab);
 
     // Optional bright amber stud on tab for Hard Deadline (HD)
     if (task.hardDeadline) {
-      const hdStud = makeBox(0.08, 0.038, 0.08, 0xfbbf24, { emissive: 0xf59e0b, emissiveIntensity: 0.45 });
+      const hdStud = makeBox(0.08, 0.038, 0.08, 0xfbbf24, { emissive: 0xf59e0b, emissiveIntensity: 0.45, castShadow: false });
       hdStud.position.set(0.22, 0.084, 0.22);
       folderGroup.add(hdStud);
     }
 
-    return { folderGroup, mainHitMesh: topCover };
+    // Single lightweight hit target per folder (instead of pushing 5 sub-meshes into raycaster)
+    const hitBox = new THREE.Mesh(getSharedBoxGeo(0.64, 0.095, 0.56), getSharedHitMat());
+    hitBox.position.set(0, 0.048, 0.02);
+    folderGroup.add(hitBox);
+
+    return { folderGroup, mainHitMesh: hitBox };
   }
 
   function buildPottedPlant(seed = 0) {
@@ -2337,17 +2422,11 @@
     tailPivot.add(tailSeg2);
 
     // Invisible larger touch/click target around kitty so it's easy to click/pet
-    const hitBoxMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
-    const hitBox = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.9, 1.05), hitBoxMat);
+    const hitBox = new THREE.Mesh(getSharedBoxGeo(0.95, 0.9, 1.05), getSharedHitMat());
     hitBox.position.set(0, 0.42, 0.05);
+    hitBox.userData = { hitType: 'cat' };
     rig.add(hitBox);
-
-    root.traverse(ch => {
-      if (ch.isMesh) {
-        ch.userData = { hitType: 'cat' };
-        interactables.push(ch);
-      }
-    });
+    interactables.push(hitBox);
 
     // Floating MEOW! Sprite Bubble
     const meowMat = new THREE.SpriteMaterial({
@@ -2539,14 +2618,13 @@
       }
     }
 
-    charRoot.traverse(ch => {
-      if (ch.isMesh) {
-        ch.userData = { hitType, worker };
-        interactables.push(ch);
-      }
-    });
+    const hitBox = new THREE.Mesh(getSharedBoxGeo(0.76, 1.55, 0.68), getSharedHitMat());
+    hitBox.position.set(0, seated ? 0.68 : 0.92, 0);
+    hitBox.userData = { hitType, worker };
+    charRoot.add(hitBox);
+    interactables.push(hitBox);
 
-    return { charRoot, legL, legR, upperBody, headGroup, armLGroup, armRGroup };
+    return { charRoot, legL, legR, upperBody, headGroup, armLGroup, armRGroup, hitBox };
   }
 
   function addDeskWorkstationContent(parentGroup, worker, opts = {}) {
@@ -2590,36 +2668,36 @@
       ? (screenStandbyTex || screenSleepFrames[0])
       : (isWorking ? screenWorkingFrames[0] : (hasPendingOnly ? screenPendingFrames[0] : (isSleeping ? screenSleepFrames[0] : screenQueuedTex)));
     const scrMat = new THREE.MeshBasicMaterial({ map: scrTex });
-    const screen = new THREE.Mesh(new THREE.PlaneGeometry(isBoss ? 0.8 : 0.62, isBoss ? 0.48 : 0.44), scrMat);
+    const screen = new THREE.Mesh(getSharedPlaneGeo(isBoss ? 0.8 : 0.62, isBoss ? 0.48 : 0.44), scrMat);
     screen.position.set(-0.22, 1.33, -0.995);
     parentGroup.add(screen);
 
-    const keyboard = makeBox(0.68, 0.05, 0.24, 0xe2e8f0);
+    const keyboard = makeBox(0.68, 0.05, 0.24, 0xe2e8f0, { castShadow: false });
     keyboard.position.set(-0.22, 0.915, -0.78);
     parentGroup.add(keyboard);
 
     // Mug + dual rising steam puffs
-    const mug = makeBox(0.16, 0.18, 0.16, isBoss ? 0xfbbf24 : 0xf43f5e);
+    const mug = makeBox(0.16, 0.18, 0.16, isBoss ? 0xfbbf24 : 0xf43f5e, { castShadow: false });
     mug.position.set(-1.12, 0.98, -0.72);
     parentGroup.add(mug);
-    const steam1 = makeBox(0.08, 0.08, 0.08, 0xe2e8f0, { emissive: 0xffffff, emissiveIntensity: 0.35 });
+    const steam1 = makeBox(0.08, 0.08, 0.08, 0xe2e8f0, { emissive: 0xffffff, emissiveIntensity: 0.35, castShadow: false });
     steam1.position.set(-1.12, 1.16, -0.72);
     steam1.visible = isWorking && !afterHours;
     parentGroup.add(steam1);
-    const steam2 = makeBox(0.06, 0.06, 0.06, 0xbae6fd, { emissive: 0xffffff, emissiveIntensity: 0.25 });
+    const steam2 = makeBox(0.06, 0.06, 0.06, 0xbae6fd, { emissive: 0xffffff, emissiveIntensity: 0.25, castShadow: false });
     steam2.position.set(-1.08, 1.24, -0.72);
     steam2.visible = isWorking && !afterHours;
     parentGroup.add(steam2);
 
     // Warm Executive Brass Desk Lamp for Boss!
     if (isBoss) {
-      const lampBase = makeBox(0.24, 0.06, 0.24, 0xfbbf24);
+      const lampBase = makeBox(0.24, 0.06, 0.24, 0xfbbf24, { castShadow: false });
       lampBase.position.set(-1.32, 0.92, -1.28);
       parentGroup.add(lampBase);
-      const lampStem = makeBox(0.06, 0.34, 0.06, 0xd97706);
+      const lampStem = makeBox(0.06, 0.34, 0.06, 0xd97706, { castShadow: false });
       lampStem.position.set(-1.32, 1.1, -1.28);
       parentGroup.add(lampStem);
-      const lampShade = makeBox(0.28, 0.16, 0.28, 0xfef08a, { emissive: 0xfbbf24, emissiveIntensity: 0.65 });
+      const lampShade = makeBox(0.28, 0.16, 0.28, 0xfef08a, { emissive: 0xfbbf24, emissiveIntensity: 0.65, uniqueMat: true, castShadow: false });
       lampShade.position.set(-1.26, 1.28, -1.24);
       bossLampShadeMats.push(lampShade.material);
       parentGroup.add(lampShade);
@@ -2631,19 +2709,14 @@
     const maxVisibleOpen = Math.min(openStack.length, 16);
     for (let i = 0; i < maxVisibleOpen; i++) {
       const task = openStack[i];
-      const { folderGroup } = buildFolderMesh(task);
+      const { folderGroup, mainHitMesh } = buildFolderMesh(task);
       const jitterX = (((i * 37) % 11) - 5) * 0.01;
       const jitterZ = (((i * 23) % 9) - 4) * 0.01;
       const jitterRot = (((i * 19) % 7) - 3) * 0.045;
       folderGroup.position.set(pileBaseX + jitterX, 0.89 + i * 0.095, -0.74 + jitterZ);
       folderGroup.rotation.y = jitterRot;
-      folderGroup.userData = { hitType: 'folder', worker, task };
-      folderGroup.traverse(ch => {
-        if (ch.isMesh) {
-          ch.userData = { hitType: 'folder', worker, task };
-          interactables.push(ch);
-        }
-      });
+      mainHitMesh.userData = { hitType: 'folder', worker, task };
+      interactables.push(mainHitMesh);
       parentGroup.add(folderGroup);
     }
 
@@ -2651,16 +2724,12 @@
     let activeDeskFolder = null;
     if (worker.inprogress.length > 0) {
       const curTask = worker.inprogress[0];
-      const { folderGroup } = buildFolderMesh(curTask);
+      const { folderGroup, mainHitMesh } = buildFolderMesh(curTask);
       folderGroup.scale.set(0.88, 0.88, 0.88);
       folderGroup.position.set(0.24, 0.89, -0.72);
       folderGroup.rotation.y = 0.28;
-      folderGroup.traverse(ch => {
-        if (ch.isMesh) {
-          ch.userData = { hitType: 'folder', worker, task: curTask };
-          interactables.push(ch);
-        }
-      });
+      mainHitMesh.userData = { hitType: 'folder', worker, task: curTask };
+      interactables.push(mainHitMesh);
       parentGroup.add(folderGroup);
       activeDeskFolder = folderGroup;
     }
@@ -2671,16 +2740,12 @@
       const doneX = isBoss ? 1.24 : 1.06;
       for (let i = 0; i < doneCap; i++) {
         const task = worker.done[i];
-        const { folderGroup } = buildFolderMesh(task);
+        const { folderGroup, mainHitMesh } = buildFolderMesh(task);
         folderGroup.scale.set(0.82, 0.82, 0.82);
         folderGroup.position.set(doneX, 0.89 + i * 0.075, -1.24);
         folderGroup.rotation.y = (i % 2 === 0 ? 0.03 : -0.03);
-        folderGroup.traverse(ch => {
-          if (ch.isMesh) {
-            ch.userData = { hitType: 'folder', worker, task };
-            interactables.push(ch);
-          }
-        });
+        mainHitMesh.userData = { hitType: 'folder', worker, task };
+        interactables.push(mainHitMesh);
         parentGroup.add(folderGroup);
       }
     }
@@ -2784,25 +2849,27 @@
     const rigState = addWorkerCharacterRigBaseData(worker);
 
     // 1. Luxury Executive Floor & Centerpiece Carpet Rug (7.4 x 7.4)
-    const parquetFloor = makeBox(7.4, 0.14, 7.4, 0x261d19);
+    const parquetFloor = makeBox(7.4, 0.14, 7.4, 0x261d19, { castShadow: false });
     parquetFloor.position.y = 0.07;
     parquetFloor.userData = { hitType: 'cubicle', worker };
     cabin.add(parquetFloor);
     interactables.push(parquetFloor);
 
-    const rug = makeBox(4.8, 0.04, 4.2, 0x3b1224);
+    const rug = makeBox(4.8, 0.04, 4.2, 0x3b1224, { castShadow: false });
     rug.position.set(0.2, 0.15, 0.45);
     rug.userData = { hitType: 'cubicle', worker };
     cabin.add(rug);
     interactables.push(rug);
-    const rugBorder = makeBox(4.94, 0.03, 4.34, 0xfbbf24);
+    const rugBorder = makeBox(4.94, 0.03, 4.34, 0xfbbf24, { castShadow: false });
     rugBorder.position.set(0.2, 0.145, 0.45);
     cabin.add(rugBorder);
 
     const isSelected = (selectedPerson === worker.name);
     const ring = makeBox(7.52, 0.06, 7.52, isSelected ? 0xfbbf24 : 0x6b3a24, {
       emissive: isSelected ? 0xfbbf24 : 0x000000,
-      emissiveIntensity: isSelected ? 0.55 : 0
+      emissiveIntensity: isSelected ? 0.55 : 0,
+      uniqueMat: true,
+      castShadow: false
     });
     ring.position.y = 0.03;
     ring.visible = isSelected;
@@ -2983,15 +3050,13 @@
     const pantry = new THREE.Group();
     pantry.position.set(pantryX, 0, pantryZ);
 
-    const tileMat = new THREE.MeshLambertMaterial({ map: pantryTileTexture });
-    const floor = new THREE.Mesh(new THREE.BoxGeometry(7.4, 0.12, 7.4), tileMat);
+    const floor = makeBox(7.4, 0.12, 7.4, 0xffffff, { map: pantryTileTexture, castShadow: false });
     floor.position.y = 0.06;
-    floor.receiveShadow = true;
     floor.userData = { hitType: 'pantry' };
     pantry.add(floor);
     interactables.push(floor);
 
-    const rim = makeBox(7.52, 0.06, 7.52, 0xb45309);
+    const rim = makeBox(7.52, 0.06, 7.52, 0xb45309, { castShadow: false });
     rim.position.y = 0.025;
     pantry.add(rim);
 
@@ -3217,11 +3282,9 @@
 
     const rigInfo = addWorkerCharacterRigBaseData(worker);
 
-    // 1. Floor Carpet Pad + Selection Rim
-    const floorMat = new THREE.MeshLambertMaterial({ map: carpetTileTexture });
-    const floor = new THREE.Mesh(new THREE.BoxGeometry(3.7, 0.12, 3.7), floorMat);
+    // 1. Floor Carpet Pad + Selection Rim (shared cached material & geometry)
+    const floor = makeBox(3.7, 0.12, 3.7, 0xffffff, { map: carpetTileTexture, castShadow: false });
     floor.position.y = 0.06;
-    floor.receiveShadow = true;
     floor.userData = { hitType: 'cubicle', worker };
     group.add(floor);
     interactables.push(floor);
@@ -3229,7 +3292,9 @@
     const isSelected = (selectedPerson === worker.name);
     const ring = makeBox(3.74, 0.06, 3.74, isSelected ? 0x38bdf8 : 0x1d4b6e, {
       emissive: isSelected ? 0x38bdf8 : 0x000000,
-      emissiveIntensity: isSelected ? 0.65 : 0
+      emissiveIntensity: isSelected ? 0.65 : 0,
+      uniqueMat: true,
+      castShadow: false
     });
     ring.position.y = 0.025;
     ring.visible = isSelected;
@@ -3249,29 +3314,29 @@
       group.add(wall);
       interactables.push(wall);
 
-      const trim = makeBox(spec.trimW, 0.07, spec.trimD, trimColor);
+      const trim = makeBox(spec.trimW, 0.07, spec.trimD, trimColor, { castShadow: false });
       trim.position.set(spec.x, 1.43, spec.trimZ);
       group.add(trim);
     });
 
     // Corkboard & sticky note pixels on shared back spine wall
-    const cork = makeBox(1.06, 0.46, 0.05, 0x9c6b3b);
+    const cork = makeBox(1.06, 0.46, 0.05, 0x9c6b3b, { castShadow: false });
     cork.position.set(-0.85, 1.08, -1.68);
     group.add(cork);
-    const note1 = makeBox(0.16, 0.16, 0.03, 0xfde047);
+    const note1 = makeBox(0.16, 0.16, 0.03, 0xfde047, { castShadow: false });
     note1.position.set(-1.12, 1.11, -1.65);
     group.add(note1);
-    const note2 = makeBox(0.16, 0.16, 0.03, 0x38bdf8);
+    const note2 = makeBox(0.16, 0.16, 0.03, 0x38bdf8, { castShadow: false });
     note2.position.set(-0.86, 1.08, -1.65);
     group.add(note2);
     if (worker.openCount > 0) {
-      const note3 = makeBox(0.16, 0.16, 0.03, 0xf43f5e);
+      const note3 = makeBox(0.16, 0.16, 0.03, 0xf43f5e, { castShadow: false });
       note3.position.set(-0.58, 1.12, -1.65);
       group.add(note3);
     }
 
     // Outer Aisle End-Cap Riser Post + Camera-Facing Pixel Nameplate Sprite (mounted cleanly above right wall trim)
-    const post = makeBox(0.12, 0.22, 0.12, 0x64748b);
+    const post = makeBox(0.12, 0.22, 0.12, 0x64748b, { castShadow: false });
     post.position.set(1.78, 1.54, 1.78);
     group.add(post);
 
@@ -3386,9 +3451,30 @@
 
     setupPointerControls(canvas);
     window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', updateCanvasRectCache, { passive: true });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     rebuildOfficeScene();
     startAnimLoop();
     setTimeout(handleResize, 50);
+  }
+
+  function updateCanvasRectCache() {
+    const canvas = renderer ? renderer.domElement : document.getElementById('office-canvas');
+    if (canvas) canvasRectCache = canvas.getBoundingClientRect();
+    return canvasRectCache;
+  }
+
+  function getCanvasRect() {
+    if (!canvasRectCache || canvasRectCache.width <= 0 || canvasRectCache.height <= 0) {
+      return updateCanvasRectCache();
+    }
+    return canvasRectCache;
+  }
+
+  function handleVisibilityChange() {
+    if (!document.hidden) {
+      lastFrameMs = performance.now();
+    }
   }
 
   function handleResize() {
@@ -3400,6 +3486,7 @@
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h, false);
+    updateCanvasRectCache();
   }
 
   function rebuildOfficeScene() {
@@ -3415,19 +3502,22 @@
 
     if (!worldGroup || typeof THREE === 'undefined') return;
 
-    while (worldGroup.children.length > 0) worldGroup.remove(worldGroup.children[0]);
-    while (propsGroup.children.length > 0) propsGroup.remove(propsGroup.children[0]);
+    disposeGroupContents(worldGroup);
+    disposeGroupContents(propsGroup);
     interactables = [];
     cubicleVisuals = [];
     envVisuals = [];
     bossLampShadeMats = [];
     bossLampLight = null;
     pantryLampLight = null;
+    lastLightingBucketKey = '';
+    lastMoodApplied = '';
     officePlaces.boss = null;
     officePlaces.pantry = null;
     officePlaces.sleepingSpots = [];
     pantryVisitors = [];
     hoveredHit = null;
+    hoverProbe.pending = false;
     hideTooltip();
 
     const count = filtered.length;
@@ -3474,21 +3564,23 @@
     const floorD = effectiveRows * clusterPitch + 1.8;
 
     // Office main floor & crisp rectangular border trim
-    const subFloor = makeBox(floorW, 0.24, floorD, 0x071a29);
+    const subFloor = makeBox(floorW, 0.24, floorD, 0x071a29, { castShadow: false });
     subFloor.position.set(floorCenterX, -0.14, 0);
     propsGroup.add(subFloor);
 
-    const trimMat = new THREE.MeshLambertMaterial({ color: 0x1e4c70 });
-    const borderTop = new THREE.Mesh(new THREE.BoxGeometry(floorW + 0.16, 0.08, 0.14), trimMat);
+    const trimMat = getSharedLambertMat(0x1e4c70);
+    const borderHGeo = getSharedBoxGeo(floorW + 0.16, 0.08, 0.14);
+    const borderTop = new THREE.Mesh(borderHGeo, trimMat);
     borderTop.position.set(floorCenterX, -0.02, -floorD / 2);
     propsGroup.add(borderTop);
-    const borderBot = borderTop.clone();
+    const borderBot = new THREE.Mesh(borderHGeo, trimMat);
     borderBot.position.set(floorCenterX, -0.02, floorD / 2);
     propsGroup.add(borderBot);
-    const borderL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, floorD + 0.16), trimMat);
+    const borderVGeo = getSharedBoxGeo(0.14, 0.08, floorD + 0.16);
+    const borderL = new THREE.Mesh(borderVGeo, trimMat);
     borderL.position.set(leftEdgeX, -0.02, 0);
     propsGroup.add(borderL);
-    const borderR = borderL.clone();
+    const borderR = new THREE.Mesh(borderVGeo, trimMat);
     borderR.position.set(rightEdgeX, -0.02, 0);
     propsGroup.add(borderR);
 
@@ -3505,15 +3597,17 @@
     }
 
     // Subtle inlaid pathway strips along all walkable corridors
-    const pathMat = new THREE.MeshLambertMaterial({ color: 0x102d44 });
+    const pathMat = getSharedLambertMat(0x102d44);
+    const stripXGeo = getSharedBoxGeo(0.95, 0.02, floorD - 1.2);
+    const stripZGeo = getSharedBoxGeo(floorW - 1.2, 0.02, 0.95);
     aisleGraph.xs.forEach(ax => {
-      const strip = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.02, floorD - 1.2), pathMat);
+      const strip = new THREE.Mesh(stripXGeo, pathMat);
       strip.position.set(ax, 0.004, 0);
       strip.receiveShadow = true;
       propsGroup.add(strip);
     });
     aisleGraph.zs.forEach(az => {
-      const strip = new THREE.Mesh(new THREE.BoxGeometry(floorW - 1.2, 0.02, 0.95), pathMat);
+      const strip = new THREE.Mesh(stripZGeo, pathMat);
       strip.position.set(floorCenterX, 0.005, az);
       strip.receiveShadow = true;
       propsGroup.add(strip);
@@ -3608,8 +3702,43 @@
     }
   }
 
+  let searchRebuildTimer = null;
   function rebuildOfficeFromFilter() {
+    if (searchRebuildTimer) {
+      clearTimeout(searchRebuildTimer);
+      searchRebuildTimer = null;
+    }
     rebuildOfficeScene();
+  }
+
+  function scheduleRebuildFromFilter() {
+    if (searchRebuildTimer) clearTimeout(searchRebuildTimer);
+    searchRebuildTimer = setTimeout(() => {
+      searchRebuildTimer = null;
+      rebuildOfficeScene();
+    }, 130);
+  }
+
+  function updateSelectionRings(wakeIfSleeping = false) {
+    const afterHours = isOfficeAfterHours();
+    for (let i = 0; i < cubicleVisuals.length; i++) {
+      const cv = cubicleVisuals[i];
+      const isSel = (cv.worker.name === selectedPerson);
+      cv.ring.visible = isSel;
+      if (cv.isBoss) {
+        cv.ring.material.color.setHex(isSel ? 0xfbbf24 : 0x6b3a24);
+        cv.ring.material.emissive.setHex(isSel ? 0xfbbf24 : 0x000000);
+      } else {
+        cv.ring.material.color.setHex(isSel ? 0x38bdf8 : 0x1d4b6e);
+        cv.ring.material.emissive.setHex(isSel ? 0x38bdf8 : 0x000000);
+      }
+      cv.ring.material.emissiveIntensity = isSel ? 0.65 : 0;
+      if (wakeIfSleeping && isSel && !afterHours && cv.isSleeping && !cv.atPantry) {
+        cv.wakeTimer = 3.2;
+        if (cv.zzzSprites) cv.zzzSprites.forEach(s => { s.visible = false; });
+        if (cv.wakeBubbleSprite) cv.wakeBubbleSprite.visible = true;
+      }
+    }
   }
 
   function applyToolbarToggleState(btnId, isActive) {
@@ -3699,18 +3828,7 @@
     if (!bossCv) return;
     selectedPerson = bossCv.worker.name;
     selectedTaskId = null;
-    cubicleVisuals.forEach(cv => {
-      const isSel = (cv.worker.name === selectedPerson);
-      cv.ring.visible = isSel;
-      if (cv.isBoss) {
-        cv.ring.material.color.setHex(isSel ? 0xfbbf24 : 0x6b3a24);
-        cv.ring.material.emissive.setHex(isSel ? 0xfbbf24 : 0x000000);
-      } else {
-        cv.ring.material.color.setHex(isSel ? 0x38bdf8 : 0x1d4b6e);
-        cv.ring.material.emissive.setHex(isSel ? 0x38bdf8 : 0x000000);
-      }
-      cv.ring.material.emissiveIntensity = isSel ? 0.65 : 0;
-    });
+    updateSelectionRings(false);
     renderDossierPanel();
     focusCubicleByName(bossCv.worker.name, 13.5);
   }
@@ -3858,6 +3976,27 @@
     camState.goalZ = Math.max(-24, Math.min(24, camState.goalZ + (dx * sinA - dy * cosA) * panSpeed));
   }
 
+  function processPendingHover() {
+    if (!hoverProbe.pending || !raycaster || !camera || interactables.length === 0) return;
+    hoverProbe.pending = false;
+    const canvas = renderer ? renderer.domElement : null;
+    const rect = getCanvasRect();
+    if (!canvas || !rect || rect.width <= 0 || rect.height <= 0) return;
+    pointerNdc.x = ((hoverProbe.clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNdc.y = -((hoverProbe.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointerNdc, camera);
+    const hits = raycaster.intersectObjects(interactables, false);
+    if (hits.length > 0 && hits[0].object && hits[0].object.userData) {
+      hoveredHit = hits[0].object.userData;
+      canvas.classList.add('is-hovering');
+      showTooltipForHit(hoveredHit, hoverProbe.clientX, hoverProbe.clientY);
+    } else {
+      hoveredHit = null;
+      canvas.classList.remove('is-hovering');
+      hideTooltip();
+    }
+  }
+
   function setupPointerControls(canvas) {
     const activePointers = new Map();
     let dragMode = 'orbit';
@@ -3868,6 +4007,9 @@
     let prevMidX = 0;
     let prevMidY = 0;
     let movedDist = 0;
+    let isDoubleTapPan = false;
+    let suppressDblClickUntil = 0;
+    let lastPrimaryTap = { time: 0, x: 0, y: 0 };
 
     function syncTwoFingerGestureState() {
       const pts = Array.from(activePointers.values());
@@ -3886,18 +4028,39 @@
     canvas.addEventListener('contextmenu', e => e.preventDefault());
 
     canvas.addEventListener('pointerdown', e => {
-      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, type: e.pointerType || 'mouse' });
-      if (e.pointerType === 'touch') {
+      hoverProbe.pending = false;
+      const now = performance.now();
+      const pType = e.pointerType || 'mouse';
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, type: pType });
+      if (pType === 'touch') {
         // Single finger translates/pans; two fingers rotate/pivot/zoom
         dragMode = 'pan';
+        isDoubleTapPan = false;
+      } else if (e.button === 2 || e.shiftKey) {
+        dragMode = 'pan';
+        isDoubleTapPan = false;
+      } else if (e.button === 0 && activePointers.size === 1) {
+        // PC double-tap (click-release-press) and drag translates the viewport
+        const isSecondTap = (now - lastPrimaryTap.time) <= 380
+          && Math.hypot(e.clientX - lastPrimaryTap.x, e.clientY - lastPrimaryTap.y) <= 24;
+        if (isSecondTap) {
+          dragMode = 'pan';
+          isDoubleTapPan = true;
+          lastPrimaryTap.time = 0;
+        } else {
+          dragMode = 'orbit';
+          isDoubleTapPan = false;
+        }
       } else {
-        dragMode = (e.button === 2 || e.shiftKey) ? 'pan' : 'orbit';
+        dragMode = 'orbit';
+        isDoubleTapPan = false;
       }
       prevX = e.clientX;
       prevY = e.clientY;
       if (activePointers.size === 1) movedDist = 0;
       syncTwoFingerGestureState();
       canvas.classList.add('is-dragging');
+      canvas.classList.toggle('is-panning', dragMode === 'pan');
       try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
     });
 
@@ -3954,34 +4117,42 @@
         return;
       }
 
-      // Hover raycast
-      if (!raycaster || !camera || interactables.length === 0) return;
-      const rect = canvas.getBoundingClientRect();
-      pointerNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      pointerNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(pointerNdc, camera);
-      const hits = raycaster.intersectObjects(interactables, false);
-      if (hits.length > 0 && hits[0].object && hits[0].object.userData) {
-        hoveredHit = hits[0].object.userData;
-        canvas.classList.add('is-hovering');
-        showTooltipForHit(hoveredHit, e.clientX, e.clientY);
-      } else {
-        hoveredHit = null;
-        canvas.classList.remove('is-hovering');
-        hideTooltip();
-      }
+      // Defer hover raycasting until the next animation frame so high-rate mice stay 60fps smooth
+      hoverProbe.pending = true;
+      hoverProbe.clientX = e.clientX;
+      hoverProbe.clientY = e.clientY;
     });
 
     const handlePointerEnd = (e, allowClick) => {
-      const tapMaxDist = (e.pointerType === 'touch') ? 14 : 6;
+      const pType = e.pointerType || 'mouse';
+      const tapMaxDist = (pType === 'touch') ? 14 : 6;
       const wasClick = allowClick && activePointers.size === 1 && movedDist < tapMaxDist;
+      const wasDoubleTapPanDrag = isDoubleTapPan && movedDist >= tapMaxDist;
+
+      if (allowClick && pType !== 'touch' && e.button === 0 && activePointers.size === 1) {
+        if (wasDoubleTapPanDrag) {
+          suppressDblClickUntil = performance.now() + 280;
+          lastPrimaryTap.time = 0;
+        } else if (wasClick && !isDoubleTapPan) {
+          lastPrimaryTap.time = performance.now();
+          lastPrimaryTap.x = e.clientX;
+          lastPrimaryTap.y = e.clientY;
+        } else {
+          lastPrimaryTap.time = 0;
+        }
+      }
+
       activePointers.delete(e.pointerId);
       syncTwoFingerGestureState();
-      if (activePointers.size === 0) canvas.classList.remove('is-dragging');
+      if (activePointers.size === 0) {
+        canvas.classList.remove('is-dragging', 'is-panning');
+        isDoubleTapPan = false;
+      }
       try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
 
       if (wasClick && raycaster && camera && interactables.length > 0) {
-        const rect = canvas.getBoundingClientRect();
+        const rect = getCanvasRect();
+        if (!rect || rect.width <= 0 || rect.height <= 0) return;
         pointerNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         pointerNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
         raycaster.setFromCamera(pointerNdc, camera);
@@ -4010,23 +4181,7 @@
           if (ud.worker) {
             selectedPerson = ud.worker.name;
             selectedTaskId = (ud.hitType === 'folder' && ud.task) ? ud.task.id : null;
-            cubicleVisuals.forEach(cv => {
-              const isSel = (cv.worker.name === selectedPerson);
-              cv.ring.visible = isSel;
-              if (cv.isBoss) {
-                cv.ring.material.color.setHex(isSel ? 0xfbbf24 : 0x6b3a24);
-                cv.ring.material.emissive.setHex(isSel ? 0xfbbf24 : 0x000000);
-              } else {
-                cv.ring.material.color.setHex(isSel ? 0x38bdf8 : 0x1d4b6e);
-                cv.ring.material.emissive.setHex(isSel ? 0x38bdf8 : 0x000000);
-              }
-              cv.ring.material.emissiveIntensity = isSel ? 0.65 : 0;
-              if (isSel && !isOfficeAfterHours() && ud.hitType !== 'pantry_worker' && cv.isSleeping && !cv.atPantry) {
-                cv.wakeTimer = 3.2;
-                if (cv.zzzSprites) cv.zzzSprites.forEach(s => { s.visible = false; });
-                if (cv.wakeBubbleSprite) cv.wakeBubbleSprite.visible = true;
-              }
-            });
+            updateSelectionRings(ud.hitType !== 'pantry_worker');
             renderDossierPanel();
           }
         }
@@ -4037,8 +4192,10 @@
     canvas.addEventListener('pointercancel', e => handlePointerEnd(e, false));
 
     canvas.addEventListener('dblclick', e => {
+      if (performance.now() < suppressDblClickUntil) return;
       if (!raycaster || !camera || interactables.length === 0) return;
-      const rect = canvas.getBoundingClientRect();
+      const rect = getCanvasRect();
+      if (!rect || rect.width <= 0 || rect.height <= 0) return;
       pointerNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       pointerNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(pointerNdc, camera);
@@ -4049,6 +4206,7 @@
     });
 
     canvas.addEventListener('pointerleave', () => {
+      hoverProbe.pending = false;
       canvas.classList.remove('is-hovering');
       hideTooltip();
     });
@@ -4675,7 +4833,8 @@
         }
       }
 
-      updateRoamingEntityLabels(v, i, t);
+      const zoomInFactor = camState.distance < 21 ? Math.min(1, (21 - camState.distance) / 4.5) : 0;
+      updateRoamingEntityLabels(v, i, t, zoomInFactor);
 
       v.y += ((v.targetY || 0) - v.y) * Math.min(1, dt * 10);
       v.root.position.set(v.x, v.y, v.z);
@@ -4698,17 +4857,23 @@
     }
   }
 
-  function updateRoamingEntityLabels(ent, idx, t) {
+  function updateRoamingEntityLabels(ent, idx, t, zoomInFactor) {
     if (ent.nameSprite && ent.nameMat) {
-      const zoomInFactor = camState.distance < 21 ? Math.min(1, (21 - camState.distance) / 4.5) : 0;
-      const camDist = camera
-        ? Math.hypot(camera.position.x - ent.x, camera.position.y - 1.2, camera.position.z - ent.z)
-        : camState.distance;
-      const proxFactor = camDist < 24 ? Math.min(1, (24 - camDist) / 5.0) : 0;
-      const nameAlpha = Math.min(zoomInFactor, proxFactor);
-      ent.nameSprite.visible = nameAlpha > 0.04;
-      ent.nameMat.opacity = nameAlpha;
-      ent.nameSprite.position.y = (ent.rig.position.y || 0) + 1.66;
+      if (zoomInFactor <= 0.04) {
+        if (ent.nameSprite.visible) ent.nameSprite.visible = false;
+      } else {
+        const camDist = camera
+          ? Math.hypot(camera.position.x - ent.x, camera.position.y - 1.2, camera.position.z - ent.z)
+          : camState.distance;
+        const proxFactor = camDist < 24 ? Math.min(1, (24 - camDist) / 5.0) : 0;
+        const nameAlpha = zoomInFactor < proxFactor ? zoomInFactor : proxFactor;
+        const show = nameAlpha > 0.04;
+        ent.nameSprite.visible = show;
+        if (show) {
+          ent.nameMat.opacity = nameAlpha;
+          ent.nameSprite.position.y = (ent.rig.position.y || 0) + 1.66;
+        }
+      }
     }
     if (ent.bubbleSprite && ent.bubbleSprite.visible) {
       const baseBubY = (ent.nameSprite && ent.nameSprite.visible) ? 2.04 : 1.78;
@@ -4717,36 +4882,48 @@
   }
 
   function updateTimeOfDayLighting(t = 0) {
-    const prof = getLightingProfile();
-    if (hemiLight) {
-      hemiLight.color.setHex(prof.hemiSky);
-      hemiLight.groundColor.setHex(prof.hemiGround);
-      hemiLight.intensity = prof.hemiIntensity;
+    const mins = getEffectiveClockMinutes();
+    const bucketKey = `${shiftMode}|${simMinutesOverride != null ? simMinutesOverride : Math.floor(mins * 2)}`;
+    if (bucketKey !== lastLightingBucketKey) {
+      lastLightingBucketKey = bucketKey;
+      const prof = getLightingProfile(mins);
+      lastLightingLampBase = prof.lampIntensity;
+      if (hemiLight) {
+        hemiLight.color.setHex(prof.hemiSky);
+        hemiLight.groundColor.setHex(prof.hemiGround);
+        hemiLight.intensity = prof.hemiIntensity;
+      }
+      if (keyLight) {
+        keyLight.color.setHex(prof.keyColor);
+        keyLight.intensity = prof.keyIntensity;
+      }
+      if (rimLight) {
+        rimLight.color.setHex(prof.rimColor);
+        rimLight.intensity = prof.rimIntensity;
+      }
+      if (scene && scene.fog) {
+        scene.fog.color.setHex(prof.fogColor);
+      }
+      if (bossLampLight && lastLightingLampBase === 0) {
+        bossLampLight.intensity = 0;
+      }
+      if (pantryLampLight) {
+        pantryLampLight.intensity = prof.pantryLampIntensity;
+      }
+      for (let i = 0; i < bossLampShadeMats.length; i++) {
+        bossLampShadeMats[i].emissiveIntensity = prof.lampEmissive;
+      }
+      if (prof.mood !== lastMoodApplied) {
+        lastMoodApplied = prof.mood;
+        const card = document.getElementById('viewport-card');
+        if (card) {
+          card.classList.toggle('is-sunset', prof.mood === 'sunset');
+          card.classList.toggle('is-night', prof.mood === 'night');
+        }
+      }
     }
-    if (keyLight) {
-      keyLight.color.setHex(prof.keyColor);
-      keyLight.intensity = prof.keyIntensity;
-    }
-    if (rimLight) {
-      rimLight.color.setHex(prof.rimColor);
-      rimLight.intensity = prof.rimIntensity;
-    }
-    if (scene && scene.fog) {
-      scene.fog.color.setHex(prof.fogColor);
-    }
-    if (bossLampLight) {
-      bossLampLight.intensity = prof.lampIntensity * (1 + Math.sin(t * 2.3) * 0.04);
-    }
-    if (pantryLampLight) {
-      pantryLampLight.intensity = prof.pantryLampIntensity;
-    }
-    for (let i = 0; i < bossLampShadeMats.length; i++) {
-      bossLampShadeMats[i].emissiveIntensity = prof.lampEmissive;
-    }
-    const card = document.getElementById('viewport-card');
-    if (card) {
-      card.classList.toggle('is-sunset', prof.mood === 'sunset');
-      card.classList.toggle('is-night', prof.mood === 'night');
+    if (bossLampLight && lastLightingLampBase > 0) {
+      bossLampLight.intensity = lastLightingLampBase * (1 + Math.sin(t * 2.3) * 0.04);
     }
   }
 
@@ -4930,9 +5107,7 @@
         phaseOffset: i * 1.7
       };
 
-      rigParts.charRoot.traverse(ch => {
-        if (ch.isMesh) ch.userData = { hitType: 'cleaner', cleaner };
-      });
+      if (rigParts.hitBox) rigParts.hitBox.userData = { hitType: 'cleaner', cleaner };
       nameSprite.userData = { hitType: 'cleaner', cleaner };
 
       if (startMode === 'walk') {
@@ -5044,7 +5219,8 @@
 
       c.bubbleSprite.visible = c.bubbleTimer > 0;
       if (c.bubbleSprite.visible) c.bubbleMat.opacity = Math.min(1, c.bubbleTimer * 2);
-      updateRoamingEntityLabels(c, i, t);
+      const zoomInFactor = camState.distance < 21 ? Math.min(1, (21 - camState.distance) / 4.5) : 0;
+      updateRoamingEntityLabels(c, i, t, zoomInFactor);
 
       c.y += ((c.targetY || 0) - c.y) * Math.min(1, dt * 10);
       c.root.position.set(c.x, c.y, c.z);
@@ -5059,6 +5235,7 @@
     lastFrameMs = performance.now();
     const loop = (now) => {
       animRafId = requestAnimationFrame(loop);
+      if (document.hidden) return;
       const t = (now - clockStart) * 0.001;
       const dt = Math.min(0.15, Math.max(0.001, (now - lastFrameMs) * 0.001));
       lastFrameMs = now;
@@ -5094,6 +5271,7 @@
         );
         camera.lookAt(camState.targetX, 0.7, camState.targetZ);
       }
+      processPendingHover();
 
       // Animate Environment Props (Swaying Plants, Water Cooler Bubbles & Pantry Espresso Steam!)
       for (let i = 0; i < envVisuals.length; i++) {
@@ -5129,6 +5307,7 @@
         const ph = t + cv.phaseOffset;
 
         if (afterHours) {
+          if (cv._afterHoursHidden) continue;
           if (cv.charRoot) cv.charRoot.visible = false;
           if (cv.zzzSprites) {
             for (let z = 0; z < cv.zzzSprites.length; z++) cv.zzzSprites[z].visible = false;
@@ -5140,8 +5319,10 @@
             cv.scrMat.map = screenStandbyTex;
             cv.scrMat.needsUpdate = true;
           }
+          cv._afterHoursHidden = true;
           continue;
         }
+        cv._afterHoursHidden = false;
 
         if (cv.isWorking) {
           // Lively rhythmic typing + head groove between CRT and active folder
