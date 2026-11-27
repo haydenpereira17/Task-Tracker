@@ -288,7 +288,8 @@
 
     body.is-view-only .nex-card,
     body.is-view-only .btn-recurring-menu,
-    body.is-view-only .nav-analytics-link {
+    body.is-view-only .nav-analytics-link,
+    body.is-view-only .nav-full-only {
       display: none !important;
     }
 
@@ -3628,7 +3629,7 @@
       </div>
 
       <div class="nav-menu-wrap" id="header-nav-menu">
-        <button type="button" class="nav-menu-btn" id="header-nav-menu-btn" onclick="toggleHeaderMenu(event)" aria-label="Open menu" aria-expanded="false" aria-controls="header-nav-dropdown" title="Features &amp; Analytics">
+        <button type="button" class="nav-menu-btn" id="header-nav-menu-btn" onclick="toggleHeaderMenu(event)" aria-label="Open menu" aria-expanded="false" aria-controls="header-nav-dropdown" title="Navigation menu">
           <span class="nav-menu-bar"></span>
           <span class="nav-menu-bar"></span>
         </button>
@@ -3644,7 +3645,7 @@
               <span class="nav-menu-sub">Capabilities &amp; workflow guide</span>
             </span>
           </a>
-          <a href="analytics.html" class="nav-menu-item nav-analytics-link" role="menuitem">
+          <a href="analytics.html" class="nav-menu-item nav-analytics-link nav-full-only" role="menuitem">
             <span class="nav-menu-icon" aria-hidden="true">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="20" x2="18" y2="10"></line>
@@ -3655,6 +3656,20 @@
             <span class="nav-menu-meta">
               <span class="nav-menu-title">Analytics</span>
               <span class="nav-menu-sub">Completion time metrics</span>
+            </span>
+          </a>
+          <a href="sessions.html" class="nav-menu-item nav-full-only" role="menuitem">
+            <span class="nav-menu-icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
+            <span class="nav-menu-meta">
+              <span class="nav-menu-title">Sessions</span>
+              <span class="nav-menu-sub">Live active users</span>
             </span>
           </a>
         </div>
@@ -4201,6 +4216,7 @@
     let tasksLoaded = false;
     let recurringLoaded = false;
     let firebaseListenersActive = false;
+    let connectedStatusCb = null;
 
     function attachFirebaseListeners() {
       if (firebaseListenersActive) return;
@@ -4208,7 +4224,7 @@
       tasksLoaded = false;
       recurringLoaded = false;
 
-      db.ref('.info/connected').on('value', snap => {
+      connectedStatusCb = snap => {
         if (snap.val() === true) {
           syncStatusEl.textContent = 'Synced';
           syncPillEl.className = 'sync-status-pill';
@@ -4216,7 +4232,8 @@
           syncStatusEl.textContent = 'Offline';
           syncPillEl.className = 'sync-status-pill disconnected';
         }
-      });
+      };
+      db.ref('.info/connected').on('value', connectedStatusCb);
 
       tasksRef.on('value', snapshot => {
         allTasks = [];
@@ -4249,10 +4266,120 @@
       firebaseListenersActive = false;
       tasksLoaded = false;
       recurringLoaded = false;
-      db.ref('.info/connected').off('value');
+      if (connectedStatusCb) {
+        db.ref('.info/connected').off('value', connectedStatusCb);
+        connectedStatusCb = null;
+      }
       tasksRef.off('value');
       recurringRef.off('value');
     }
+
+    // ── Realtime Active Session Presence ──
+    const TAB_SESSION_STORAGE_KEY = 'workpulse_tab_id';
+    let presenceConnRef = null;
+    let presenceConnectedRef = null;
+    let presenceConnectedCb = null;
+    let presenceHeartbeatId = null;
+
+    function getOrCreateTabSessionId() {
+      try {
+        let tid = sessionStorage.getItem(TAB_SESSION_STORAGE_KEY);
+        if (!tid) {
+          tid = 'tab_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+          sessionStorage.setItem(TAB_SESSION_STORAGE_KEY, tid);
+        }
+        return tid;
+      } catch (e) {
+        return 'tab_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+      }
+    }
+
+    function detectDeviceLabel() {
+      const ua = navigator.userAgent || '';
+      if (/iPhone/i.test(ua)) return 'iPhone';
+      if (/iPad/i.test(ua)) return 'iPad';
+      if (/Android/i.test(ua)) return /Mobile/i.test(ua) ? 'Android Phone' : 'Android Tablet';
+      if (/Macintosh|Mac OS X/i.test(ua)) return 'Mac';
+      if (/Windows/i.test(ua)) return 'Windows PC';
+      if (/Linux/i.test(ua)) return 'Linux';
+      return 'Browser';
+    }
+
+    function detectBrowserLabel() {
+      const ua = navigator.userAgent || '';
+      if (/Edg\//i.test(ua)) return 'Edge';
+      if (/OPR\//i.test(ua) || /Opera/i.test(ua)) return 'Opera';
+      if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) return 'Chrome';
+      if (/Safari\//i.test(ua) && !/Chrome\//i.test(ua)) return 'Safari';
+      if (/Firefox\//i.test(ua)) return 'Firefox';
+      return 'Web';
+    }
+
+    function startSessionPresence(role, pageName) {
+      stopSessionPresence();
+      if (!role || typeof db === 'undefined') return;
+      const tabId = getOrCreateTabSessionId();
+      const startedAtKey = 'workpulse_session_started';
+      let startedAt = Date.now();
+      try {
+        const storedStart = Number(sessionStorage.getItem(startedAtKey));
+        if (storedStart > 0) startedAt = storedStart;
+        else sessionStorage.setItem(startedAtKey, String(startedAt));
+      } catch (e) {}
+
+      const connId = tabId + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+      presenceConnRef = db.ref('sessions/' + connId);
+      presenceConnectedRef = db.ref('.info/connected');
+
+      presenceConnectedCb = (snap) => {
+        if (snap.val() === true && presenceConnRef) {
+          presenceConnRef.onDisconnect().remove().then(() => {
+            if (presenceConnRef) {
+              presenceConnRef.set({
+                tabId,
+                role: role === 'view' ? 'view' : 'full',
+                page: pageName,
+                device: detectDeviceLabel(),
+                browser: detectBrowserLabel(),
+                startedAt,
+                lastActiveAt: Date.now(),
+                serverUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+              });
+            }
+          }).catch(() => {});
+        }
+      };
+      presenceConnectedRef.on('value', presenceConnectedCb);
+
+      presenceHeartbeatId = setInterval(() => {
+        if (presenceConnRef) {
+          presenceConnRef.update({
+            lastActiveAt: Date.now(),
+            serverUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+          }).catch(() => {});
+        }
+      }, 25000);
+    }
+
+    function stopSessionPresence() {
+      if (presenceHeartbeatId) {
+        clearInterval(presenceHeartbeatId);
+        presenceHeartbeatId = null;
+      }
+      if (presenceConnectedRef && presenceConnectedCb) {
+        presenceConnectedRef.off('value', presenceConnectedCb);
+      }
+      presenceConnectedRef = null;
+      presenceConnectedCb = null;
+      if (presenceConnRef) {
+        const refToClear = presenceConnRef;
+        presenceConnRef = null;
+        try { refToClear.onDisconnect().cancel().catch(() => {}); } catch (e) {}
+        try { refToClear.remove().catch(() => {}); } catch (e) {}
+      }
+    }
+
+    window.addEventListener('pagehide', stopSessionPresence);
 
     // ══════════════════════════════════════
     // ── Password Gate ──
@@ -4416,6 +4543,7 @@
       document.getElementById('auth-password').value = '';
       clearAuthError();
       attachFirebaseListeners();
+      startSessionPresence(isViewOnly ? 'view' : 'full', 'index');
       if (!isViewOnly) {
         scheduleNext11pmRollover();
         setDefaultDueDate();
@@ -4455,6 +4583,7 @@
         authUnlockTimer = null;
       }
       stopRolloverScheduler();
+      stopSessionPresence();
       detachFirebaseListeners();
       allTasks = [];
       allRecurring = [];
