@@ -1,0 +1,2680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Work Pulse — Retro 3D Office Grid</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDK (CDN — no build step) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <!-- Three.js (UMD CDN for file:// & GitHub Pages compatibility) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --pace-navy: #061826;
+      --pace-panel: #07263a;
+      --pace-ocean: #0471a6;
+      --pace-blue: #3685b5;
+      --pace-periwinkle: #89aae6;
+      --pace-red: #b9162e;
+      --pace-red-hover: #d41c37;
+      --nx-bg: #061826;
+      --nx-card: rgba(7, 38, 58, 0.72);
+      --nx-border: rgba(137, 170, 230, 0.24);
+      --nx-border-strong: rgba(137, 170, 230, 0.45);
+      --nx-text: #ffffff;
+      --nx-muted: #bacde4;
+      --nx-faint: rgba(203, 217, 239, 0.52);
+      --nx-emerald: #34d399;
+      --nx-cyan: #38bdf8;
+      --nx-amber: #fbbf24;
+      --nx-rose: #ff94a1;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-pill: 9999px;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    html, body {
+      height: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--nx-bg);
+      color: var(--nx-text);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .hidden { display: none !important; }
+
+    /* ── Auth Gate ── */
+    .auth-gate {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background:
+        radial-gradient(ellipse 68% 54% at 50% 22%, rgba(4, 113, 166, 0.24), transparent 72%),
+        radial-gradient(circle at 82% 88%, rgba(185, 22, 46, 0.1), transparent 52%),
+        var(--pace-navy);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .auth-card {
+      width: min(400px, 100%);
+      background: rgba(7, 38, 58, 0.92);
+      border: 1px solid rgba(137, 170, 230, 0.24);
+      border-radius: 22px;
+      padding: 34px 28px 28px;
+      box-shadow: 0 28px 72px rgba(2, 10, 18, 0.72), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+      backdrop-filter: blur(18px);
+      text-align: center;
+    }
+
+    .auth-card.shake { animation: shakeCard 0.36s var(--ease); }
+    @keyframes shakeCard {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      50% { transform: translateX(7px); }
+      75% { transform: translateX(-4px); }
+    }
+
+    .auth-eyebrow {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--pace-periwinkle);
+      margin-bottom: 6px;
+    }
+
+    .auth-byline {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--pace-periwinkle);
+      margin-bottom: 10px;
+    }
+
+    .auth-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .auth-subtitle {
+      font-size: 0.8rem;
+      color: var(--nx-muted);
+      margin-bottom: 20px;
+    }
+
+    .auth-input-inline {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .auth-input {
+      width: 100%;
+      padding: 12px 40px 12px 14px;
+      background: rgba(4, 18, 29, 0.72);
+      border: 1px solid var(--nx-border);
+      border-radius: 12px;
+      color: var(--nx-text);
+      font-size: 1rem;
+      text-align: center;
+      letter-spacing: 0.2em;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+      margin-bottom: 12px;
+      transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+    }
+
+    .auth-input:focus {
+      border-color: var(--pace-periwinkle);
+      box-shadow: 0 0 0 3px rgba(137, 170, 230, 0.15);
+    }
+
+    .btn-pad-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-68%);
+      background: transparent;
+      border: none;
+      color: var(--nx-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-pad-toggle:hover { color: #ffffff; background: rgba(137, 170, 230, 0.14); }
+
+    .mobile-keypad {
+      display: none;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+      margin: 0 0 12px;
+    }
+
+    .mobile-keypad.is-desk-open { display: grid; }
+
+    .keypad-btn {
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      height: 38px;
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 0;
+      border-radius: 8px;
+      background: rgba(8, 36, 56, 0.68);
+      border: 1px solid rgba(137, 170, 230, 0.22);
+      color: #ffffff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+    }
+
+    .keypad-btn:hover { background: rgba(4, 113, 166, 0.3); }
+
+    .alpha-key-wide {
+      font-size: 0.72rem;
+      color: var(--nx-muted);
+    }
+
+    @media (pointer: coarse), (max-width: 640px) {
+      .mobile-keypad { display: grid; }
+      .btn-pad-toggle { display: none; }
+    }
+
+    .auth-error {
+      min-height: 18px;
+      font-size: 0.74rem;
+      color: var(--nx-rose);
+      margin-bottom: 10px;
+      opacity: 0;
+      transition: opacity 0.2s var(--ease);
+    }
+
+    .auth-error.visible { opacity: 1; }
+
+    .auth-submit {
+      width: 100%;
+      padding: 11px 16px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--pace-ocean), var(--pace-blue));
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.86rem;
+      cursor: pointer;
+    }
+
+    .auth-submit:hover { opacity: 0.94; transform: translateY(-1px); }
+
+    .auth-back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 16px;
+      font-size: 0.76rem;
+      color: var(--nx-muted);
+      text-decoration: none;
+    }
+
+    .auth-back-link:hover { color: #ffffff; }
+
+    /* ── Header ── */
+    #office-shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      background: rgba(6, 24, 38, 0.88);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--nx-border);
+    }
+
+    .header-inner {
+      max-width: 1460px;
+      margin: 0 auto;
+      padding: 12px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .brand-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo-text {
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .retro-chip-tag {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.54rem;
+      padding: 4px 7px;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.16);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      color: var(--nx-cyan);
+      letter-spacing: 0.04em;
+    }
+
+    .brand-subline {
+      font-size: 0.7rem;
+      color: var(--pace-periwinkle);
+      font-weight: 500;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .view-only-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #ffe4e8;
+      background: rgba(185, 22, 46, 0.25);
+      border: 1px solid rgba(255, 110, 130, 0.45);
+      padding: 4px 9px;
+      border-radius: var(--radius-pill);
+    }
+
+    .sync-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.32);
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--nx-emerald);
+    }
+
+    .sync-status-pill.disconnected {
+      background: rgba(245, 158, 11, 0.14);
+      border-color: rgba(245, 158, 11, 0.35);
+      color: #fbbf24;
+    }
+
+    .sync-pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 13px;
+      border-radius: var(--radius-pill);
+      background: rgba(137, 170, 230, 0.12);
+      border: 1px solid var(--nx-border);
+      color: var(--pace-periwinkle);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s var(--ease);
+    }
+
+    .nav-back:hover {
+      background: rgba(137, 170, 230, 0.22);
+      border-color: var(--pace-periwinkle);
+      color: #ffffff;
+    }
+
+    /* ── Header Dropdown Menu ── */
+    .nav-menu-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .nav-menu-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(137, 170, 230, 0.12);
+      border: 1px solid rgba(137, 170, 230, 0.32);
+      color: var(--pace-periwinkle);
+      cursor: pointer;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.2s var(--ease);
+    }
+
+    .nav-menu-btn:hover,
+    .nav-menu-wrap.is-open .nav-menu-btn {
+      background: rgba(137, 170, 230, 0.24);
+      border-color: var(--pace-periwinkle);
+      color: #ffffff;
+    }
+
+    .nav-menu-bar {
+      width: 15px;
+      height: 2px;
+      border-radius: 2px;
+      background: currentColor;
+      transition: transform 0.2s var(--ease);
+    }
+
+    .nav-menu-wrap.is-open .nav-menu-bar:first-child {
+      transform: translateY(3.5px) rotate(45deg);
+    }
+
+    .nav-menu-wrap.is-open .nav-menu-bar:last-child {
+      transform: translateY(-3.5px) rotate(-45deg);
+    }
+
+    .nav-menu-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      min-width: 220px;
+      padding: 6px;
+      border-radius: var(--radius-md);
+      background: rgba(6, 28, 44, 0.97);
+      border: 1px solid var(--nx-border-strong);
+      box-shadow: 0 20px 50px rgba(2, 8, 15, 0.85);
+      backdrop-filter: blur(18px);
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+      z-index: 120;
+    }
+
+    .nav-menu-wrap.is-open .nav-menu-dropdown { display: flex; }
+
+    .nav-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      text-decoration: none;
+      color: var(--nx-text);
+      transition: all 0.16s var(--ease);
+    }
+
+    .nav-menu-item:hover {
+      background: rgba(137, 170, 230, 0.12);
+      border-color: rgba(137, 170, 230, 0.25);
+    }
+
+    .nav-menu-item.is-current {
+      background: rgba(4, 113, 166, 0.24);
+      border-color: rgba(137, 170, 230, 0.35);
+    }
+
+    .nav-menu-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: rgba(137, 170, 230, 0.12);
+      border: 1px solid rgba(137, 170, 230, 0.24);
+      color: var(--pace-periwinkle);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .nav-menu-meta {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .nav-menu-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.25;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-menu-sub {
+      font-size: 0.68rem;
+      color: var(--nx-muted);
+      line-height: 1.3;
+      margin-top: 1px;
+    }
+
+    .nav-menu-current-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.56rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 1px 6px;
+      border-radius: var(--radius-pill);
+      background: rgba(16, 185, 129, 0.16);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #10b981;
+    }
+
+    body.is-view-only .nav-full-only { display: none !important; }
+
+    /* ── Main Office Layout ── */
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 1460px;
+      margin: 0 auto;
+      padding: 16px 22px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Control Strip & Retro Folder Legend */
+    .office-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      background: var(--nx-card);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(12px);
+    }
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .retro-stat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: var(--radius-pill);
+      background: rgba(4, 18, 29, 0.68);
+      border: 1px solid rgba(137, 170, 230, 0.2);
+      font-size: 0.72rem;
+      color: var(--nx-muted);
+    }
+
+    .retro-stat-badge strong {
+      font-family: 'JetBrains Mono', monospace;
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .toolbar-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .retro-input {
+      background: rgba(4, 18, 29, 0.78);
+      border: 1px solid var(--nx-border);
+      color: #ffffff;
+      border-radius: var(--radius-pill);
+      padding: 6px 13px;
+      font-family: inherit;
+      font-size: 0.74rem;
+      outline: none;
+      width: 170px;
+    }
+
+    .retro-input:focus { border-color: var(--pace-periwinkle); }
+    .retro-input::placeholder { color: var(--nx-faint); }
+
+    .retro-btn {
+      background: rgba(7, 38, 58, 0.88);
+      border: 1px solid var(--nx-border);
+      color: var(--nx-muted);
+      border-radius: var(--radius-pill);
+      padding: 6px 12px;
+      font-family: inherit;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.16s var(--ease);
+      white-space: nowrap;
+    }
+
+    .retro-btn:hover {
+      border-color: var(--nx-border-strong);
+      color: #ffffff;
+      background: rgba(12, 54, 82, 0.95);
+    }
+
+    .retro-btn.is-active {
+      background: rgba(4, 113, 166, 0.36);
+      border-color: rgba(56, 189, 248, 0.55);
+      color: #ffffff;
+    }
+
+    /* Workspace Stage + Dossier Grid */
+    .office-workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 16px;
+      height: clamp(480px, calc(100vh - 210px), 660px);
+      align-items: stretch;
+    }
+
+    .viewport-card {
+      position: relative;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--nx-border-strong);
+      background: radial-gradient(circle at 50% 42%, #0c2c44 0%, #051624 72%, #030d16 100%);
+      overflow: hidden;
+      height: 100%;
+      min-height: 480px;
+      box-shadow: 0 18px 46px rgba(2, 8, 16, 0.65);
+      user-select: none;
+    }
+
+    #office-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    #office-canvas.is-dragging { cursor: grabbing; }
+    #office-canvas.is-hovering { cursor: pointer; }
+
+    /* Retro Pixel CRT Overlay & Controls inside Viewport */
+    .viewport-scanlines {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0) 0px,
+        rgba(255, 255, 255, 0) 3px,
+        rgba(0, 0, 0, 0.08) 4px
+      );
+      opacity: 0.45;
+      z-index: 2;
+    }
+
+    .hud-top-left {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .hud-pixel-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: rgba(4, 18, 29, 0.84);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.52rem;
+      color: var(--nx-cyan);
+      letter-spacing: 0.05em;
+      backdrop-filter: blur(8px);
+    }
+
+    .hud-legend-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      pointer-events: auto;
+    }
+
+    .folder-legend-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(4, 18, 29, 0.84);
+      border: 1px solid rgba(137, 170, 230, 0.24);
+      font-size: 0.66rem;
+      font-weight: 600;
+      color: var(--nx-muted);
+      backdrop-filter: blur(8px);
+    }
+
+    .legend-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      display: inline-block;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+    }
+
+    .hud-camera-bar {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 6px;
+      border-radius: 12px;
+      background: rgba(4, 18, 29, 0.84);
+      border: 1px solid rgba(137, 170, 230, 0.28);
+      backdrop-filter: blur(10px);
+    }
+
+    .cam-btn {
+      padding: 5px 9px;
+      border-radius: 7px;
+      border: 1px solid rgba(137, 170, 230, 0.25);
+      background: rgba(11, 44, 68, 0.8);
+      color: var(--pace-periwinkle);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.14s var(--ease);
+    }
+
+    .cam-btn:hover {
+      background: rgba(4, 113, 166, 0.48);
+      color: #ffffff;
+      border-color: var(--pace-periwinkle);
+    }
+
+    .hud-hint-bottom-right {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      z-index: 5;
+      padding: 5px 10px;
+      border-radius: 8px;
+      background: rgba(4, 18, 29, 0.78);
+      border: 1px solid rgba(137, 170, 230, 0.2);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.64rem;
+      color: var(--nx-faint);
+      pointer-events: none;
+    }
+
+    /* Floating Hover Tooltip inside 3D Viewport */
+    .office-tooltip {
+      position: absolute;
+      z-index: 15;
+      pointer-events: none;
+      max-width: 260px;
+      padding: 8px 11px;
+      border-radius: 9px;
+      background: rgba(4, 16, 26, 0.94);
+      border: 1px solid rgba(56, 189, 248, 0.55);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(10px);
+      transform: translate(14px, -100%);
+    }
+
+    .tt-eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.63rem;
+      font-weight: 700;
+      color: var(--nx-cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 2px;
+    }
+
+    .tt-title {
+      font-size: 0.77rem;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.3;
+    }
+
+    .tt-sub {
+      font-size: 0.68rem;
+      color: var(--nx-muted);
+      margin-top: 3px;
+    }
+
+    /* Right Side Desk Dossier Inspector */
+    .dossier-panel {
+      background: var(--nx-card);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      max-height: 680px;
+    }
+
+    .dossier-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--nx-border);
+      background: rgba(4, 20, 32, 0.58);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .dossier-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--pace-ocean), var(--pace-blue));
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.62rem;
+      color: #ffffff;
+      flex-shrink: 0;
+      image-rendering: pixelated;
+    }
+
+    .dossier-person-name {
+      font-size: 0.96rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .dossier-person-status {
+      font-size: 0.72rem;
+      color: var(--nx-cyan);
+      margin-top: 2px;
+      font-weight: 600;
+    }
+
+    .dossier-counts-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(137, 170, 230, 0.14);
+      background: rgba(4, 18, 29, 0.42);
+    }
+
+    .d-count-box {
+      text-align: center;
+      padding: 7px 6px;
+      border-radius: 9px;
+      background: rgba(7, 38, 58, 0.65);
+      border: 1px solid rgba(137, 170, 230, 0.16);
+    }
+
+    .d-count-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .d-count-lbl {
+      font-size: 0.62rem;
+      color: var(--nx-faint);
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .dossier-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .dossier-section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.66rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--nx-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .folder-card {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(4, 22, 36, 0.72);
+      border: 1px solid rgba(137, 170, 230, 0.2);
+      border-left: 4px solid #e7b863;
+      transition: transform 0.15s var(--ease), border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+    }
+
+    .folder-card.stage-inprogress { border-left-color: #38bdf8; }
+    .folder-card.stage-urgent { border-left-color: #ff4d67; }
+    .folder-card.stage-done { border-left-color: #34d399; opacity: 0.78; }
+
+    .folder-card.is-highlighted {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35), 0 8px 20px rgba(0, 0, 0, 0.35);
+      background: rgba(8, 42, 66, 0.92);
+    }
+
+    .folder-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+
+    .folder-card-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .folder-stage-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: var(--radius-pill);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .tag-inprogress { background: rgba(56, 189, 248, 0.18); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .tag-todo { background: rgba(231, 184, 99, 0.18); color: #fde68a; border: 1px solid rgba(231, 184, 99, 0.4); }
+    .tag-done { background: rgba(52, 211, 153, 0.16); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.38); }
+
+    .folder-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      font-size: 0.67rem;
+      color: var(--nx-muted);
+    }
+
+    .flag-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    .flag-vp { background: rgba(255, 59, 92, 0.22); color: #ff9eb0; border: 1px solid rgba(255, 59, 92, 0.5); }
+    .flag-hd { background: rgba(245, 158, 11, 0.2); color: #fde68a; border: 1px solid rgba(245, 158, 11, 0.5); }
+    .flag-2nd { background: rgba(137, 170, 230, 0.16); color: var(--pace-periwinkle); }
+
+    .folder-card-desc {
+      margin-top: 6px;
+      font-size: 0.7rem;
+      color: var(--nx-faint);
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .dossier-empty {
+      text-align: center;
+      padding: 28px 14px;
+      color: var(--nx-faint);
+      font-size: 0.78rem;
+    }
+
+    .app-footer {
+      margin-top: 6px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--nx-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 0.74rem;
+      color: var(--nx-muted);
+    }
+
+    .app-version-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--pace-periwinkle);
+      background: rgba(137, 170, 230, 0.1);
+      border: 1px solid var(--nx-border);
+      padding: 2px 9px;
+      border-radius: var(--radius-pill);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 1020px) {
+      .office-workspace {
+        grid-template-columns: minmax(0, 1fr);
+        height: auto;
+      }
+      .viewport-card, #office-canvas {
+        min-height: 460px;
+        height: 460px;
+      }
+      .dossier-panel {
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .nav-menu-wrap { order: 2; }
+      .header-actions { order: 3; width: 100%; }
+    }
+
+    @media (max-width: 640px) {
+      .header-inner { padding: 12px 14px; }
+      main { padding: 12px 12px 24px; }
+      .retro-input { width: 100%; }
+      .hud-hint-bottom-right { display: none; }
+      .viewport-card, #office-canvas {
+        min-height: 390px;
+        height: 390px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Passcode Gate -->
+  <div id="office-auth-gate" class="auth-gate hidden" role="dialog" aria-modal="true" aria-labelledby="office-auth-title">
+    <div class="auth-card" id="office-auth-card">
+      <div class="auth-eyebrow">Work Pulse</div>
+      <div class="auth-byline">Product of Hayd's AI Maxing</div>
+      <h1 class="auth-title" id="office-auth-title">Retro 3D Office Grid</h1>
+      <p class="auth-subtitle" id="office-auth-subtitle">Enter workspace passcode to visit the cubicle floor</p>
+      <form onsubmit="verifyOfficePasscode(event)" novalidate>
+        <div class="auth-input-inline">
+          <input
+            type="password"
+            id="office-passcode"
+            class="auth-input"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            autocomplete="off"
+            placeholder="••••"
+            aria-label="Workspace passcode"
+            autofocus
+          />
+          <button type="button" class="btn-pad-toggle" onclick="document.getElementById('office-num-keypad').classList.toggle('is-desk-open')" title="Toggle numeric keypad" aria-label="Toggle numeric keypad">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/></svg>
+          </button>
+        </div>
+        <div class="mobile-keypad" id="office-num-keypad" role="group" aria-label="Numeric keypad">
+          <button type="button" class="keypad-btn" onclick="offNumAppend('1')">1</button><button type="button" class="keypad-btn" onclick="offNumAppend('2')">2</button><button type="button" class="keypad-btn" onclick="offNumAppend('3')">3</button>
+          <button type="button" class="keypad-btn" onclick="offNumAppend('4')">4</button><button type="button" class="keypad-btn" onclick="offNumAppend('5')">5</button><button type="button" class="keypad-btn" onclick="offNumAppend('6')">6</button>
+          <button type="button" class="keypad-btn" onclick="offNumAppend('7')">7</button><button type="button" class="keypad-btn" onclick="offNumAppend('8')">8</button><button type="button" class="keypad-btn" onclick="offNumAppend('9')">9</button>
+          <button type="button" class="keypad-btn alpha-key-wide" onclick="offNumClear()">Clear</button><button type="button" class="keypad-btn" onclick="offNumAppend('0')">0</button><button type="button" class="keypad-btn alpha-key-wide" onclick="offNumBackspace()">&larr;</button>
+        </div>
+        <div class="auth-error" id="office-auth-error" role="alert">Incorrect passcode. Please try again.</div>
+        <button type="submit" class="auth-submit">Enter Office</button>
+      </form>
+      <a href="index.html" class="auth-back-link">&larr; Back to Board</a>
+    </div>
+  </div>
+
+  <!-- Protected Shell -->
+  <div id="office-shell" class="hidden">
+    <header>
+      <div class="header-inner">
+        <div class="brand-container">
+          <div>
+            <div class="brand-logo-text">
+              <span>Work Pulse</span>
+              <span class="retro-chip-tag">3D FLOOR</span>
+            </div>
+            <div class="brand-subline">Retro Blocky Cubicle Grid &amp; Folder Stacks</div>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <span class="view-only-pill hidden" id="view-only-pill" title="Read-only access (0000)">View Only</span>
+          <div class="sync-status-pill" id="sync-pill" title="Firebase Realtime Sync">
+            <span class="sync-pulse-dot"></span>
+            <span id="sync-status">Connecting…</span>
+          </div>
+          <a href="index.html" class="nav-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Back to Board</span>
+          </a>
+        </div>
+
+        <div class="nav-menu-wrap" id="header-nav-menu">
+          <button type="button" class="nav-menu-btn" id="header-nav-menu-btn" onclick="toggleHeaderMenu(event)" aria-label="Open menu" aria-expanded="false" aria-controls="header-nav-dropdown" title="Navigation menu">
+            <span class="nav-menu-bar"></span>
+            <span class="nav-menu-bar"></span>
+          </button>
+          <div class="nav-menu-dropdown" id="header-nav-dropdown" role="menu">
+            <a href="office.html" class="nav-menu-item is-current" role="menuitem" aria-current="page">
+              <span class="nav-menu-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              </span>
+              <span class="nav-menu-meta">
+                <span class="nav-menu-title">Mini Office <span class="nav-menu-current-tag">Here</span></span>
+                <span class="nav-menu-sub">3D retro cubicle grid</span>
+              </span>
+            </a>
+            <a href="features.html" class="nav-menu-item" role="menuitem">
+              <span class="nav-menu-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </span>
+              <span class="nav-menu-meta">
+                <span class="nav-menu-title">Features</span>
+                <span class="nav-menu-sub">Capabilities &amp; workflow guide</span>
+              </span>
+            </a>
+            <a href="analytics.html" class="nav-menu-item nav-full-only" role="menuitem">
+              <span class="nav-menu-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              </span>
+              <span class="nav-menu-meta">
+                <span class="nav-menu-title">Analytics</span>
+                <span class="nav-menu-sub">Completion time metrics</span>
+              </span>
+            </a>
+            <a href="sessions.html" class="nav-menu-item nav-full-only" role="menuitem">
+              <span class="nav-menu-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </span>
+              <span class="nav-menu-meta">
+                <span class="nav-menu-title">Sessions</span>
+                <span class="nav-menu-sub">Live active users</span>
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="office-toolbar">
+        <div class="toolbar-left">
+          <span class="retro-stat-badge">Cubicles: <strong id="stat-cubicles">0</strong></span>
+          <span class="retro-stat-badge">Typing Now: <strong id="stat-working" style="color:var(--nx-cyan);">0</strong></span>
+          <span class="retro-stat-badge">Open Folders: <strong id="stat-open-folders" style="color:#fde68a;">0</strong></span>
+          <span class="retro-stat-badge">Done Tray: <strong id="stat-done-folders" style="color:var(--nx-emerald);">0</strong></span>
+        </div>
+        <div class="toolbar-controls">
+          <input type="search" id="office-search" class="retro-input" placeholder="Find person or task…" aria-label="Search cubicles" oninput="rebuildOfficeFromFilter()" />
+          <button type="button" id="btn-busy-only" class="retro-btn" onclick="toggleBusyOnly()" aria-pressed="false" title="Show only cubicles with open folders">Busy Desks Only</button>
+          <button type="button" id="btn-include-done" class="retro-btn is-active" onclick="toggleDoneStack()" aria-pressed="true" title="Show completed green folder tray on desk">Done Tray</button>
+          <button type="button" id="btn-include-2nd" class="retro-btn is-active" onclick="toggleSecondary()" aria-pressed="true" title="Include secondary owner tasks in desk pile">+ 2nd Owner</button>
+        </div>
+      </div>
+
+      <section class="office-workspace" aria-label="Retro 3D Cubicle Grid">
+        <div class="viewport-card" id="viewport-card">
+          <canvas id="office-canvas" aria-label="Interactive 3D cubicle office floor"></canvas>
+          <div class="viewport-scanlines" aria-hidden="true"></div>
+
+          <div class="hud-top-left">
+            <div class="hud-pixel-banner">SECTOR A // DESK GRID v8.4</div>
+            <div class="hud-legend-row">
+              <span class="folder-legend-pill"><span class="legend-swatch" style="background:#38bdf8;"></span>In Progress</span>
+              <span class="folder-legend-pill"><span class="legend-swatch" style="background:#e8b95b;"></span>To Do Folder</span>
+              <span class="folder-legend-pill"><span class="legend-swatch" style="background:#f43f5e;"></span>VP / Overdue</span>
+              <span class="folder-legend-pill"><span class="legend-swatch" style="background:#34d399;"></span>Done Tray</span>
+            </div>
+          </div>
+
+          <div class="hud-camera-bar" role="group" aria-label="Camera controls">
+            <button type="button" class="cam-btn" onclick="setCameraPreset('iso')">Iso Grid</button>
+            <button type="button" class="cam-btn" onclick="setCameraPreset('top')">Top-Down</button>
+            <button type="button" class="cam-btn" onclick="setCameraPreset('front')">Front Row</button>
+            <button type="button" class="cam-btn" onclick="nudgeZoom(-3)">+</button>
+            <button type="button" class="cam-btn" onclick="nudgeZoom(3)">&minus;</button>
+          </div>
+
+          <div class="hud-hint-bottom-right">Drag to orbit · Right-drag to pan · Click any cubicle or folder</div>
+
+          <div id="office-tooltip" class="office-tooltip hidden" role="status">
+            <div class="tt-eyebrow" id="tt-eyebrow">CUBICLE</div>
+            <div class="tt-title" id="tt-title">—</div>
+            <div class="tt-sub" id="tt-sub">—</div>
+          </div>
+        </div>
+
+        <aside class="dossier-panel" aria-label="Selected cubicle details">
+          <div class="dossier-head">
+            <div class="dossier-avatar" id="dossier-avatar">WP</div>
+            <div>
+              <div class="dossier-person-name" id="dossier-name">Select a Cubicle</div>
+              <div class="dossier-person-status" id="dossier-status">Click any desk or folder pile in 3D</div>
+            </div>
+          </div>
+          <div class="dossier-counts-row">
+            <div class="d-count-box">
+              <div class="d-count-val" id="d-count-ip" style="color:var(--nx-cyan);">0</div>
+              <div class="d-count-lbl">Active</div>
+            </div>
+            <div class="d-count-box">
+              <div class="d-count-val" id="d-count-todo" style="color:#fde68a;">0</div>
+              <div class="d-count-lbl">To Do</div>
+            </div>
+            <div class="d-count-box">
+              <div class="d-count-val" id="d-count-done" style="color:var(--nx-emerald);">0</div>
+              <div class="d-count-lbl">Done</div>
+            </div>
+          </div>
+          <div class="dossier-body" id="dossier-body">
+            <div class="dossier-empty">
+              Pick a cubicle or click an individual folder in someone's desk pile to inspect their folders.
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <footer class="app-footer">
+        <span class="app-footer-love">Made With Meow Energy</span>
+        <span class="app-version-pill">v1.49.2</span>
+      </footer>
+    </main>
+  </div>
+
+<script>
+  const PASS_HASH = '2a5afdea';
+  const VIEW_PASS_HASH = 'b5edd2d5';
+  const SESSION_KEY = 'workpulse_unlocked';
+  const ROLE_SESSION_KEY = 'workpulse_role';
+
+  const TEAM_MEMBERS = [
+    'Karishma Singh', 'Sukriti Murarka', 'Vijendra Singh', 'Sujith AP',
+    'Pradeep Karnataki', 'Vinita Roche', 'Prakash Adimulam', 'Shruti',
+    'Nikita', 'Sandeep Gaikwad', 'Hayden Pereira', 'Manasi Bidikar',
+    'Anit', 'Saad Kazi', 'Shreya Bose', 'Kiran Wanhere',
+    'Shreya Nair', 'Maithali', 'Hashim Omer', 'Divya Singh', 'Suchita'
+  ];
+
+  function hashPassword(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(16).padStart(8, '0');
+  }
+
+  function hashNameNum(str) {
+    let h = 5381;
+    for (let i = 0; i < str.length; i++) {
+      h = ((h << 5) + h) + str.charCodeAt(i);
+    }
+    return Math.abs(h);
+  }
+
+  function getPasscodeRole(code) {
+    const h = hashPassword(String(code || '').trim());
+    if (h === PASS_HASH) return 'full';
+    if (h === VIEW_PASS_HASH) return 'view';
+    return null;
+  }
+
+  function getSessionRole() {
+    try {
+      const token = sessionStorage.getItem(SESSION_KEY);
+      if (token === PASS_HASH) return 'full';
+      if (token === VIEW_PASS_HASH) return 'view';
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveUnlockedSession(role = 'full') {
+    try {
+      sessionStorage.setItem(SESSION_KEY, role === 'view' ? VIEW_PASS_HASH : PASS_HASH);
+      sessionStorage.setItem(ROLE_SESSION_KEY, role);
+    } catch (e) {}
+  }
+
+  // ── Firebase Init ──
+  const firebaseConfig = {
+    apiKey: "AIzaSyB6n_Q4AfuJNqLqa6on7fSFglWNBggALNc",
+    authDomain: "task-tracker-c83ed.firebaseapp.com",
+    databaseURL: "https://task-tracker-c83ed-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "task-tracker-c83ed",
+    storageBucket: "task-tracker-c83ed.firebasestorage.app",
+    messagingSenderId: "896706293913",
+    appId: "1:896706293913:web:61d483ad63f510cf0c4808"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const tasksRef = db.ref('tasks');
+
+  // ── Presence Heartbeat ──
+  const TAB_SESSION_STORAGE_KEY = 'workpulse_tab_id';
+  let presenceConnRef = null;
+  let presenceConnectedRef = null;
+  let presenceConnectedCb = null;
+  let presenceHeartbeatId = null;
+
+  function getOrCreateTabSessionId() {
+    try {
+      let tid = sessionStorage.getItem(TAB_SESSION_STORAGE_KEY);
+      if (!tid) {
+        tid = 'tab_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+        sessionStorage.setItem(TAB_SESSION_STORAGE_KEY, tid);
+      }
+      return tid;
+    } catch (e) {
+      return 'tab_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+    }
+  }
+
+  function detectDeviceLabel() {
+    const ua = navigator.userAgent || '';
+    if (/iPhone/i.test(ua)) return 'iPhone';
+    if (/iPad/i.test(ua)) return 'iPad';
+    if (/Android/i.test(ua)) return /Mobile/i.test(ua) ? 'Android Phone' : 'Android Tablet';
+    if (/Macintosh|Mac OS X/i.test(ua)) return 'Mac';
+    if (/Windows/i.test(ua)) return 'Windows PC';
+    if (/Linux/i.test(ua)) return 'Linux';
+    return 'Browser';
+  }
+
+  function detectBrowserLabel() {
+    const ua = navigator.userAgent || '';
+    if (/Edg\//i.test(ua)) return 'Edge';
+    if (/OPR\//i.test(ua) || /Opera/i.test(ua)) return 'Opera';
+    if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) return 'Chrome';
+    if (/Safari\//i.test(ua) && !/Chrome\//i.test(ua)) return 'Safari';
+    if (/Firefox\//i.test(ua)) return 'Firefox';
+    return 'Web';
+  }
+
+  function startSessionPresence(role, pageName) {
+    stopSessionPresence();
+    if (!role || typeof db === 'undefined') return;
+    const tabId = getOrCreateTabSessionId();
+    const startedAtKey = 'workpulse_session_started';
+    let startedAt = Date.now();
+    try {
+      const storedStart = Number(sessionStorage.getItem(startedAtKey));
+      if (storedStart > 0) startedAt = storedStart;
+      else sessionStorage.setItem(startedAtKey, String(startedAt));
+    } catch (e) {}
+
+    const connId = tabId + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+    presenceConnRef = db.ref('sessions/' + connId);
+    presenceConnectedRef = db.ref('.info/connected');
+
+    presenceConnectedCb = (snap) => {
+      if (snap.val() === true && presenceConnRef) {
+        presenceConnRef.onDisconnect().remove().then(() => {
+          if (presenceConnRef) {
+            presenceConnRef.set({
+              tabId,
+              role: role === 'view' ? 'view' : 'full',
+              page: pageName,
+              device: detectDeviceLabel(),
+              browser: detectBrowserLabel(),
+              startedAt,
+              lastActiveAt: Date.now(),
+              serverUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+          }
+        }).catch(() => {});
+      }
+    };
+    presenceConnectedRef.on('value', presenceConnectedCb);
+
+    presenceHeartbeatId = setInterval(() => {
+      if (presenceConnRef) {
+        presenceConnRef.update({
+          lastActiveAt: Date.now(),
+          serverUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+        }).catch(() => {});
+      }
+    }, 25000);
+  }
+
+  function stopSessionPresence() {
+    if (presenceHeartbeatId) {
+      clearInterval(presenceHeartbeatId);
+      presenceHeartbeatId = null;
+    }
+    if (presenceConnectedRef && presenceConnectedCb) {
+      presenceConnectedRef.off('value', presenceConnectedCb);
+    }
+    presenceConnectedRef = null;
+    presenceConnectedCb = null;
+    if (presenceConnRef) {
+      const refToClear = presenceConnRef;
+      presenceConnRef = null;
+      try { refToClear.onDisconnect().cancel().catch(() => {}); } catch (e) {}
+      try { refToClear.remove().catch(() => {}); } catch (e) {}
+    }
+  }
+
+  window.addEventListener('pagehide', stopSessionPresence);
+
+  // ── App State ──
+  let rawTasks = [];
+  let listenersAttached = false;
+  let busyOnly = false;
+  let showDoneStack = true;
+  let includeSecondary = true;
+  let selectedPerson = null;
+  let selectedTaskId = null;
+  let cubicleWorkersCache = [];
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  function getInitials(name) {
+    if (!name) return '?';
+    return name.trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+  }
+
+  function getLocalYmd(d = new Date()) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function isTaskOverdue(t) {
+    if (!t || !t.date || t.status === 'done') return false;
+    return t.date < getLocalYmd();
+  }
+
+  function buildWorkerBuckets(tasks) {
+    const map = new Map();
+    TEAM_MEMBERS.forEach(name => {
+      map.set(name, { name, inprogress: [], todo: [], done: [] });
+    });
+
+    tasks.forEach(t => {
+      const owners = [];
+      const p1 = (t.person || '').trim();
+      const p2 = (t.secondaryPerson || '').trim();
+      if (p1) owners.push({ name: p1, isSecondary: false });
+      if (includeSecondary && p2 && p2 !== p1) owners.push({ name: p2, isSecondary: true });
+
+      owners.forEach(({ name, isSecondary }) => {
+        if (!map.has(name)) map.set(name, { name, inprogress: [], todo: [], done: [] });
+        const bucket = map.get(name);
+        const item = { ...t, _isSecondary: isSecondary };
+        if (t.status === 'inprogress') bucket.inprogress.push(item);
+        else if (t.status === 'done') bucket.done.push(item);
+        else bucket.todo.push(item);
+      });
+    });
+
+    const query = (document.getElementById('office-search') || {}).value
+      ? String(document.getElementById('office-search').value).trim().toLowerCase()
+      : '';
+
+    const allList = Array.from(map.values()).map(w => {
+      const openTasks = [...w.inprogress, ...w.todo];
+      // Urgent / In-Progress first so active folders sit prominently
+      openTasks.sort((a, b) => {
+        const score = x => (x.vpFollowup || isTaskOverdue(x) ? 0 : (x.status === 'inprogress' ? 1 : 2));
+        return score(a) - score(b);
+      });
+      return {
+        ...w,
+        openTasks,
+        openCount: openTasks.length,
+        totalCount: openTasks.length + w.done.length
+      };
+    });
+
+    // Sort active desks up front for a bustling front row
+    allList.sort((a, b) => {
+      if (b.inprogress.length !== a.inprogress.length) return b.inprogress.length - a.inprogress.length;
+      if (b.openCount !== a.openCount) return b.openCount - a.openCount;
+      if (b.done.length !== a.done.length) return b.done.length - a.done.length;
+      return a.name.localeCompare(b.name);
+    });
+
+    const filtered = allList.filter(w => {
+      if (busyOnly && w.openCount === 0) return false;
+      if (!query) return true;
+      if (w.name.toLowerCase().includes(query)) return true;
+      return [...w.openTasks, ...w.done].some(t =>
+        (t.title || '').toLowerCase().includes(query) ||
+        (t.description || '').toLowerCase().includes(query)
+      );
+    });
+
+    return { allList, filtered };
+  }
+
+  function updateToolbarStats(allList) {
+    let workingCount = 0;
+    let openFolders = 0;
+    let doneFolders = 0;
+    allList.forEach(w => {
+      if (w.inprogress.length > 0) workingCount++;
+      openFolders += w.openCount;
+      doneFolders += w.done.length;
+    });
+    document.getElementById('stat-cubicles').textContent = String(cubicleWorkersCache.length);
+    document.getElementById('stat-working').textContent = String(workingCount);
+    document.getElementById('stat-open-folders').textContent = String(openFolders);
+    document.getElementById('stat-done-folders').textContent = String(doneFolders);
+  }
+
+  function renderDossierPanel() {
+    const avatarEl = document.getElementById('dossier-avatar');
+    const nameEl = document.getElementById('dossier-name');
+    const statusEl = document.getElementById('dossier-status');
+    const bodyEl = document.getElementById('dossier-body');
+
+    let worker = cubicleWorkersCache.find(w => w.name === selectedPerson);
+    if (!worker && cubicleWorkersCache.length > 0) {
+      worker = cubicleWorkersCache[0];
+      selectedPerson = worker.name;
+    }
+
+    if (!worker) {
+      avatarEl.textContent = 'WP';
+      nameEl.textContent = 'No Matching Cubicles';
+      statusEl.textContent = 'Try clearing filters or search';
+      document.getElementById('d-count-ip').textContent = '0';
+      document.getElementById('d-count-todo').textContent = '0';
+      document.getElementById('d-count-done').textContent = '0';
+      bodyEl.innerHTML = '<div class="dossier-empty">No desks match your filter.</div>';
+      return;
+    }
+
+    avatarEl.textContent = getInitials(worker.name);
+    nameEl.textContent = worker.name;
+
+    const hasPendingOnly = worker.inprogress.length > 0 && worker.inprogress.every(t => Boolean(t.pendingFeedback));
+    if (worker.inprogress.length > 0 && !hasPendingOnly) {
+      statusEl.textContent = `Typing away on ${worker.inprogress.length} active folder${worker.inprogress.length === 1 ? '' : 's'}`;
+      statusEl.style.color = '#38bdf8';
+    } else if (hasPendingOnly) {
+      statusEl.textContent = 'Waiting for review feedback';
+      statusEl.style.color = '#fbbf24';
+    } else if (worker.todo.length > 0) {
+      statusEl.textContent = `${worker.todo.length} queued folder${worker.todo.length === 1 ? '' : 's'} on desk`;
+      statusEl.style.color = '#fde68a';
+    } else {
+      statusEl.textContent = worker.done.length > 0 ? 'All desk folders cleared' : 'Chill desk · no open tasks';
+      statusEl.style.color = '#34d399';
+    }
+
+    document.getElementById('d-count-ip').textContent = String(worker.inprogress.length);
+    document.getElementById('d-count-todo').textContent = String(worker.todo.length);
+    document.getElementById('d-count-done').textContent = String(worker.done.length);
+
+    const renderCard = (t) => {
+      const overdue = isTaskOverdue(t);
+      const urgent = Boolean(t.vpFollowup) || overdue;
+      const stageCls = t.status === 'done'
+        ? 'stage-done'
+        : (urgent ? 'stage-urgent' : (t.status === 'inprogress' ? 'stage-inprogress' : ''));
+      const stageLabel = t.status === 'inprogress' ? (t.pendingFeedback ? 'V1 Sent' : 'In Progress') : (t.status === 'done' ? 'Done' : 'To Do');
+      const tagCls = t.status === 'inprogress' ? 'tag-inprogress' : (t.status === 'done' ? 'tag-done' : 'tag-todo');
+      const highlighted = selectedTaskId && selectedTaskId === t.id ? 'is-highlighted' : '';
+      const desc = (t.description || '').trim();
+      const descSnippet = desc.length > 120 ? desc.slice(0, 120) + '…' : desc;
+
+      return `
+        <div class="folder-card ${stageCls} ${highlighted}" id="dossier-task-${escapeHtml(t.id)}">
+          <div class="folder-card-top">
+            <div class="folder-card-title">${escapeHtml(t.title || 'Untitled Folder')}</div>
+            <span class="folder-stage-tag ${tagCls}">${stageLabel}</span>
+          </div>
+          <div class="folder-card-meta">
+            ${t.date ? `<span>${overdue ? 'Overdue' : 'Due'} ${escapeHtml(t.date)}</span>` : '<span>No due date</span>'}
+            ${t.vpFollowup ? '<span class="flag-chip flag-vp">VP</span>' : ''}
+            ${t.hardDeadline ? '<span class="flag-chip flag-hd">HD</span>' : ''}
+            ${t._isSecondary ? '<span class="flag-chip flag-2nd">2nd Owner</span>' : ''}
+          </div>
+          ${descSnippet ? `<div class="folder-card-desc">${escapeHtml(descSnippet)}</div>` : ''}
+        </div>
+      `;
+    };
+
+    const parts = [];
+    if (worker.openTasks.length > 0) {
+      parts.push(`<div class="dossier-section-label"><span>Active Desk Pile</span><span>${worker.openTasks.length} folder${worker.openTasks.length === 1 ? '' : 's'}</span></div>`);
+      worker.openTasks.forEach(t => parts.push(renderCard(t)));
+    }
+    if (showDoneStack && worker.done.length > 0) {
+      parts.push(`<div class="dossier-section-label" style="margin-top:6px;"><span>Done Folder Tray</span><span>${worker.done.length} cleared</span></div>`);
+      worker.done.slice(0, 8).forEach(t => parts.push(renderCard(t)));
+      if (worker.done.length > 8) {
+        parts.push(`<div class="dossier-empty" style="padding:8px 0;">+${worker.done.length - 8} older completed folders in tray</div>`);
+      }
+    }
+    if (parts.length === 0) {
+      parts.push('<div class="dossier-empty">Desk is tidy — zero folders stacked here right now!</div>');
+    }
+    bodyEl.innerHTML = parts.join('');
+
+    if (selectedTaskId) {
+      const targetEl = document.getElementById('dossier-task-' + selectedTaskId);
+      if (targetEl) targetEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+
+  // ══════════════════════════════════════
+  // ── Retro 3D Voxel Cubicle Engine ──
+  // ══════════════════════════════════════
+  let scene = null;
+  let camera = null;
+  let renderer = null;
+  let worldGroup = null;
+  let propsGroup = null;
+  let raycaster = null;
+  let pointerNdc = null;
+  let interactables = []; // clickable/hoverable meshes
+  let cubicleVisuals = []; // animated characters, screens, rings
+  let hoveredHit = null;
+  let clockStart = performance.now();
+  let animRafId = null;
+
+  // Spherical Orbit Camera State
+  const camState = {
+    azimuth: 0.72,
+    polar: 0.88,
+    distance: 32,
+    targetX: 0,
+    targetZ: 0,
+    goalAzimuth: 0.72,
+    goalPolar: 0.88,
+    goalDistance: 32,
+    goalX: 0,
+    goalZ: 0
+  };
+
+  // Retro palette sets per character hash
+  const SHIRT_COLORS = [0x38bdf8, 0xec4899, 0xa855f7, 0x34d399, 0xf59e0b, 0xf43f5e, 0x60a5fa, 0x2dd4bf, 0xfb923c];
+  const SKIN_COLORS = [0xfcd5b5, 0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524];
+  const HAIR_COLORS = [0x1e293b, 0x3f2316, 0x7c4a26, 0xd4a359, 0x0f172a, 0x5c2c2c];
+
+  // Texture caches for crisp pixel-art nameplates & monitor faces
+  const nameplateTextureCache = new Map();
+  let carpetTileTexture = null;
+  let screenWorkingTex = null;
+  let screenPendingTex = null;
+  let screenIdleTex = null;
+
+  function makePixelCanvasTexture(width, height, drawFn) {
+    const c = document.createElement('canvas');
+    c.width = width;
+    c.height = height;
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    drawFn(ctx, width, height);
+    const tex = new THREE.CanvasTexture(c);
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    return tex;
+  }
+
+  function initSharedPixelTextures() {
+    if (carpetTileTexture) return;
+    carpetTileTexture = makePixelCanvasTexture(64, 64, (ctx, w, h) => {
+      ctx.fillStyle = '#0e283c';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#12314a';
+      ctx.fillRect(0, 0, 32, 32);
+      ctx.fillRect(32, 32, 32, 32);
+      ctx.strokeStyle = 'rgba(137, 170, 230, 0.14)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(1, 1, w - 2, h - 2);
+    });
+    carpetTileTexture.wrapS = THREE.RepeatWrapping;
+    carpetTileTexture.wrapT = THREE.RepeatWrapping;
+
+    screenWorkingTex = makePixelCanvasTexture(32, 24, (ctx, w, h) => {
+      ctx.fillStyle = '#06283d';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(3, 4, 16, 2);
+      ctx.fillStyle = '#34d399';
+      ctx.fillRect(3, 8, 22, 2);
+      ctx.fillStyle = '#bae6fd';
+      ctx.fillRect(3, 12, 12, 2);
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillRect(3, 16, 8, 2);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(19, 16, 10, 4);
+    });
+
+    screenPendingTex = makePixelCanvasTexture(32, 24, (ctx, w, h) => {
+      ctx.fillStyle = '#291f0b';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(4, 5, 24, 3);
+      ctx.fillRect(4, 11, 16, 2);
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(4, 16, 10, 3);
+    });
+
+    screenIdleTex = makePixelCanvasTexture(32, 24, (ctx, w, h) => {
+      ctx.fillStyle = '#0a1f30';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#3685b5';
+      ctx.fillRect(8, 10, 16, 3);
+    });
+  }
+
+  function getNameplateTexture(name, isWorking) {
+    const key = name + '|' + (isWorking ? '1' : '0');
+    if (nameplateTextureCache.has(key)) return nameplateTextureCache.get(key);
+    const shortName = String(name || '').split(' ')[0].toUpperCase().slice(0, 11);
+    const tex = makePixelCanvasTexture(128, 32, (ctx, w, h) => {
+      ctx.fillStyle = '#081e30';
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = isWorking ? '#38bdf8' : '#587aa8';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(2, 2, w - 4, h - 4);
+      ctx.fillStyle = isWorking ? '#38bdf8' : '#34d399';
+      ctx.fillRect(8, 11, 8, 10);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 14px "JetBrains Mono", monospace';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(shortName, 22, 17);
+    });
+    nameplateTextureCache.set(key, tex);
+    return tex;
+  }
+
+  function makeBox(w, h, d, color, opts = {}) {
+    const geo = new THREE.BoxGeometry(w, h, d);
+    const mat = new THREE.MeshLambertMaterial({
+      color,
+      emissive: opts.emissive || 0x000000,
+      emissiveIntensity: opts.emissiveIntensity || 0,
+      map: opts.map || null
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+
+  function buildFolderMesh(task) {
+    const overdue = isTaskOverdue(task);
+    const urgent = Boolean(task.vpFollowup) || overdue;
+    let coverHex = 0xe8b95b; // classic manila todo
+    let tabHex = 0xfde68a;
+    if (task.status === 'inprogress') {
+      coverHex = urgent ? 0xf43f5e : 0x38bdf8;
+      tabHex = urgent ? 0xffa6b8 : 0xbae6fd;
+    } else if (task.status === 'done') {
+      coverHex = 0x10b981;
+      tabHex = 0x6ee7b7;
+    } else if (urgent) {
+      coverHex = 0xf43f5e;
+      tabHex = 0xffa6b8;
+    }
+
+    const folderGroup = new THREE.Group();
+    const bottomCover = makeBox(0.62, 0.03, 0.48, coverHex);
+    bottomCover.position.y = 0.015;
+    folderGroup.add(bottomCover);
+
+    const paperBlock = makeBox(0.56, 0.045, 0.42, 0xf8fafc);
+    paperBlock.position.y = 0.048;
+    folderGroup.add(paperBlock);
+
+    const topCover = makeBox(0.62, 0.028, 0.48, coverHex);
+    topCover.position.y = 0.078;
+    folderGroup.add(topCover);
+
+    // Classic sticking-out index tab
+    const tab = makeBox(0.18, 0.032, 0.1, tabHex);
+    tab.position.set(-0.18, 0.082, 0.25);
+    folderGroup.add(tab);
+
+    // Optional bright amber stud on tab for Hard Deadline (HD)
+    if (task.hardDeadline) {
+      const hdStud = makeBox(0.08, 0.038, 0.08, 0xfbbf24, { emissive: 0xf59e0b, emissiveIntensity: 0.45 });
+      hdStud.position.set(0.22, 0.084, 0.22);
+      folderGroup.add(hdStud);
+    }
+
+    return { folderGroup, mainHitMesh: topCover };
+  }
+
+  function buildPottedPlant() {
+    const g = new THREE.Group();
+    const pot = makeBox(0.55, 0.45, 0.55, 0xb45309);
+    pot.position.y = 0.225;
+    g.add(pot);
+    const soil = makeBox(0.45, 0.06, 0.45, 0x3f2316);
+    soil.position.y = 0.46;
+    g.add(soil);
+    const leaf1 = makeBox(0.5, 0.45, 0.5, 0x10b981);
+    leaf1.position.y = 0.72;
+    g.add(leaf1);
+    const leaf2 = makeBox(0.32, 0.35, 0.32, 0x34d399);
+    leaf2.position.set(0.08, 1.04, -0.05);
+    g.add(leaf2);
+    return g;
+  }
+
+  function buildWaterCooler() {
+    const g = new THREE.Group();
+    const base = makeBox(0.65, 1.05, 0.65, 0xe2e8f0);
+    base.position.y = 0.525;
+    g.add(base);
+    const frontAccent = makeBox(0.45, 0.25, 0.05, 0x0f172a);
+    frontAccent.position.set(0, 0.8, 0.33);
+    g.add(frontAccent);
+    const jug = makeBox(0.48, 0.58, 0.48, 0x38bdf8, { emissive: 0x0284c7, emissiveIntensity: 0.25 });
+    jug.position.y = 1.34;
+    g.add(jug);
+    const cap = makeBox(0.22, 0.1, 0.22, 0x1d4ed8);
+    cap.position.y = 1.66;
+    g.add(cap);
+    return g;
+  }
+
+  function buildCubicle(worker, gx, gz) {
+    const group = new THREE.Group();
+    group.position.set(gx, 0, gz);
+
+    const nameHash = hashNameNum(worker.name);
+    const shirtColor = SHIRT_COLORS[nameHash % SHIRT_COLORS.length];
+    const skinColor = SKIN_COLORS[(nameHash >> 3) % SKIN_COLORS.length];
+    const hairColor = HAIR_COLORS[(nameHash >> 5) % HAIR_COLORS.length];
+    const hasGlasses = (nameHash % 3 === 0);
+    const hasHeadphones = (nameHash % 4 === 1);
+    const isWorking = worker.inprogress.length > 0 && !worker.inprogress.every(t => Boolean(t.pendingFeedback));
+    const hasPendingOnly = worker.inprogress.length > 0 && worker.inprogress.every(t => Boolean(t.pendingFeedback));
+
+    // 1. Floor Carpet Pad + Selection Rim
+    const floorMat = new THREE.MeshLambertMaterial({ map: carpetTileTexture });
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(3.7, 0.12, 3.7), floorMat);
+    floor.position.y = 0.06;
+    floor.receiveShadow = true;
+    floor.userData = { hitType: 'cubicle', worker };
+    group.add(floor);
+    interactables.push(floor);
+
+    const isSelected = (selectedPerson === worker.name);
+    const ring = makeBox(3.78, 0.06, 3.78, isSelected ? 0x38bdf8 : 0x1d4b6e, {
+      emissive: isSelected ? 0x38bdf8 : 0x000000,
+      emissiveIntensity: isSelected ? 0.55 : 0
+    });
+    ring.position.y = 0.025;
+    ring.visible = isSelected;
+    group.add(ring);
+
+    // 2. Retro Blocky Cubicle Partition Walls (Back + Left + Right half-walls)
+    const wallColor = 0x1b4666;
+    const trimColor = 0x5c85b8;
+    const backWall = makeBox(3.7, 1.55, 0.16, wallColor);
+    backWall.position.set(0, 0.89, -1.77);
+    backWall.userData = { hitType: 'cubicle', worker };
+    group.add(backWall);
+    interactables.push(backWall);
+
+    const backTrim = makeBox(3.74, 0.08, 0.2, trimColor);
+    backTrim.position.set(0, 1.68, -1.77);
+    group.add(backTrim);
+
+    const leftWall = makeBox(0.16, 1.4, 3.55, wallColor);
+    leftWall.position.set(-1.77, 0.82, 0.02);
+    group.add(leftWall);
+    const leftTrim = makeBox(0.2, 0.08, 3.58, trimColor);
+    leftTrim.position.set(-1.77, 1.54, 0.02);
+    group.add(leftTrim);
+
+    const rightWall = makeBox(0.16, 1.1, 2.3, wallColor);
+    rightWall.position.set(1.77, 0.67, -0.62);
+    group.add(rightWall);
+    const rightTrim = makeBox(0.2, 0.08, 2.34, trimColor);
+    rightTrim.position.set(1.77, 1.24, -0.62);
+    group.add(rightTrim);
+
+    // Cute corkboard & sticky note pixels on back wall
+    const cork = makeBox(1.1, 0.52, 0.06, 0x9c6b3b);
+    cork.position.set(-0.85, 1.22, -1.66);
+    group.add(cork);
+    const note1 = makeBox(0.18, 0.18, 0.03, 0xfde047);
+    note1.position.set(-1.12, 1.25, -1.62);
+    group.add(note1);
+    const note2 = makeBox(0.18, 0.18, 0.03, 0x38bdf8);
+    note2.position.set(-0.86, 1.22, -1.62);
+    group.add(note2);
+    if (worker.openCount > 0) {
+      const note3 = makeBox(0.18, 0.18, 0.03, 0xf43f5e);
+      note3.position.set(-0.58, 1.26, -1.62);
+      group.add(note3);
+    }
+
+    // Front Corner Nameplate Signpost
+    const plateTex = getNameplateTexture(worker.name, isWorking);
+    const plateMat = new THREE.MeshBasicMaterial({ map: plateTex });
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(1.38, 0.34, 0.08), plateMat);
+    plate.position.set(-0.98, 0.92, 1.72);
+    plate.userData = { hitType: 'cubicle', worker };
+    group.add(plate);
+    interactables.push(plate);
+
+    const post = makeBox(0.1, 0.85, 0.1, 0x64748b);
+    post.position.set(-1.55, 0.54, 1.72);
+    group.add(post);
+
+    // 3. Retro Blocky Desk
+    const deskTop = makeBox(2.85, 0.14, 1.18, 0xd4a373);
+    deskTop.position.set(0, 0.82, -0.96);
+    deskTop.userData = { hitType: 'cubicle', worker };
+    group.add(deskTop);
+    interactables.push(deskTop);
+
+    [[-1.28, -1.45], [1.28, -1.45], [-1.28, -0.46], [1.28, -0.46]].forEach(([lx, lz]) => {
+      const leg = makeBox(0.12, 0.72, 0.12, 0x475569);
+      leg.position.set(lx, 0.42, lz);
+      group.add(leg);
+    });
+
+    // 4. Retro CRT Monitor + Pixel Screen + Keyboard + Coffee Mug
+    const monitorStand = makeBox(0.32, 0.14, 0.24, 0x64748b);
+    monitorStand.position.set(-0.22, 0.96, -1.25);
+    group.add(monitorStand);
+
+    const monitorBody = makeBox(0.76, 0.58, 0.52, 0xd8cfc0);
+    monitorBody.position.set(-0.22, 1.3, -1.26);
+    group.add(monitorBody);
+
+    const scrTex = isWorking ? screenWorkingTex : (hasPendingOnly ? screenPendingTex : screenIdleTex);
+    const scrMat = new THREE.MeshBasicMaterial({ map: scrTex });
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.44), scrMat);
+    screen.position.set(-0.22, 1.31, -0.995);
+    group.add(screen);
+
+    const keyboard = makeBox(0.68, 0.05, 0.24, 0xe2e8f0);
+    keyboard.position.set(-0.22, 0.915, -0.78);
+    group.add(keyboard);
+
+    // Cute retro coffee mug + pixel steam
+    const mug = makeBox(0.16, 0.18, 0.16, 0xf43f5e);
+    mug.position.set(-1.12, 0.98, -0.72);
+    group.add(mug);
+    const steam = makeBox(0.08, 0.08, 0.08, 0xe2e8f0, { emissive: 0xffffff, emissiveIntensity: 0.25 });
+    steam.position.set(-1.12, 1.18, -0.72);
+    steam.visible = isWorking;
+    group.add(steam);
+
+    // 5. PILE OF FOLDERS ON THE DESK! (Real Tasks!)
+    // Active Open Tasks Pile on Right Side of Desk (x = +0.72, z = -0.82)
+    const openStack = worker.openTasks;
+    const maxVisibleOpen = Math.min(openStack.length, 16);
+    for (let i = 0; i < maxVisibleOpen; i++) {
+      const task = openStack[i];
+      const { folderGroup, mainHitMesh } = buildFolderMesh(task);
+      const jitterX = (((i * 37) % 11) - 5) * 0.01;
+      const jitterZ = (((i * 23) % 9) - 4) * 0.01;
+      const jitterRot = (((i * 19) % 7) - 3) * 0.045;
+      folderGroup.position.set(0.68 + jitterX, 0.89 + i * 0.095, -0.74 + jitterZ);
+      folderGroup.rotation.y = jitterRot;
+      folderGroup.userData = { hitType: 'folder', worker, task };
+      folderGroup.traverse(ch => {
+        if (ch.isMesh) {
+          ch.userData = { hitType: 'folder', worker, task };
+          interactables.push(ch);
+        }
+      });
+      group.add(folderGroup);
+    }
+
+    // Active Open Folder right in front of them if typing!
+    if (worker.inprogress.length > 0) {
+      const curTask = worker.inprogress[0];
+      const { folderGroup } = buildFolderMesh(curTask);
+      folderGroup.scale.set(0.88, 0.88, 0.88);
+      folderGroup.position.set(0.18, 0.89, -0.72);
+      folderGroup.rotation.y = 0.28;
+      folderGroup.traverse(ch => {
+        if (ch.isMesh) {
+          ch.userData = { hitType: 'folder', worker, task: curTask };
+          interactables.push(ch);
+        }
+      });
+      group.add(folderGroup);
+    }
+
+    // Done Tray Stack (Green Folders) on Back-Right Corner of Desk
+    if (showDoneStack && worker.done.length > 0) {
+      const doneCap = Math.min(worker.done.length, 8);
+      for (let i = 0; i < doneCap; i++) {
+        const task = worker.done[i];
+        const { folderGroup } = buildFolderMesh(task);
+        folderGroup.scale.set(0.82, 0.82, 0.82);
+        folderGroup.position.set(1.06, 0.89 + i * 0.075, -1.24);
+        folderGroup.rotation.y = (i % 2 === 0 ? 0.03 : -0.03);
+        folderGroup.traverse(ch => {
+          if (ch.isMesh) {
+            ch.userData = { hitType: 'folder', worker, task };
+            interactables.push(ch);
+          }
+        });
+        group.add(folderGroup);
+      }
+    }
+
+    // 6. Blocky Swivel Chair + Cute Blocky Person!
+    const chairGroup = new THREE.Group();
+    chairGroup.position.set(-0.22, 0.12, -0.02);
+
+    const chairStem = makeBox(0.14, 0.34, 0.14, 0x334155);
+    chairStem.position.y = 0.17;
+    chairGroup.add(chairStem);
+    const chairBase = makeBox(0.56, 0.06, 0.56, 0x475569);
+    chairBase.position.y = 0.03;
+    chairGroup.add(chairBase);
+    const chairSeat = makeBox(0.62, 0.1, 0.56, 0x1e3a5f);
+    chairSeat.position.y = 0.38;
+    chairGroup.add(chairSeat);
+    const chairBack = makeBox(0.58, 0.52, 0.1, 0x1e3a5f);
+    chairBack.position.set(0, 0.68, 0.26);
+    chairGroup.add(chairBack);
+    group.add(chairGroup);
+
+    // Blocky Worker Character
+    const charRoot = new THREE.Group();
+    charRoot.position.set(-0.22, 0.55, -0.1);
+
+    // Legs (seated toward desk -Z)
+    const legL = makeBox(0.18, 0.18, 0.42, 0x1e293b);
+    legL.position.set(-0.14, 0.02, -0.18);
+    charRoot.add(legL);
+    const legR = makeBox(0.18, 0.18, 0.42, 0x1e293b);
+    legR.position.set(0.14, 0.02, -0.18);
+    charRoot.add(legR);
+
+    // Upper body group (for cozy typing bob / lean)
+    const upperBody = new THREE.Group();
+    upperBody.position.y = 0.1;
+    charRoot.add(upperBody);
+
+    const torso = makeBox(0.52, 0.5, 0.32, shirtColor);
+    torso.position.y = 0.26;
+    upperBody.add(torso);
+
+    // Head Group
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 0.72, 0);
+    upperBody.add(headGroup);
+
+    const headBox = makeBox(0.46, 0.44, 0.44, skinColor);
+    headGroup.add(headBox);
+
+    // Hair Cap
+    const hairTop = makeBox(0.5, 0.14, 0.48, hairColor);
+    hairTop.position.set(0, 0.22, 0);
+    headGroup.add(hairTop);
+    const hairBack = makeBox(0.48, 0.34, 0.1, hairColor);
+    hairBack.position.set(0, 0.06, 0.2);
+    headGroup.add(hairBack);
+
+    // Cute Pixel Eyes (facing -Z toward monitor)
+    const eyeL = makeBox(0.07, 0.07, 0.04, 0x0f172a);
+    eyeL.position.set(-0.1, 0.02, -0.22);
+    headGroup.add(eyeL);
+    const eyeR = makeBox(0.07, 0.07, 0.04, 0x0f172a);
+    eyeR.position.set(0.1, 0.02, -0.22);
+    headGroup.add(eyeR);
+
+    if (hasGlasses) {
+      const glassBar = makeBox(0.36, 0.05, 0.05, 0x0f172a);
+      glassBar.position.set(0, 0.04, -0.235);
+      headGroup.add(glassBar);
+    }
+    if (hasHeadphones) {
+      const hpBand = makeBox(0.54, 0.08, 0.12, 0x38bdf8);
+      hpBand.position.set(0, 0.3, 0);
+      headGroup.add(hpBand);
+      const hpL = makeBox(0.08, 0.18, 0.18, 0x38bdf8);
+      hpL.position.set(-0.27, 0.02, 0);
+      headGroup.add(hpL);
+      const hpR = makeBox(0.08, 0.18, 0.18, 0x38bdf8);
+      hpR.position.set(0.27, 0.02, 0);
+      headGroup.add(hpR);
+    }
+
+    // Left & Right Typing Arms (hinged at shoulder)
+    const armLGroup = new THREE.Group();
+    armLGroup.position.set(-0.34, 0.44, -0.04);
+    const armLMesh = makeBox(0.15, 0.15, 0.42, shirtColor);
+    armLMesh.position.set(0, -0.04, -0.18);
+    const handL = makeBox(0.13, 0.12, 0.12, skinColor);
+    handL.position.set(0, -0.04, -0.4);
+    armLGroup.add(armLMesh);
+    armLGroup.add(handL);
+    upperBody.add(armLGroup);
+
+    const armRGroup = new THREE.Group();
+    armRGroup.position.set(0.34, 0.44, -0.04);
+    const armRMesh = makeBox(0.15, 0.15, 0.42, shirtColor);
+    armRMesh.position.set(0, -0.04, -0.18);
+    const handR = makeBox(0.13, 0.12, 0.12, skinColor);
+    handR.position.set(0, -0.04, -0.4);
+    armRGroup.add(armRMesh);
+    armRGroup.add(handR);
+    upperBody.add(armRGroup);
+
+    charRoot.traverse(ch => {
+      if (ch.isMesh) {
+        ch.userData = { hitType: 'cubicle', worker };
+        interactables.push(ch);
+      }
+    });
+    group.add(charRoot);
+
+    // Floating status beacon above cubicle back wall
+    const beaconColor = isWorking ? 0x38bdf8 : (hasPendingOnly ? 0xfbbf24 : (worker.openCount > 0 ? 0xe8b95b : 0x34d399));
+    const beacon = makeBox(0.22, 0.22, 0.22, beaconColor, { emissive: beaconColor, emissiveIntensity: 0.7 });
+    beacon.position.set(1.45, 2.02, -1.55);
+    group.add(beacon);
+
+    cubicleVisuals.push({
+      worker,
+      isWorking,
+      hasPendingOnly,
+      phaseOffset: (nameHash % 100) * 0.1,
+      upperBody,
+      headGroup,
+      armLGroup,
+      armRGroup,
+      steam,
+      beacon,
+      ring
+    });
+
+    worldGroup.add(group);
+  }
+
+  function initThreeOffice() {
+    if (typeof THREE === 'undefined') {
+      document.getElementById('stat-cubicles').textContent = '3D err';
+      return;
+    }
+    const canvas = document.getElementById('office-canvas');
+    const wrap = document.getElementById('viewport-card');
+    initSharedPixelTextures();
+
+    scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x061826, 0.011);
+
+    const w = wrap.clientWidth || 800;
+    const h = wrap.clientHeight || 580;
+    camera = new THREE.PerspectiveCamera(38, w / h, 0.5, 160);
+
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(w, h, false);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    // Warm cozy retro studio lighting
+    const hemi = new THREE.HemisphereLight(0xa5d8ff, 0x091c2c, 0.95);
+    scene.add(hemi);
+
+    const keyLight = new THREE.DirectionalLight(0xfff1d6, 0.95);
+    keyLight.position.set(18, 28, 20);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 1024;
+    keyLight.shadow.mapSize.height = 1024;
+    keyLight.shadow.camera.near = 2;
+    keyLight.shadow.camera.far = 85;
+    keyLight.shadow.camera.left = -24;
+    keyLight.shadow.camera.right = 24;
+    keyLight.shadow.camera.top = 24;
+    keyLight.shadow.camera.bottom = -24;
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.35);
+    rimLight.position.set(-16, 12, -16);
+    scene.add(rimLight);
+
+    worldGroup = new THREE.Group();
+    propsGroup = new THREE.Group();
+    scene.add(worldGroup);
+    scene.add(propsGroup);
+
+    raycaster = new THREE.Raycaster();
+    pointerNdc = new THREE.Vector2();
+
+    setupPointerControls(canvas);
+    window.addEventListener('resize', handleResize);
+    rebuildOfficeScene();
+    startAnimLoop();
+    setTimeout(handleResize, 50);
+  }
+
+  function handleResize() {
+    if (!renderer || !camera) return;
+    const wrap = document.getElementById('viewport-card');
+    if (!wrap) return;
+    const w = wrap.clientWidth || 800;
+    const h = wrap.clientHeight || 580;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h, false);
+  }
+
+  function rebuildOfficeScene() {
+    const { allList, filtered } = buildWorkerBuckets(rawTasks);
+    cubicleWorkersCache = filtered;
+    updateToolbarStats(allList);
+    renderDossierPanel();
+
+    if (!worldGroup || typeof THREE === 'undefined') return;
+
+    while (worldGroup.children.length > 0) worldGroup.remove(worldGroup.children[0]);
+    while (propsGroup.children.length > 0) propsGroup.remove(propsGroup.children[0]);
+    interactables = [];
+    cubicleVisuals = [];
+    hoveredHit = null;
+    hideTooltip();
+
+    const count = filtered.length;
+    if (count === 0) return;
+
+    const cols = count <= 4 ? Math.max(1, count) : (count <= 9 ? 3 : (count <= 16 ? 4 : 5));
+    const rows = Math.ceil(count / cols);
+    const cellGap = 4.65; // 3.7 cubicle + 0.95 walkway corridor
+
+    const floorW = cols * cellGap + 3.2;
+    const floorD = rows * cellGap + 3.2;
+
+    // Office main grid floor & perimeter curb
+    const subFloor = makeBox(floorW, 0.24, floorD, 0x071d2e);
+    subFloor.position.set(0, -0.14, 0);
+    propsGroup.add(subFloor);
+
+    const gridHelper = new THREE.GridHelper(Math.max(floorW, floorD), Math.round(Math.max(floorW, floorD) / 1.5), 0x1d4b6e, 0x0d2b42);
+    gridHelper.position.y = -0.01;
+    propsGroup.add(gridHelper);
+
+    const startX = -((cols - 1) * cellGap) / 2;
+    const startZ = -((rows - 1) * cellGap) / 2;
+
+    filtered.forEach((worker, idx) => {
+      const col = idx % cols;
+      const row = Math.floor(idx / cols);
+      const gx = startX + col * cellGap;
+      const gz = startZ + row * cellGap;
+      buildCubicle(worker, gx, gz);
+    });
+
+    // Cozy Retro Office Perimeter Props (Corner plants & Water Cooler!)
+    const halfW = floorW / 2 - 0.85;
+    const halfD = floorD / 2 - 0.85;
+    [[-halfW, -halfD], [halfW, halfD], [-halfW, halfD]].forEach(([px, pz]) => {
+      const plant = buildPottedPlant();
+      plant.position.set(px, 0, pz);
+      propsGroup.add(plant);
+    });
+    const cooler = buildWaterCooler();
+    cooler.position.set(halfW, 0, -halfD);
+    propsGroup.add(cooler);
+
+    // Adjust camera distance nicely to frame whole cubicle island + corners
+    const span = Math.max(floorW, floorD);
+    if (!worldGroup.datasetHasFramedOnce) {
+      camState.goalDistance = Math.min(48, Math.max(20, span * 1.25));
+      camState.distance = camState.goalDistance;
+      worldGroup.datasetHasFramedOnce = true;
+    }
+  }
+
+  function rebuildOfficeFromFilter() {
+    rebuildOfficeScene();
+  }
+
+  function toggleBusyOnly() {
+    busyOnly = !busyOnly;
+    const btn = document.getElementById('btn-busy-only');
+    if (btn) {
+      btn.classList.toggle('is-active', busyOnly);
+      btn.setAttribute('aria-pressed', String(busyOnly));
+    }
+    rebuildOfficeScene();
+  }
+
+  function toggleDoneStack() {
+    showDoneStack = !showDoneStack;
+    const btn = document.getElementById('btn-include-done');
+    if (btn) {
+      btn.classList.toggle('is-active', showDoneStack);
+      btn.setAttribute('aria-pressed', String(showDoneStack));
+    }
+    rebuildOfficeScene();
+  }
+
+  function toggleSecondary() {
+    includeSecondary = !includeSecondary;
+    const btn = document.getElementById('btn-include-2nd');
+    if (btn) {
+      btn.classList.toggle('is-active', includeSecondary);
+      btn.setAttribute('aria-pressed', String(includeSecondary));
+    }
+    rebuildOfficeScene();
+  }
+
+  function setCameraPreset(preset) {
+    if (preset === 'top') {
+      camState.goalAzimuth = 0.0;
+      camState.goalPolar = 0.24;
+      camState.goalX = 0;
+      camState.goalZ = 0;
+    } else if (preset === 'front') {
+      camState.goalAzimuth = 0.0;
+      camState.goalPolar = 1.05;
+      camState.goalX = 0;
+      camState.goalZ = 0;
+    } else {
+      camState.goalAzimuth = 0.72;
+      camState.goalPolar = 0.92;
+      camState.goalX = 0;
+      camState.goalZ = 0;
+    }
+  }
+
+  function nudgeZoom(delta) {
+    camState.goalDistance = Math.max(9, Math.min(54, camState.goalDistance + delta));
+  }
+
+  function hideTooltip() {
+    const tt = document.getElementById('office-tooltip');
+    if (tt) tt.classList.add('hidden');
+  }
+
+  function showTooltipForHit(hitData, clientX, clientY) {
+    const tt = document.getElementById('office-tooltip');
+    const wrap = document.getElementById('viewport-card');
+    if (!tt || !wrap || !hitData) return;
+
+    const rect = wrap.getBoundingClientRect();
+    const lx = Math.max(12, Math.min(rect.width - 230, clientX - rect.left));
+    const ly = Math.max(70, Math.min(rect.height - 16, clientY - rect.top));
+
+    const eyebrowEl = document.getElementById('tt-eyebrow');
+    const titleEl = document.getElementById('tt-title');
+    const subEl = document.getElementById('tt-sub');
+
+    if (hitData.hitType === 'folder' && hitData.task) {
+      const stageTxt = hitData.task.status === 'inprogress' ? 'In Progress' : (hitData.task.status === 'done' ? 'Done' : 'To Do');
+      eyebrowEl.textContent = `${hitData.worker.name} · FOLDER (${stageTxt})`;
+      titleEl.textContent = hitData.task.title || 'Untitled Task';
+      const bits = [];
+      if (hitData.task.date) bits.push((isTaskOverdue(hitData.task) ? 'Overdue ' : 'Due ') + hitData.task.date);
+      if (hitData.task.vpFollowup) bits.push('VP');
+      if (hitData.task.hardDeadline) bits.push('HD');
+      subEl.textContent = bits.length > 0 ? bits.join(' · ') : 'Click folder to highlight in desk list';
+    } else if (hitData.worker) {
+      const w = hitData.worker;
+      eyebrowEl.textContent = w.inprogress.length > 0 ? 'TYPING AWAY' : (w.openCount > 0 ? 'BACKLOG ON DESK' : 'DESK CLEAR');
+      titleEl.textContent = w.name;
+      subEl.textContent = `${w.inprogress.length} active · ${w.todo.length} queued · ${w.done.length} done`;
+    }
+
+    tt.style.left = lx + 'px';
+    tt.style.top = ly + 'px';
+    tt.classList.remove('hidden');
+  }
+
+  function setupPointerControls(canvas) {
+    let isDragging = false;
+    let dragMode = 'orbit';
+    let downX = 0;
+    let downY = 0;
+    let prevX = 0;
+    let prevY = 0;
+    let movedDist = 0;
+
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    canvas.addEventListener('pointerdown', e => {
+      isDragging = true;
+      dragMode = (e.button === 2 || e.shiftKey) ? 'pan' : 'orbit';
+      downX = prevX = e.clientX;
+      downY = prevY = e.clientY;
+      movedDist = 0;
+      canvas.classList.add('is-dragging');
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+
+    canvas.addEventListener('pointermove', e => {
+      if (isDragging) {
+        const dx = e.clientX - prevX;
+        const dy = e.clientY - prevY;
+        movedDist += Math.hypot(dx, dy);
+        prevX = e.clientX;
+        prevY = e.clientY;
+
+        if (dragMode === 'orbit') {
+          camState.goalAzimuth -= dx * 0.008;
+          camState.goalPolar = Math.max(0.22, Math.min(1.42, camState.goalPolar - dy * 0.007));
+        } else {
+          const sinA = Math.sin(camState.azimuth);
+          const cosA = Math.cos(camState.azimuth);
+          const panSpeed = camState.distance * 0.0014;
+          camState.goalX = Math.max(-22, Math.min(22, camState.goalX - (dx * cosA + dy * sinA) * panSpeed));
+          camState.goalZ = Math.max(-22, Math.min(22, camState.goalZ + (dx * sinA - dy * cosA) * panSpeed));
+        }
+        hideTooltip();
+        return;
+      }
+
+      // Hover raycast
+      if (!raycaster || !camera || interactables.length === 0) return;
+      const rect = canvas.getBoundingClientRect();
+      pointerNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointerNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointerNdc, camera);
+      const hits = raycaster.intersectObjects(interactables, false);
+      if (hits.length > 0 && hits[0].object && hits[0].object.userData) {
+        hoveredHit = hits[0].object.userData;
+        canvas.classList.add('is-hovering');
+        showTooltipForHit(hoveredHit, e.clientX, e.clientY);
+      } else {
+        hoveredHit = null;
+        canvas.classList.remove('is-hovering');
+        hideTooltip();
+      }
+    });
+
+    canvas.addEventListener('pointerup', e => {
+      const wasClick = isDragging && movedDist < 6;
+      isDragging = false;
+      canvas.classList.remove('is-dragging');
+      try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+
+      if (wasClick && raycaster && camera && interactables.length > 0) {
+        const rect = canvas.getBoundingClientRect();
+        pointerNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        pointerNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(pointerNdc, camera);
+        const hits = raycaster.intersectObjects(interactables, false);
+        if (hits.length > 0 && hits[0].object && hits[0].object.userData) {
+          const ud = hits[0].object.userData;
+          if (ud.worker) {
+            selectedPerson = ud.worker.name;
+            selectedTaskId = (ud.hitType === 'folder' && ud.task) ? ud.task.id : null;
+            cubicleVisuals.forEach(cv => {
+              const isSel = (cv.worker.name === selectedPerson);
+              cv.ring.visible = isSel;
+              cv.ring.material.color.setHex(isSel ? 0x38bdf8 : 0x1d4b6e);
+              cv.ring.material.emissive.setHex(isSel ? 0x38bdf8 : 0x000000);
+              cv.ring.material.emissiveIntensity = isSel ? 0.55 : 0;
+            });
+            renderDossierPanel();
+          }
+        }
+      }
+    });
+
+    canvas.addEventListener('pointerleave', () => {
+      canvas.classList.remove('is-hovering');
+      hideTooltip();
+    });
+
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      nudgeZoom(e.deltaY * 0.015);
+    }, { passive: false });
+  }
+
+  function startAnimLoop() {
+    if (animRafId !== null) return;
+    const loop = (now) => {
+      animRafId = requestAnimationFrame(loop);
+      const t = (now - clockStart) * 0.001;
+
+      // Smooth damped camera orbit
+      camState.azimuth += (camState.goalAzimuth - camState.azimuth) * 0.14;
+      camState.polar += (camState.goalPolar - camState.polar) * 0.14;
+      camState.distance += (camState.goalDistance - camState.distance) * 0.14;
+      camState.targetX += (camState.goalX - camState.targetX) * 0.14;
+      camState.targetZ += (camState.goalZ - camState.targetZ) * 0.14;
+
+      if (camera) {
+        const sinP = Math.sin(camState.polar);
+        camera.position.set(
+          camState.targetX + camState.distance * sinP * Math.sin(camState.azimuth),
+          camState.distance * Math.cos(camState.polar),
+          camState.targetZ + camState.distance * sinP * Math.cos(camState.azimuth)
+        );
+        camera.lookAt(camState.targetX, 0.7, camState.targetZ);
+      }
+
+      // Cute Retro Animations for Workers, Typing Hands, Steam & Status Beacons!
+      for (let i = 0; i < cubicleVisuals.length; i++) {
+        const cv = cubicleVisuals[i];
+        const ph = t + cv.phaseOffset;
+
+        if (cv.isWorking) {
+          // Brisk happy typing motion!
+          cv.armLGroup.rotation.x = Math.sin(ph * 14) * 0.28 - 0.12;
+          cv.armRGroup.rotation.x = Math.sin(ph * 14 + Math.PI) * 0.28 - 0.12;
+          cv.headGroup.rotation.x = Math.sin(ph * 4.5) * 0.08 + 0.08;
+          cv.headGroup.rotation.y = Math.sin(ph * 2.1) * 0.1;
+          cv.upperBody.position.y = 0.1 + Math.abs(Math.sin(ph * 7)) * 0.025;
+          cv.steam.position.y = 1.16 + ((ph * 0.5) % 0.28);
+          cv.steam.scale.setScalar(1 - (((ph * 0.5) % 0.28) * 1.8));
+          cv.beacon.position.y = 2.02 + Math.sin(ph * 3.5) * 0.08;
+          cv.beacon.rotation.y = ph * 1.4;
+        } else if (cv.hasPendingOnly) {
+          cv.armLGroup.rotation.x = 0.05;
+          cv.armRGroup.rotation.x = -0.1 + Math.sin(ph * 2.2) * 0.08;
+          cv.headGroup.rotation.y = Math.sin(ph * 1.4) * 0.16;
+          cv.upperBody.position.y = 0.1 + Math.sin(ph * 1.8) * 0.015;
+          cv.beacon.position.y = 2.02 + Math.sin(ph * 2.2) * 0.05;
+          cv.beacon.rotation.y = ph * 0.6;
+        } else {
+          // Relaxed chill sway (looks toward folder pile or leans slightly)
+          cv.armLGroup.rotation.x = 0.15;
+          cv.armRGroup.rotation.x = 0.15;
+          cv.headGroup.rotation.y = Math.sin(ph * 0.9) * 0.12;
+          cv.headGroup.rotation.x = -0.05 + Math.sin(ph * 1.2) * 0.04;
+          cv.upperBody.position.y = 0.1;
+          cv.beacon.rotation.y = ph * 0.3;
+        }
+      }
+
+      if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+      }
+    };
+    animRafId = requestAnimationFrame(loop);
+  }
+
+  function startOfficeApp(role = 'full') {
+    document.body.classList.toggle('is-view-only', role === 'view');
+    document.getElementById('office-auth-gate').classList.add('hidden');
+    document.getElementById('office-shell').classList.remove('hidden');
+    const viewPill = document.getElementById('view-only-pill');
+    if (viewPill) viewPill.classList.toggle('hidden', role !== 'view');
+    startSessionPresence(role, 'office');
+
+    initThreeOffice();
+
+    if (listenersAttached) return;
+    listenersAttached = true;
+
+    const syncStatusEl = document.getElementById('sync-status');
+    const syncPillEl = document.getElementById('sync-pill');
+
+    db.ref('.info/connected').on('value', snap => {
+      if (snap.val() === true) {
+        syncStatusEl.textContent = 'Synced';
+        syncPillEl.className = 'sync-status-pill';
+      } else {
+        syncStatusEl.textContent = 'Offline';
+        syncPillEl.className = 'sync-status-pill disconnected';
+      }
+    });
+
+    tasksRef.on('value', snapshot => {
+      rawTasks = [];
+      snapshot.forEach(child => {
+        rawTasks.push({ id: child.key, ...child.val() });
+      });
+      rebuildOfficeScene();
+    });
+  }
+
+  // ── Auth Controls ──
+  function showOfficeAuthError(msg) {
+    const errEl = document.getElementById('office-auth-error');
+    const card = document.getElementById('office-auth-card');
+    if (errEl) { errEl.textContent = msg; errEl.classList.add('visible'); }
+    if (card) { card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); }
+    const target = document.getElementById('office-passcode');
+    if (target) { target.value = ''; target.focus(); }
+  }
+
+  function offNumAppend(d) {
+    const p = document.getElementById('office-passcode');
+    document.getElementById('office-auth-error').classList.remove('visible');
+    p.value = String(p.value || '') + String(d);
+    const role = getPasscodeRole(p.value);
+    if (role) { saveUnlockedSession(role); startOfficeApp(role); }
+  }
+  function offNumBackspace() {
+    const p = document.getElementById('office-passcode');
+    document.getElementById('office-auth-error').classList.remove('visible');
+    p.value = String(p.value || '').slice(0, -1);
+  }
+  function offNumClear() {
+    document.getElementById('office-auth-error').classList.remove('visible');
+    document.getElementById('office-passcode').value = '';
+  }
+
+  function verifyOfficePasscode(event) {
+    if (event) event.preventDefault();
+    const input = document.getElementById('office-passcode');
+    const role = getPasscodeRole(input.value);
+    if (role) {
+      document.getElementById('office-auth-error').classList.remove('visible');
+      saveUnlockedSession(role);
+      startOfficeApp(role);
+    } else {
+      showOfficeAuthError('Incorrect passcode. Please try again.');
+    }
+  }
+
+  const passInputEl = document.getElementById('office-passcode');
+  if (passInputEl) {
+    passInputEl.addEventListener('input', () => {
+      document.getElementById('office-auth-error').classList.remove('visible');
+      const role = getPasscodeRole(passInputEl.value);
+      if (role) {
+        saveUnlockedSession(role);
+        startOfficeApp(role);
+      }
+    });
+  }
+
+  function closeHeaderMenu() {
+    const wrap = document.getElementById('header-nav-menu');
+    const btn = document.getElementById('header-nav-menu-btn');
+    if (wrap) wrap.classList.remove('is-open');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleHeaderMenu(event) {
+    if (event) event.stopPropagation();
+    const wrap = document.getElementById('header-nav-menu');
+    const btn = document.getElementById('header-nav-menu-btn');
+    if (!wrap || !btn) return;
+    const open = wrap.classList.toggle('is-open');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  document.addEventListener('click', e => {
+    const wrap = document.getElementById('header-nav-menu');
+    if (wrap && !wrap.contains(e.target)) closeHeaderMenu();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeHeaderMenu();
+  });
+
+  const initialRole = getSessionRole();
+  if (initialRole) {
+    startOfficeApp(initialRole);
+  } else {
+    document.getElementById('office-auth-gate').classList.remove('hidden');
+  }
+</script>
+</body>
+</html>
