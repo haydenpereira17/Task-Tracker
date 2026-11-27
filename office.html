@@ -1173,6 +1173,7 @@
         <div class="toolbar-controls">
           <input type="search" id="office-search" class="retro-input" placeholder="Find person or task…" aria-label="Search cubicles" oninput="rebuildOfficeFromFilter()" />
           <button type="button" id="btn-busy-only" class="retro-btn" onclick="toggleBusyOnly()" aria-pressed="false" title="Show only cubicles with open folders">Busy Desks Only</button>
+          <button type="button" id="btn-fixed-seats" class="retro-btn" onclick="toggleFixedSeats()" aria-pressed="false" title="Keep everyone in permanent roster seats instead of moving busiest desks to front row">Fixed Seats</button>
           <button type="button" id="btn-include-done" class="retro-btn is-active" onclick="toggleDoneStack()" aria-pressed="true" title="Show completed green folder tray on desk">Done Tray</button>
           <button type="button" id="btn-include-2nd" class="retro-btn is-active" onclick="toggleSecondary()" aria-pressed="true" title="Include secondary owner tasks in desk pile">+ 2nd Owner</button>
         </div>
@@ -1426,6 +1427,7 @@
   let tasksLoaded = false;
   let listenersAttached = false;
   let busyOnly = false;
+  let fixedSeats = false;
   let showDoneStack = true;
   let includeSecondary = true;
   let selectedPerson = null;
@@ -1501,13 +1503,24 @@
       };
     });
 
-    // Sort active desks up front for a bustling front row
-    allList.sort((a, b) => {
-      if (b.inprogress.length !== a.inprogress.length) return b.inprogress.length - a.inprogress.length;
-      if (b.openCount !== a.openCount) return b.openCount - a.openCount;
-      if (b.done.length !== a.done.length) return b.done.length - a.done.length;
-      return a.name.localeCompare(b.name);
-    });
+    if (fixedSeats) {
+      const rosterOrder = new Map(TEAM_MEMBERS.map((n, idx) => [n, idx]));
+      const seatRank = name => (rosterOrder.has(name) ? rosterOrder.get(name) : TEAM_MEMBERS.length);
+      allList.sort((a, b) => {
+        const ra = seatRank(a.name);
+        const rb = seatRank(b.name);
+        if (ra !== rb) return ra - rb;
+        return a.name.localeCompare(b.name);
+      });
+    } else {
+      // Sort active desks up front for a bustling front row
+      allList.sort((a, b) => {
+        if (b.inprogress.length !== a.inprogress.length) return b.inprogress.length - a.inprogress.length;
+        if (b.openCount !== a.openCount) return b.openCount - a.openCount;
+        if (b.done.length !== a.done.length) return b.done.length - a.done.length;
+        return a.name.localeCompare(b.name);
+      });
+    }
 
     const filtered = allList.filter(w => {
       if (busyOnly && w.openCount === 0) return false;
@@ -2953,34 +2966,33 @@
     rebuildOfficeScene();
   }
 
-  function toggleBusyOnly() {
-    busyOnly = !busyOnly;
-    const btn = document.getElementById('btn-busy-only');
+  function applyToolbarToggleState(btnId, isActive) {
+    const btn = document.getElementById(btnId);
     if (btn) {
-      btn.classList.toggle('is-active', busyOnly);
-      btn.setAttribute('aria-pressed', String(busyOnly));
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
     }
     rebuildOfficeScene();
+  }
+
+  function toggleBusyOnly() {
+    busyOnly = !busyOnly;
+    applyToolbarToggleState('btn-busy-only', busyOnly);
+  }
+
+  function toggleFixedSeats() {
+    fixedSeats = !fixedSeats;
+    applyToolbarToggleState('btn-fixed-seats', fixedSeats);
   }
 
   function toggleDoneStack() {
     showDoneStack = !showDoneStack;
-    const btn = document.getElementById('btn-include-done');
-    if (btn) {
-      btn.classList.toggle('is-active', showDoneStack);
-      btn.setAttribute('aria-pressed', String(showDoneStack));
-    }
-    rebuildOfficeScene();
+    applyToolbarToggleState('btn-include-done', showDoneStack);
   }
 
   function toggleSecondary() {
     includeSecondary = !includeSecondary;
-    const btn = document.getElementById('btn-include-2nd');
-    if (btn) {
-      btn.classList.toggle('is-active', includeSecondary);
-      btn.setAttribute('aria-pressed', String(includeSecondary));
-    }
-    rebuildOfficeScene();
+    applyToolbarToggleState('btn-include-2nd', includeSecondary);
   }
 
   function syncZoomSlider() {
