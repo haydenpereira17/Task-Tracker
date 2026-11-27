@@ -308,6 +308,17 @@
       border-color: rgba(137, 170, 230, 0.32);
     }
 
+    body.is-view-only .nav-analytics-link {
+      display: none !important;
+    }
+
+    body.is-view-only .nav-analytics-inline {
+      pointer-events: none;
+      color: var(--nx-text) !important;
+      text-decoration: none;
+      cursor: default;
+    }
+
     /* ── 2-Bar Header Menu (Features & Analytics) ── */
     .nav-menu-wrap {
       position: relative;
@@ -812,7 +823,7 @@
                 <span class="nav-menu-sub">Capabilities &amp; workflow guide</span>
               </span>
             </a>
-            <a href="analytics.html" class="nav-menu-item" role="menuitem">
+            <a href="analytics.html" class="nav-menu-item nav-analytics-link" role="menuitem">
               <span class="nav-menu-icon" aria-hidden="true">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
               </span>
@@ -1016,8 +1027,8 @@
             Measures per-owner execution speed and safeguards the workspace with two distinct passcode tiers.
           </p>
           <ul class="feature-points">
-            <li><a href="analytics.html" style="color:var(--pace-periwinkle); font-weight:600;">Analytics</a> calculates average days from creation to completion per owner with min–max &amp; drilldowns.</li>
-            <li>Dedicated <strong>View-Only (<span class="inline-code">0000</span>)</strong> login hides edit controls and blocks background or manual writes.</li>
+            <li><a href="analytics.html" class="nav-analytics-inline" style="color:var(--pace-periwinkle); font-weight:600;">Analytics</a> (full-access only) calculates average days from creation to completion per owner with min–max &amp; drilldowns.</li>
+            <li>Dedicated <strong>View-Only (<span class="inline-code">0000</span>)</strong> login hides edit controls, blocks writes, and restricts access to the Analytics screen.</li>
             <li>Top bar displays live <strong>Total / In Progress / Done</strong> metrics synced across devices.</li>
           </ul>
         </article>
@@ -1081,6 +1092,7 @@
   }
 
   function startFeaturesApp(role = 'full') {
+    document.body.classList.toggle('is-view-only', role === 'view');
     document.getElementById('features-auth-gate').classList.add('hidden');
     document.getElementById('features-shell').classList.remove('hidden');
     const viewPill = document.getElementById('view-only-pill');
