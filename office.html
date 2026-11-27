@@ -4200,10 +4200,10 @@
       waypoints: [],
       ix: startAtPantry ? pDoorIx : entryIx,
       iz: startAtPantry ? pDoorIz : entryIz,
-      walkSpeed: 2.05,
-      laughTimer: startAtPantry ? (0.35 + slotIdx * 0.85) : 0.5,
+      walkSpeed: 1.55,
+      laughTimer: startAtPantry ? (0.4 + slotIdx * 1.1) : 0.6,
       laughBurst: startAtPantry ? 2.8 : 0,
-      breakLeft: 14 + slotIdx * 6 + Math.random() * 5,
+      breakLeft: 60 + slotIdx * 30 + Math.random() * 20,
       phaseOffset: slotIdx * 1.45 + (hashNameNum(cv.worker.name) % 20) * 0.2
     };
 
@@ -4306,8 +4306,8 @@
             if (v.mode === 'to_pantry') {
               v.mode = 'laugh';
               v.laughBurst = 2.6;
-              v.laughTimer = 3.2;
-              v.breakLeft = 14 + Math.random() * 8;
+              v.laughTimer = 4.2 + Math.random() * 2.5;
+              v.breakLeft = 60 + Math.random() * 25;
             } else {
               finished.push(v);
               continue;
