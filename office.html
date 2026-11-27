@@ -3146,12 +3146,10 @@
     };
   }
 
-  function localToClusterWorld(clusterX, clusterZ, rotY, lx, lz) {
-    const dx = 1.85 + lx;
-    const dz = 1.85 + lz;
+  function localToCubicleWorld(worldX, worldZ, rotY, lx, lz) {
     return {
-      x: clusterX + dx * Math.cos(rotY) + dz * Math.sin(rotY),
-      z: clusterZ - dx * Math.sin(rotY) + dz * Math.cos(rotY)
+      x: worldX + lx * Math.cos(rotY) + lz * Math.sin(rotY),
+      z: worldZ - lx * Math.sin(rotY) + lz * Math.cos(rotY)
     };
   }
 
@@ -3367,28 +3365,25 @@
   }
 
   function buildCubicle(worker, clusterX, clusterZ, quadrantIdx) {
-    // 2x2 Pinwheel Quad Cluster: each cubicle spans local (-1.85..+1.85) with
-    // THREE partition sides (shared back -Z, shared left -X, and right +X side wall),
-    // leaving the front (+Z) open as the walkable entrance onto the aisle!
-    const ROTATIONS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
+    // 2x2 Cluster with uniform Boss-facing orientation (North = +X toward Boss Cabin):
+    // EVERY cubicle puts its desk against its North (+X) wall (local -Z rotated -90°),
+    // has 3 partition sides (+X North desk wall, -X South back wall, and inner shared Z spine),
+    // and opens onto the center aisle (inner rows) or outer side walkway (outer rows)!
     const WORLD_OFFSETS = [
-      [1.85, 1.85],   // q=0: +X, +Z
-      [1.85, -1.85],  // q=1: +X, -Z
-      [-1.85, -1.85], // q=2: -X, -Z
-      [-1.85, 1.85]   // q=3: -X, +Z
+      [1.85, 1.85],   // q=0: +X, +Z (opens +Z)
+      [1.85, -1.85],  // q=1: +X, -Z (opens -Z)
+      [-1.85, -1.85], // q=2: -X, -Z (opens -Z)
+      [-1.85, 1.85]   // q=3: -X, +Z (opens +Z)
     ];
-    const rotY = ROTATIONS[quadrantIdx % 4];
     const [ox, oz] = WORLD_OFFSETS[quadrantIdx % 4];
     const worldX = clusterX + ox;
     const worldZ = clusterZ + oz;
-
-    const pivot = new THREE.Group();
-    pivot.position.set(clusterX, 0, clusterZ);
-    pivot.rotation.y = rotY;
+    const rotY = -Math.PI / 2; // local -Z -> world +X (North = Boss Cabin)
+    const openSign = oz > 0 ? 1 : -1; // +1 opens local +X (world +Z), -1 opens local -X (world -Z)
 
     const group = new THREE.Group();
-    group.position.set(1.85, 0, 1.85);
-    pivot.add(group);
+    group.position.set(worldX, 0, worldZ);
+    group.rotation.y = rotY;
 
     const rigInfo = addWorkerCharacterRigBaseData(worker);
 
@@ -3410,13 +3405,13 @@
     ring.visible = isSelected;
     group.add(ring);
 
-    // 2. Three Partition Walls: back (-Z), left (-X), and right (+X), keeping front (+Z) open
+    // 2. Three Partition Walls: North/desk (-Z local = +X world), South/back (+Z local = -X world), and shared Z spine
     const wallColor = 0x1b4666;
     const trimColor = 0x5c85b8;
     [
       { w: 3.7, d: 0.14, x: 0, z: -1.78, trimW: 3.72, trimD: 0.16, trimZ: -1.78 },
-      { w: 0.14, d: 3.56, x: -1.78, z: 0.07, trimW: 0.16, trimD: 3.56, trimZ: 0.08 },
-      { w: 0.14, d: 3.56, x: 1.78, z: 0.07, trimW: 0.16, trimD: 3.56, trimZ: 0.08 }
+      { w: 3.7, d: 0.14, x: 0, z: 1.78, trimW: 3.72, trimD: 0.16, trimZ: 1.78 },
+      { w: 0.14, d: 3.42, x: -openSign * 1.78, z: 0, trimW: 0.16, trimD: 3.40, trimZ: 0 }
     ].forEach(spec => {
       const wall = makeBox(spec.w, 1.28, spec.d, wallColor);
       wall.position.set(spec.x, 0.76, spec.z);
@@ -3429,7 +3424,7 @@
       group.add(trim);
     });
 
-    // Corkboard & sticky note pixels on shared back spine wall
+    // Corkboard & sticky note pixels on North/desk wall
     const cork = makeBox(1.06, 0.46, 0.05, 0x9c6b3b, { castShadow: false });
     cork.position.set(-0.85, 1.08, -1.68);
     group.add(cork);
@@ -3445,15 +3440,15 @@
       group.add(note3);
     }
 
-    // Outer Aisle End-Cap Riser Post + Camera-Facing Pixel Nameplate Sprite (mounted cleanly above right wall trim)
+    // Entrance End-Cap Riser Post + Camera-Facing HiDPI Nameplate Sprite on aisle side
     const post = makeBox(0.12, 0.22, 0.12, 0x64748b, { castShadow: false });
-    post.position.set(1.78, 1.54, 1.78);
+    post.position.set(openSign * 1.78, 1.54, 1.78);
     group.add(post);
 
     const plateTex = getNameplateTexture(worker.name, rigInfo.isWorking, false);
     const plateSpriteMat = new THREE.SpriteMaterial({ map: plateTex, transparent: false });
     const plateSprite = new THREE.Sprite(plateSpriteMat);
-    plateSprite.position.set(1.78, 1.76, 1.78);
+    plateSprite.position.set(openSign * 1.78, 1.76, 1.78);
     plateSprite.scale.set(1.52, 0.38, 1);
     plateSprite.userData = { hitType: 'cubicle', worker };
     group.add(plateSprite);
@@ -3461,8 +3456,8 @@
 
     const rig = addDeskWorkstationContent(group, worker, { isBoss: false });
 
-    const entryWorld = localToClusterWorld(clusterX, clusterZ, rotY, 0.70, 2.75);
-    const deskStandWorld = localToClusterWorld(clusterX, clusterZ, rotY, 0.70, 0.10);
+    const entryWorld = localToCubicleWorld(worldX, worldZ, rotY, openSign * 2.75, 0.85);
+    const deskStandWorld = localToCubicleWorld(worldX, worldZ, rotY, openSign * 0.55, 0.72);
 
     cubicleVisuals.push({
       worker,
@@ -3492,7 +3487,7 @@
     });
 
     if (rig.isSleeping) {
-      const lookWorld = localToClusterWorld(clusterX, clusterZ, rotY, -0.22, -0.10);
+      const lookWorld = localToCubicleWorld(worldX, worldZ, rotY, -0.22, -0.10);
       officePlaces.sleepingSpots.push({
         name: worker.name,
         entryX: entryWorld.x,
@@ -3505,7 +3500,7 @@
       });
     }
 
-    worldGroup.add(pivot);
+    worldGroup.add(group);
   }
 
   function initThreeOffice() {
@@ -3713,7 +3708,7 @@
       propsGroup.add(strip);
     });
 
-    // Place cubicles in 4-pod pinwheel clusters (q = 0..3, each 3-sided with open +Z front walkway access)
+    // Place cubicles in 4-pod clusters (all desks on North +X wall facing Boss Cabin; center rows open into center aisle, outer rows open onto sides)
     clusterWorkers.forEach((worker, idx) => {
       const clusterIdx = Math.floor(idx / 4);
       const quadrantIdx = idx % 4;
