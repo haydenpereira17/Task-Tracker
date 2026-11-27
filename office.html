@@ -1760,6 +1760,9 @@
   let meetingSignTexture = null;
   let phoneSignTexture = null;
   let meetingTvTexture = null;
+  let bossTvTexture = null;
+  let bossTvCanvas = null;
+  let bossTvCtx = null;
 
   let hemiLight = null;
   let keyLight = null;
@@ -1770,6 +1773,8 @@
   let phoneLampLight = null;
   let meetingTvMat = null;
   let meetingTvAfterHoursApplied = null;
+  let bossTvMat = null;
+  let bossTvAfterHoursApplied = null;
   let bossLampShadeMats = [];
 
   let shiftMode = 'auto'; // 'auto' | 'night' | 'day'
@@ -2344,6 +2349,152 @@
         ctx.fillRect(ax + 12, 212, 44, 12);
       });
     });
+
+    updateBossDashboardTexture(rawTasks);
+  }
+
+  function getLiveTaskSummary(tasks = rawTasks) {
+    const list = Array.isArray(tasks) ? tasks : [];
+    let inprog = 0;
+    let todo = 0;
+    let done = 0;
+    let overdue = 0;
+    let vpCount = 0;
+    const openQueue = [];
+    for (let i = 0; i < list.length; i++) {
+      const t = list[i];
+      if (!t) continue;
+      if (t.status === 'done') {
+        done++;
+        continue;
+      }
+      if (t.status === 'inprogress') inprog++;
+      else todo++;
+      const isOd = isTaskOverdue(t);
+      if (isOd) overdue++;
+      if (t.vpFollowup) vpCount++;
+      openQueue.push({ task: t, isOd });
+    }
+    openQueue.sort((a, b) => {
+      const sa = (a.task.vpFollowup || a.isOd ? 0 : (a.task.status === 'inprogress' ? 1 : 2));
+      const sb = (b.task.vpFollowup || b.isOd ? 0 : (b.task.status === 'inprogress' ? 1 : 2));
+      return sa - sb;
+    });
+    const total = list.length;
+    const donePct = total > 0 ? Math.round((done / total) * 100) : 0;
+    return { total, inprog, todo, done, overdue, vpCount, donePct, openQueue };
+  }
+
+  function updateBossDashboardTexture(tasks = rawTasks) {
+    if (typeof THREE === 'undefined') return;
+    if (!bossTvCanvas) {
+      bossTvCanvas = document.createElement('canvas');
+      bossTvCanvas.width = 512;
+      bossTvCanvas.height = 256;
+      bossTvCtx = bossTvCanvas.getContext('2d');
+      bossTvTexture = new THREE.CanvasTexture(bossTvCanvas);
+      bossTvTexture.colorSpace = THREE.SRGBColorSpace;
+      bossTvTexture.generateMipmaps = true;
+      bossTvTexture.minFilter = THREE.LinearMipmapLinearFilter;
+      bossTvTexture.magFilter = THREE.LinearFilter;
+      if (renderer && renderer.capabilities) {
+        bossTvTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy() || 1);
+      }
+      sharedGlResources.add(bossTvTexture);
+    }
+    const ctx = bossTvCtx;
+    const w = bossTvCanvas.width;
+    const h = bossTvCanvas.height;
+    const st = getLiveTaskSummary(tasks);
+
+    // Background & top executive header bar
+    ctx.fillStyle = '#090f1e';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#151e34';
+    ctx.fillRect(10, 10, w - 20, 36);
+    ctx.fillStyle = '#34d399';
+    ctx.fillRect(20, 21, 12, 12);
+    ctx.font = '700 19px "JetBrains Mono", Consolas, monospace';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fef3c7';
+    ctx.fillText('LIVE TASK RADAR', 42, 29);
+
+    ctx.fillStyle = '#1f2937';
+    ctx.fillRect(w - 134, 15, 114, 26);
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = '700 15px "JetBrains Mono", Consolas, monospace';
+    ctx.fillText(`${st.total} TASKS`, w - 122, 29);
+
+    // Left Half: Status Metric Cards & Completion Bar
+    const metrics = [
+      { label: 'ACTIVE', val: st.inprog, col: '#38bdf8', y: 56 },
+      { label: 'TO DO',  val: st.todo,   col: '#fbbf24', y: 100 },
+      { label: 'DONE',   val: st.done,   col: '#34d399', y: 144 }
+    ];
+    metrics.forEach(m => {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(14, m.y, 178, 36);
+      ctx.fillStyle = m.col;
+      ctx.fillRect(14, m.y, 7, 36);
+      ctx.font = '700 14px "JetBrains Mono", Consolas, monospace';
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillText(m.label, 30, m.y + 19);
+      ctx.font = '700 21px "JetBrains Mono", Consolas, monospace';
+      ctx.fillStyle = m.col;
+      ctx.fillText(String(m.val), 132, m.y + 19);
+    });
+
+    // Bottom Left: Overdue + VP badges + Completion Meter
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(14, 188, 178, 56);
+    ctx.font = '700 12px "JetBrains Mono", Consolas, monospace';
+    ctx.fillStyle = st.overdue > 0 ? '#fb7185' : '#94a3b8';
+    ctx.fillText(`OD:${st.overdue}`, 24, 204);
+    ctx.fillStyle = st.vpCount > 0 ? '#f472b6' : '#94a3b8';
+    ctx.fillText(`VP:${st.vpCount}`, 86, 204);
+    ctx.fillStyle = '#34d399';
+    ctx.fillText(`${st.donePct}%`, 144, 204);
+
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(24, 222, 158, 12);
+    ctx.fillStyle = '#34d399';
+    ctx.fillRect(24, 222, Math.max(4, Math.round(158 * (st.donePct / 100))), 12);
+
+    // Right Half: Live Priority Task Stream
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(204, 56, 294, 188);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '700 12px "JetBrains Mono", Consolas, monospace';
+    ctx.fillText('PRIORITY STREAM', 216, 72);
+
+    const rows = st.openQueue.slice(0, 4);
+    if (rows.length === 0) {
+      ctx.fillStyle = '#34d399';
+      ctx.font = '700 16px "JetBrains Mono", Consolas, monospace';
+      ctx.fillText('ALL TASKS CLEARED!', 234, 148);
+    } else {
+      rows.forEach(({ task, isOd }, ri) => {
+        const ry = 88 + ri * 38;
+        ctx.fillStyle = '#162038';
+        ctx.fillRect(214, ry, 274, 32);
+        const dotCol = isOd || task.vpFollowup ? '#f43f5e' : (task.status === 'inprogress' ? '#38bdf8' : '#fbbf24');
+        ctx.fillStyle = dotCol;
+        ctx.fillRect(222, ry + 10, 8, 12);
+        const rawTitle = String(task.title || 'Untitled').trim();
+        const clipTitle = rawTitle.length > 17 ? (rawTitle.slice(0, 16) + '…') : rawTitle;
+        const ownerFirst = String(task.person || '').split(' ')[0].slice(0, 7);
+        ctx.font = '700 13px "JetBrains Mono", Consolas, monospace';
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillText(clipTitle, 238, ry + 17);
+        if (ownerFirst) {
+          ctx.font = '600 11px "JetBrains Mono", Consolas, monospace';
+          ctx.fillStyle = '#94a3b8';
+          ctx.fillText(ownerFirst, 430, ry + 17);
+        }
+      });
+    }
+
+    bossTvTexture.needsUpdate = true;
   }
 
   function getNameplateTexture(name, isWorking, isBoss = false, customLabel = null) {
@@ -3129,14 +3280,14 @@
       cabin.add(rail);
     };
 
-    // Back Solid Wall (-Z)
-    const backWall = makeBox(7.4, 1.56, 0.18, solidWallHex);
-    backWall.position.set(0, 0.92, -3.61);
+    // Back Solid Wall (-Z) framed to showcase Karishma's Live Dashboard TV
+    const backWall = makeBox(7.4, 1.94, 0.18, solidWallHex);
+    backWall.position.set(0, 1.11, -3.61);
     backWall.userData = { hitType: 'cubicle', worker };
     cabin.add(backWall);
     interactables.push(backWall);
     const backTrim = makeBox(7.44, 0.08, 0.2, brassTrimHex);
-    backTrim.position.set(0, 1.72, -3.61);
+    backTrim.position.set(0, 2.11, -3.61);
     cabin.add(backTrim);
 
     // Left Aisle Wall (-X) with 2.2-unit Wide Open Doorway to Cubicle Walkways
@@ -3163,26 +3314,43 @@
     cabin.add(plateSprite);
     interactables.push(plateSprite);
 
-    // 4. Back Wall Strategy Whiteboard & Mahogany Credenza w/ Books & Gold Trophy
-    const whiteboard = makeBox(2.4, 0.92, 0.06, 0xf8fafc);
-    whiteboard.position.set(0.2, 1.22, -3.48);
-    cabin.add(whiteboard);
-    [[0x38bdf8, -0.5, 1.32, 0.55], [0x34d399, 0.15, 1.24, 0.7], [0xf43f5e, 0.8, 1.38, 0.45]].forEach(([c, wx, wy, ww]) => {
-      const bar = makeBox(ww, 0.14, 0.04, c);
-      bar.position.set(wx, wy, -3.43);
-      cabin.add(bar);
-    });
+    // 4. Karishma's Live Task Dashboard Wall TV + Mahogany Credenza w/ Books & Gold Trophy
+    const bossAfterHours = isOfficeAfterHours();
+    const bTvBezel = makeBox(3.26, 1.54, 0.14, 0x0b1220);
+    bTvBezel.position.set(0.58, 1.38, -3.45);
+    bTvBezel.userData = { hitType: 'boss_tv' };
+    cabin.add(bTvBezel);
+    interactables.push(bTvBezel);
 
-    const credenza = makeBox(2.3, 0.72, 0.58, 0x5c321e);
-    credenza.position.set(-2.05, 0.5, -3.22);
+    const bTvTrim = makeBox(3.28, 0.06, 0.15, brassTrimHex, { castShadow: false });
+    bTvTrim.position.set(0.58, 0.60, -3.45);
+    cabin.add(bTvTrim);
+
+    if (!bossTvTexture) updateBossDashboardTexture(rawTasks);
+    bossTvAfterHoursApplied = bossAfterHours;
+    bossTvMat = new THREE.MeshBasicMaterial({
+      map: bossAfterHours ? (screenStandbyTex || bossTvTexture) : (bossTvTexture || screenWorkingFrames[0])
+    });
+    const bTvScreen = new THREE.Mesh(getSharedPlaneGeo(3.04, 1.34), bossTvMat);
+    bTvScreen.position.set(0.58, 1.38, -3.375);
+    bTvScreen.userData = { hitType: 'boss_tv' };
+    cabin.add(bTvScreen);
+    interactables.push(bTvScreen);
+
+    const bTvLed = makeBox(0.14, 0.05, 0.06, 0x34d399, { emissive: 0x34d399, emissiveIntensity: 0.75, castShadow: false });
+    bTvLed.position.set(0.58, 2.18, -3.41);
+    cabin.add(bTvLed);
+
+    const credenza = makeBox(1.85, 0.72, 0.58, 0x5c321e);
+    credenza.position.set(-2.35, 0.5, -3.22);
     cabin.add(credenza);
     [0xf43f5e, 0x38bdf8, 0xfbbf24, 0x34d399].forEach((bc, bi) => {
       const book = makeBox(0.12, 0.34, 0.28, bc);
-      book.position.set(-2.75 + bi * 0.15, 1.03, -3.22);
+      book.position.set(-2.95 + bi * 0.15, 1.03, -3.22);
       cabin.add(book);
     });
     const trophy = makeBox(0.24, 0.32, 0.24, 0xfbbf24, { emissive: 0xf59e0b, emissiveIntensity: 0.45 });
-    trophy.position.set(-1.35, 1.04, -3.22);
+    trophy.position.set(-1.75, 1.04, -3.22);
     cabin.add(trophy);
 
     // 5. Boss Executive Corner Plant & Lounge Sofa + Guest Chairs + Coffee Table
@@ -4137,6 +4305,9 @@
     phoneLampLight = null;
     meetingTvMat = null;
     meetingTvAfterHoursApplied = null;
+    bossTvMat = null;
+    bossTvAfterHoursApplied = null;
+    updateBossDashboardTexture(rawTasks);
     lastLightingBucketKey = '';
     lastMoodApplied = '';
     officePlaces.boss = null;
@@ -4749,6 +4920,14 @@
       subEl.textContent = clock.afterHours
         ? `TV on standby · 3 side + 3 side + 1 head seat ready for ${clock.returnShort}`
         : '3 seats left · 3 seats right · 1 executive head seat facing the Big TV';
+    } else if (hitData.hitType === 'boss_tv') {
+      const st = getLiveTaskSummary(rawTasks);
+      const clock = getOfficeClockState();
+      eyebrowEl.textContent = clock.afterHours ? 'EXECUTIVE TV · NIGHT STANDBY' : "KARISHMA'S TV · LIVE TASK RADAR";
+      titleEl.textContent = clock.afterHours ? 'Dashboard Display (Standby)' : `${st.total} Tasks · ${st.inprog} Active · ${st.todo} To Do`;
+      subEl.textContent = clock.afterHours
+        ? `${st.done} done · ${st.overdue} overdue · Resumes ${clock.returnShort}`
+        : `${st.done} done (${st.donePct}%) · ${st.overdue} overdue · ${st.vpCount} VP follow-ups`;
     } else if (hitData.hitType === 'phone') {
       const clock = getOfficeClockState();
       eyebrowEl.textContent = clock.afterHours ? 'TELEPHONE ROOM · NIGHT STANDBY' : 'TELEPHONE ROOM · ACOUSTIC PODS';
@@ -6226,6 +6405,14 @@
         if (nextTvTex && meetingTvMat.map !== nextTvTex) {
           meetingTvMat.map = nextTvTex;
           meetingTvMat.needsUpdate = true;
+        }
+      }
+      if (bossTvMat && bossTvAfterHoursApplied !== afterHours) {
+        bossTvAfterHoursApplied = afterHours;
+        const nextBossTvTex = afterHours ? (screenStandbyTex || bossTvTexture) : (bossTvTexture || screenWorkingFrames[0]);
+        if (nextBossTvTex && bossTvMat.map !== nextBossTvTex) {
+          bossTvMat.map = nextBossTvTex;
+          bossTvMat.needsUpdate = true;
         }
       }
       const workFrameIdx = Math.floor(t / 0.35) % screenWorkingFrames.length;
