@@ -1217,6 +1217,7 @@
             <button type="button" class="cam-btn" onclick="setCameraPreset('top')">Top-Down</button>
             <button type="button" class="cam-btn" onclick="setCameraPreset('front')">Front Row</button>
             <button type="button" class="cam-btn" onclick="focusSelectedCubicle()" title="Zoom in on selected cubicle">Focus Desk</button>
+            <button type="button" class="cam-btn" onclick="focusBossCabin()" title="Zoom in on Karishma's Boss Cabin" style="color:#fde047;">Boss Cabin</button>
             <button type="button" class="cam-btn" onclick="focusOnCat()" title="Jump camera to Mochi the Office Cat" style="color:#fdba74;">Find Cat</button>
             <div class="cam-zoom-wrap">
               <button type="button" class="cam-btn" onclick="nudgeZoom(3.5)" aria-label="Zoom out" title="Zoom out">&minus;</button>
@@ -1483,6 +1484,10 @@
     return t.date < getLocalYmd();
   }
 
+  function isBossWorker(w) {
+    return /^karishma\b/i.test(String(w && w.name || '').trim());
+  }
+
   function buildWorkerBuckets(tasks) {
     const map = new Map();
     TEAM_MEMBERS.forEach(name => {
@@ -1580,6 +1585,7 @@
 
     if (!worker) {
       avatarEl.textContent = 'WP';
+      avatarEl.style.background = '';
       nameEl.textContent = 'No Matching Cubicles';
       statusEl.textContent = 'Try clearing filters or search';
       document.getElementById('d-count-ip').textContent = '0';
@@ -1589,8 +1595,11 @@
       return;
     }
 
-    avatarEl.textContent = getInitials(worker.name);
-    nameEl.textContent = worker.name;
+    avatarEl.textContent = isBossWorker(worker) ? '★' : getInitials(worker.name);
+    avatarEl.style.background = isBossWorker(worker)
+      ? 'linear-gradient(135deg, #d97706, #b9162e)'
+      : '';
+    nameEl.textContent = isBossWorker(worker) ? `${worker.name} · Boss Cabin` : worker.name;
 
     const hasPendingOnly = worker.inprogress.length > 0 && worker.inprogress.every(t => Boolean(t.pendingFeedback));
     if (worker.inprogress.length > 0 && !hasPendingOnly) {
@@ -1697,7 +1706,9 @@
     goalDistance: 32,
     goalX: 0,
     goalZ: 0,
-    initialSpanDistance: 32
+    initialSpanDistance: 32,
+    homeX: 0,
+    homeZ: 0
   };
 
   // Retro palette sets per character hash
@@ -1861,20 +1872,21 @@
     });
   }
 
-  function getNameplateTexture(name, isWorking) {
-    const key = name + '|' + (isWorking ? '1' : '0');
+  function getNameplateTexture(name, isWorking, isBoss = false) {
+    const key = name + '|' + (isWorking ? '1' : '0') + '|' + (isBoss ? 'B' : 'W');
     if (nameplateTextureCache.has(key)) return nameplateTextureCache.get(key);
-    const shortName = String(name || '').split(' ')[0].toUpperCase().slice(0, 11);
-    const tex = makePixelCanvasTexture(128, 32, (ctx, w, h) => {
-      ctx.fillStyle = '#081e30';
+    const first = String(name || '').split(' ')[0].toUpperCase();
+    const shortName = isBoss ? ('BOSS · ' + first.slice(0, 8)) : first.slice(0, 11);
+    const tex = makePixelCanvasTexture(isBoss ? 156 : 128, 32, (ctx, w, h) => {
+      ctx.fillStyle = isBoss ? '#1c1208' : '#081e30';
       ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = isWorking ? '#38bdf8' : '#587aa8';
+      ctx.strokeStyle = isBoss ? '#fbbf24' : (isWorking ? '#38bdf8' : '#587aa8');
       ctx.lineWidth = 3;
       ctx.strokeRect(2, 2, w - 4, h - 4);
-      ctx.fillStyle = isWorking ? '#38bdf8' : '#34d399';
+      ctx.fillStyle = isBoss ? '#f59e0b' : (isWorking ? '#38bdf8' : '#34d399');
       ctx.fillRect(8, 11, 8, 10);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 14px "JetBrains Mono", monospace';
+      ctx.fillStyle = isBoss ? '#fef08a' : '#ffffff';
+      ctx.font = 'bold 13px "JetBrains Mono", monospace';
       ctx.textBaseline = 'middle';
       ctx.fillText(shortName, 22, 17);
     });
@@ -2119,6 +2131,488 @@
     return { root, rig, head, legFL, legFR, legBL, legBR, tailPivot, meowSprite };
   }
 
+  function addDeskWorkstationContent(parentGroup, worker, opts = {}) {
+    const nameHash = hashNameNum(worker.name);
+    const isBoss = Boolean(opts.isBoss);
+    const shirtColor = isBoss ? 0xb9162e : SHIRT_COLORS[nameHash % SHIRT_COLORS.length];
+    const skinColor = SKIN_COLORS[(nameHash >> 3) % SKIN_COLORS.length];
+    const hairColor = HAIR_COLORS[(nameHash >> 5) % HAIR_COLORS.length];
+    const hasGlasses = isBoss || (nameHash % 3 === 0);
+    const hasHeadphones = !isBoss && (nameHash % 4 === 1);
+    const isWorking = worker.inprogress.length > 0 && !worker.inprogress.every(t => Boolean(t.pendingFeedback));
+    const hasPendingOnly = worker.inprogress.length > 0 && worker.inprogress.every(t => Boolean(t.pendingFeedback));
+    const isSleeping = (worker.openCount === 0);
+
+    const deskColor = isBoss ? 0x6b3a24 : 0xd4a373;
+    const deskW = isBoss ? 3.3 : 2.85;
+    const deskD = isBoss ? 1.28 : 1.18;
+
+    // Desk
+    const deskTop = makeBox(deskW, 0.14, deskD, deskColor);
+    deskTop.position.set(0, 0.82, -0.96);
+    deskTop.userData = { hitType: 'cubicle', worker };
+    parentGroup.add(deskTop);
+    interactables.push(deskTop);
+
+    const legX = deskW / 2 - 0.16;
+    const legZMin = -0.96 - deskD / 2 + 0.12;
+    const legZMax = -0.96 + deskD / 2 - 0.12;
+    [[-legX, legZMin], [legX, legZMin], [-legX, legZMax], [legX, legZMax]].forEach(([lx, lz]) => {
+      const leg = makeBox(0.12, 0.72, 0.12, isBoss ? 0x3b2314 : 0x475569);
+      leg.position.set(lx, 0.42, lz);
+      parentGroup.add(leg);
+    });
+
+    // CRT Monitor + Pixel Screen + Keyboard + Mug
+    const monitorStand = makeBox(isBoss ? 0.42 : 0.32, 0.14, 0.24, 0x64748b);
+    monitorStand.position.set(-0.22, 0.96, -1.25);
+    parentGroup.add(monitorStand);
+
+    const monitorBody = makeBox(isBoss ? 0.96 : 0.76, isBoss ? 0.64 : 0.58, 0.52, isBoss ? 0x334155 : 0xd8cfc0);
+    monitorBody.position.set(-0.22, 1.32, -1.26);
+    parentGroup.add(monitorBody);
+
+    const scrTex = isWorking
+      ? screenWorkingFrames[0]
+      : (hasPendingOnly ? screenPendingFrames[0] : (isSleeping ? screenSleepFrames[0] : screenQueuedTex));
+    const scrMat = new THREE.MeshBasicMaterial({ map: scrTex });
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(isBoss ? 0.8 : 0.62, isBoss ? 0.48 : 0.44), scrMat);
+    screen.position.set(-0.22, 1.33, -0.995);
+    parentGroup.add(screen);
+
+    const keyboard = makeBox(0.68, 0.05, 0.24, 0xe2e8f0);
+    keyboard.position.set(-0.22, 0.915, -0.78);
+    parentGroup.add(keyboard);
+
+    // Mug + dual rising steam puffs
+    const mug = makeBox(0.16, 0.18, 0.16, isBoss ? 0xfbbf24 : 0xf43f5e);
+    mug.position.set(-1.12, 0.98, -0.72);
+    parentGroup.add(mug);
+    const steam1 = makeBox(0.08, 0.08, 0.08, 0xe2e8f0, { emissive: 0xffffff, emissiveIntensity: 0.35 });
+    steam1.position.set(-1.12, 1.16, -0.72);
+    steam1.visible = isWorking;
+    parentGroup.add(steam1);
+    const steam2 = makeBox(0.06, 0.06, 0.06, 0xbae6fd, { emissive: 0xffffff, emissiveIntensity: 0.25 });
+    steam2.position.set(-1.08, 1.24, -0.72);
+    steam2.visible = isWorking;
+    parentGroup.add(steam2);
+
+    // Warm Executive Brass Desk Lamp for Boss!
+    if (isBoss) {
+      const lampBase = makeBox(0.24, 0.06, 0.24, 0xfbbf24);
+      lampBase.position.set(-1.32, 0.92, -1.28);
+      parentGroup.add(lampBase);
+      const lampStem = makeBox(0.06, 0.34, 0.06, 0xd97706);
+      lampStem.position.set(-1.32, 1.1, -1.28);
+      parentGroup.add(lampStem);
+      const lampShade = makeBox(0.28, 0.16, 0.28, 0xfef08a, { emissive: 0xfbbf24, emissiveIntensity: 0.65 });
+      lampShade.position.set(-1.26, 1.28, -1.24);
+      parentGroup.add(lampShade);
+    }
+
+    // Active Open Tasks Pile on Right Side of Desk
+    const pileBaseX = isBoss ? 0.88 : 0.68;
+    const openStack = worker.openTasks;
+    const maxVisibleOpen = Math.min(openStack.length, 16);
+    for (let i = 0; i < maxVisibleOpen; i++) {
+      const task = openStack[i];
+      const { folderGroup } = buildFolderMesh(task);
+      const jitterX = (((i * 37) % 11) - 5) * 0.01;
+      const jitterZ = (((i * 23) % 9) - 4) * 0.01;
+      const jitterRot = (((i * 19) % 7) - 3) * 0.045;
+      folderGroup.position.set(pileBaseX + jitterX, 0.89 + i * 0.095, -0.74 + jitterZ);
+      folderGroup.rotation.y = jitterRot;
+      folderGroup.userData = { hitType: 'folder', worker, task };
+      folderGroup.traverse(ch => {
+        if (ch.isMesh) {
+          ch.userData = { hitType: 'folder', worker, task };
+          interactables.push(ch);
+        }
+      });
+      parentGroup.add(folderGroup);
+    }
+
+    // Active Open Folder right in front of worker when typing
+    let activeDeskFolder = null;
+    if (worker.inprogress.length > 0) {
+      const curTask = worker.inprogress[0];
+      const { folderGroup } = buildFolderMesh(curTask);
+      folderGroup.scale.set(0.88, 0.88, 0.88);
+      folderGroup.position.set(0.24, 0.89, -0.72);
+      folderGroup.rotation.y = 0.28;
+      folderGroup.traverse(ch => {
+        if (ch.isMesh) {
+          ch.userData = { hitType: 'folder', worker, task: curTask };
+          interactables.push(ch);
+        }
+      });
+      parentGroup.add(folderGroup);
+      activeDeskFolder = folderGroup;
+    }
+
+    // Done Tray Stack (Green Folders)
+    if (showDoneStack && worker.done.length > 0) {
+      const doneCap = Math.min(worker.done.length, 8);
+      const doneX = isBoss ? 1.24 : 1.06;
+      for (let i = 0; i < doneCap; i++) {
+        const task = worker.done[i];
+        const { folderGroup } = buildFolderMesh(task);
+        folderGroup.scale.set(0.82, 0.82, 0.82);
+        folderGroup.position.set(doneX, 0.89 + i * 0.075, -1.24);
+        folderGroup.rotation.y = (i % 2 === 0 ? 0.03 : -0.03);
+        folderGroup.traverse(ch => {
+          if (ch.isMesh) {
+            ch.userData = { hitType: 'folder', worker, task };
+            interactables.push(ch);
+          }
+        });
+        parentGroup.add(folderGroup);
+      }
+    }
+
+    // Blocky Swivel Chair (Plush Leather for Boss)
+    const chairColor = isBoss ? 0x0f172a : 0x1e3a5f;
+    const chairGroup = new THREE.Group();
+    chairGroup.position.set(-0.22, 0.12, -0.02);
+
+    const chairStem = makeBox(0.14, 0.34, 0.14, 0x334155);
+    chairStem.position.y = 0.17;
+    chairGroup.add(chairStem);
+    const chairBase = makeBox(0.56, 0.06, 0.56, 0x475569);
+    chairBase.position.y = 0.03;
+    chairGroup.add(chairBase);
+    const chairSeat = makeBox(isBoss ? 0.72 : 0.62, 0.12, 0.58, chairColor);
+    chairSeat.position.y = 0.38;
+    chairGroup.add(chairSeat);
+    const chairBack = makeBox(isBoss ? 0.68 : 0.58, isBoss ? 0.74 : 0.52, 0.12, chairColor);
+    chairBack.position.set(0, isBoss ? 0.78 : 0.68, 0.27);
+    chairGroup.add(chairBack);
+    if (isBoss) {
+      const chairGoldTop = makeBox(0.68, 0.06, 0.13, 0xfbbf24);
+      chairGoldTop.position.set(0, 1.16, 0.27);
+      chairGroup.add(chairGoldTop);
+    }
+    parentGroup.add(chairGroup);
+
+    // Blocky Person Character
+    const charRoot = new THREE.Group();
+    charRoot.position.set(-0.22, 0.55, -0.1);
+
+    const legL = makeBox(0.18, 0.18, 0.42, 0x1e293b);
+    legL.position.set(-0.14, 0.02, -0.18);
+    charRoot.add(legL);
+    const legR = makeBox(0.18, 0.18, 0.42, 0x1e293b);
+    legR.position.set(0.14, 0.02, -0.18);
+    charRoot.add(legR);
+
+    const upperBody = new THREE.Group();
+    upperBody.position.y = 0.1;
+    charRoot.add(upperBody);
+
+    const torso = makeBox(0.52, 0.5, 0.32, shirtColor);
+    torso.position.y = 0.26;
+    upperBody.add(torso);
+
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 0.72, 0);
+    upperBody.add(headGroup);
+
+    const headBox = makeBox(0.46, 0.44, 0.44, skinColor);
+    headGroup.add(headBox);
+
+    const hairTop = makeBox(0.5, 0.14, 0.48, hairColor);
+    hairTop.position.set(0, 0.22, 0);
+    headGroup.add(hairTop);
+    const hairBack = makeBox(0.48, 0.34, 0.1, hairColor);
+    hairBack.position.set(0, 0.06, 0.2);
+    headGroup.add(hairBack);
+
+    const eyeL = makeBox(0.07, 0.07, 0.04, 0x0f172a);
+    eyeL.position.set(-0.1, 0.02, -0.22);
+    headGroup.add(eyeL);
+    const eyeR = makeBox(0.07, 0.07, 0.04, 0x0f172a);
+    eyeR.position.set(0.1, 0.02, -0.22);
+    headGroup.add(eyeR);
+
+    if (hasGlasses) {
+      const glassBar = makeBox(0.36, 0.05, 0.05, 0x0f172a);
+      glassBar.position.set(0, 0.04, -0.235);
+      headGroup.add(glassBar);
+    }
+    if (hasHeadphones) {
+      const hpBand = makeBox(0.54, 0.08, 0.12, 0x38bdf8);
+      hpBand.position.set(0, 0.3, 0);
+      headGroup.add(hpBand);
+      const hpL = makeBox(0.08, 0.18, 0.18, 0x38bdf8);
+      hpL.position.set(-0.27, 0.02, 0);
+      headGroup.add(hpL);
+      const hpR = makeBox(0.08, 0.18, 0.18, 0x38bdf8);
+      hpR.position.set(0.27, 0.02, 0);
+      headGroup.add(hpR);
+    }
+
+    const armLGroup = new THREE.Group();
+    armLGroup.position.set(-0.34, 0.44, -0.04);
+    const armLMesh = makeBox(0.15, 0.15, 0.42, shirtColor);
+    armLMesh.position.set(0, -0.04, -0.18);
+    const handL = makeBox(0.13, 0.12, 0.12, skinColor);
+    handL.position.set(0, -0.04, -0.4);
+    armLGroup.add(armLMesh);
+    armLGroup.add(handL);
+    upperBody.add(armLGroup);
+
+    const armRGroup = new THREE.Group();
+    armRGroup.position.set(0.34, 0.44, -0.04);
+    const armRMesh = makeBox(0.15, 0.15, 0.42, shirtColor);
+    armRMesh.position.set(0, -0.04, -0.18);
+    const handR = makeBox(0.13, 0.12, 0.12, skinColor);
+    handR.position.set(0, -0.04, -0.4);
+    armRGroup.add(armRMesh);
+    armRGroup.add(handR);
+    upperBody.add(armRGroup);
+
+    charRoot.traverse(ch => {
+      if (ch.isMesh) {
+        ch.userData = { hitType: 'cubicle', worker };
+        interactables.push(ch);
+      }
+    });
+    parentGroup.add(charRoot);
+
+    const zzzSprites = [];
+    if (isSleeping && zzzSpriteTex) {
+      for (let z = 0; z < 3; z++) {
+        const spMat = new THREE.SpriteMaterial({
+          map: zzzSpriteTex,
+          transparent: true,
+          opacity: 0.9,
+          depthWrite: false
+        });
+        const sp = new THREE.Sprite(spMat);
+        sp.position.set(-0.18, 1.55 + z * 0.35, -0.45);
+        sp.scale.setScalar(0.26);
+        parentGroup.add(sp);
+        zzzSprites.push(sp);
+      }
+      upperBody.rotation.x = -0.78;
+      upperBody.position.z = -0.06;
+      headGroup.rotation.x = -0.36;
+      headGroup.rotation.z = 0.28;
+      armLGroup.rotation.x = -0.22;
+      armLGroup.rotation.y = -0.46;
+      armRGroup.rotation.x = -0.22;
+      armRGroup.rotation.y = 0.46;
+    }
+
+    return {
+      isWorking,
+      hasPendingOnly,
+      isSleeping,
+      phaseOffset: (nameHash % 100) * 0.1,
+      upperBody,
+      headGroup,
+      armLGroup,
+      armRGroup,
+      steam1,
+      steam2,
+      activeDeskFolder,
+      scrMat,
+      zzzSprites
+    };
+  }
+
+  function buildBossCabin(worker, cabinX, cabinZ) {
+    // Executive Cabin the exact footprint of 4 cubicles (7.4 x 7.4), completely open-top (NO ROOF)!
+    const cabin = new THREE.Group();
+    cabin.position.set(cabinX, 0, cabinZ);
+
+    const rigState = addWorkerCharacterRigBaseData(worker);
+
+    // 1. Luxury Executive Floor & Centerpiece Carpet Rug (7.4 x 7.4)
+    const parquetFloor = makeBox(7.4, 0.14, 7.4, 0x261d19);
+    parquetFloor.position.y = 0.07;
+    parquetFloor.userData = { hitType: 'cubicle', worker };
+    cabin.add(parquetFloor);
+    interactables.push(parquetFloor);
+
+    const rug = makeBox(4.8, 0.04, 4.2, 0x3b1224);
+    rug.position.set(0.2, 0.15, 0.45);
+    rug.userData = { hitType: 'cubicle', worker };
+    cabin.add(rug);
+    interactables.push(rug);
+    const rugBorder = makeBox(4.94, 0.03, 4.34, 0xfbbf24);
+    rugBorder.position.set(0.2, 0.145, 0.45);
+    cabin.add(rugBorder);
+
+    const isSelected = (selectedPerson === worker.name);
+    const ring = makeBox(7.52, 0.06, 7.52, isSelected ? 0xfbbf24 : 0x6b3a24, {
+      emissive: isSelected ? 0xfbbf24 : 0x000000,
+      emissiveIntensity: isSelected ? 0.55 : 0
+    });
+    ring.position.y = 0.03;
+    ring.visible = isSelected;
+    cabin.add(ring);
+
+    // 2. Open-Top Walls (NO ROOF): Solid back wall + Half-glass front/right + Open aisle doorway on left (-X)!
+    const solidWallHex = 0x163a56;
+    const brassTrimHex = 0xfbbf24;
+    const glassMat = new THREE.MeshLambertMaterial({
+      color: 0x7dd3fc,
+      transparent: true,
+      opacity: 0.2,
+      depthWrite: false
+    });
+    const addGlassWallSeg = (w, h, d, x, y, z) => {
+      const base = makeBox(w, 0.28, d, solidWallHex);
+      base.position.set(x, 0.28, z);
+      cabin.add(base);
+      const glass = new THREE.Mesh(new THREE.BoxGeometry(w * 0.98, h, d * 0.55), glassMat);
+      glass.position.set(x, 0.42 + h / 2, z);
+      cabin.add(glass);
+      const rail = makeBox(w, 0.06, d, brassTrimHex);
+      rail.position.set(x, 0.42 + h + 0.03, z);
+      cabin.add(rail);
+    };
+
+    // Back Solid Wall (-Z)
+    const backWall = makeBox(7.4, 1.56, 0.18, solidWallHex);
+    backWall.position.set(0, 0.92, -3.61);
+    backWall.userData = { hitType: 'cubicle', worker };
+    cabin.add(backWall);
+    interactables.push(backWall);
+    const backTrim = makeBox(7.44, 0.08, 0.2, brassTrimHex);
+    backTrim.position.set(0, 1.72, -3.61);
+    cabin.add(backTrim);
+
+    // Left Aisle Wall (-X) with 2.2-unit Wide Open Doorway to Cubicle Walkways
+    addGlassWallSeg(0.16, 1.15, 2.35, -3.62, 0, -2.42);
+    addGlassWallSeg(0.16, 1.15, 2.55, -3.62, 0, 2.32);
+    // Corner Doorway Frame Posts
+    const doorPostTop = makeBox(0.2, 1.6, 0.2, brassTrimHex);
+    doorPostTop.position.set(-3.62, 0.94, -1.2);
+    cabin.add(doorPostTop);
+    const doorPostBot = makeBox(0.2, 1.6, 0.2, brassTrimHex);
+    doorPostBot.position.set(-3.62, 0.94, 1.0);
+    cabin.add(doorPostBot);
+
+    // Front (+Z) & Right (+X) Crystal Glass Perimeter Walls (full view into cabin!)
+    addGlassWallSeg(7.32, 0.98, 0.14, 0, 0, 3.63);
+    addGlassWallSeg(0.14, 0.98, 7.26, 3.63, 0, 0);
+
+    // 3. Boss Door Signpost & Beacon
+    const plateTex = getNameplateTexture(worker.name, rigState.isWorking, true);
+    const plateSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: plateTex, transparent: true }));
+    plateSprite.position.set(-3.62, 2.08, -0.1);
+    plateSprite.scale.set(1.68, 0.38, 1);
+    plateSprite.userData = { hitType: 'cubicle', worker };
+    cabin.add(plateSprite);
+    interactables.push(plateSprite);
+
+    // 4. Back Wall Strategy Whiteboard & Mahogany Credenza w/ Books & Gold Trophy
+    const whiteboard = makeBox(2.4, 0.92, 0.06, 0xf8fafc);
+    whiteboard.position.set(0.2, 1.22, -3.48);
+    cabin.add(whiteboard);
+    [[0x38bdf8, -0.5, 1.32, 0.55], [0x34d399, 0.15, 1.24, 0.7], [0xf43f5e, 0.8, 1.38, 0.45]].forEach(([c, wx, wy, ww]) => {
+      const bar = makeBox(ww, 0.14, 0.04, c);
+      bar.position.set(wx, wy, -3.43);
+      cabin.add(bar);
+    });
+
+    const credenza = makeBox(2.3, 0.72, 0.58, 0x5c321e);
+    credenza.position.set(-2.05, 0.5, -3.22);
+    cabin.add(credenza);
+    [0xf43f5e, 0x38bdf8, 0xfbbf24, 0x34d399].forEach((bc, bi) => {
+      const book = makeBox(0.12, 0.34, 0.28, bc);
+      book.position.set(-2.75 + bi * 0.15, 1.03, -3.22);
+      cabin.add(book);
+    });
+    const trophy = makeBox(0.24, 0.32, 0.24, 0xfbbf24, { emissive: 0xf59e0b, emissiveIntensity: 0.45 });
+    trophy.position.set(-1.35, 1.04, -3.22);
+    cabin.add(trophy);
+
+    // 5. Boss Executive Corner Plant & Lounge Sofa + Guest Chairs + Coffee Table
+    const bossPlant = buildPottedPlant(9);
+    bossPlant.scale.set(1.25, 1.3, 1.25);
+    bossPlant.position.set(2.85, 0.12, -2.85);
+    cabin.add(bossPlant);
+
+    // Cozy Lounge Sofa in Front-Right Glass Corner
+    const sofaBase = makeBox(2.1, 0.34, 0.9, 0x1e3a5f);
+    sofaBase.position.set(2.15, 0.31, 2.65);
+    cabin.add(sofaBase);
+    const sofaBack = makeBox(2.1, 0.5, 0.22, 0x162d4a);
+    sofaBack.position.set(2.15, 0.64, 3.0);
+    cabin.add(sofaBack);
+    const sofaPillow = makeBox(0.45, 0.3, 0.2, 0xf43f5e);
+    sofaPillow.position.set(1.45, 0.58, 2.75);
+    cabin.add(sofaPillow);
+
+    // Coffee table in front of sofa
+    const cTable = makeBox(1.1, 0.32, 0.65, 0x7c4a2d);
+    cTable.position.set(2.1, 0.3, 1.45);
+    cabin.add(cTable);
+    const miniPlant = makeBox(0.2, 0.24, 0.2, 0x34d399);
+    miniPlant.position.set(2.1, 0.58, 1.45);
+    cabin.add(miniPlant);
+
+    // Two Visitor Chairs facing Boss Desk (1:1 review setup)
+    [-0.95, 0.55].forEach(vx => {
+      const vcSeat = makeBox(0.58, 0.38, 0.55, 0x264b73);
+      vcSeat.position.set(vx, 0.33, 1.45);
+      cabin.add(vcSeat);
+      const vcBack = makeBox(0.58, 0.48, 0.1, 0x1a3859);
+      vcBack.position.set(vx, 0.62, 1.68);
+      cabin.add(vcBack);
+    });
+
+    // 6. Executive Workstation + Folder Piles rotated facing OUTWARD (+Z) toward doorway & team!
+    const execDeskPivot = new THREE.Group();
+    execDeskPivot.position.set(-0.2, 0.14, -1.65);
+    execDeskPivot.rotation.y = Math.PI;
+    cabin.add(execDeskPivot);
+
+    const rig = addDeskWorkstationContent(execDeskPivot, worker, { isBoss: true });
+
+    const beaconColor = rig.isWorking
+      ? 0xfbbf24
+      : (rig.hasPendingOnly ? 0xf59e0b : (rig.isSleeping ? 0x818cf8 : 0x34d399));
+    const beacon = makeBox(0.24, 0.24, 0.24, beaconColor, {
+      emissive: beaconColor,
+      emissiveIntensity: rig.isSleeping ? 0.45 : 0.85
+    });
+    beacon.position.set(-3.62, 1.92, -1.2);
+    cabin.add(beacon);
+
+    cubicleVisuals.push({
+      worker,
+      gx: cabinX,
+      gz: cabinZ,
+      isBoss: true,
+      isWorking: rig.isWorking,
+      hasPendingOnly: rig.hasPendingOnly,
+      isSleeping: rig.isSleeping,
+      phaseOffset: rig.phaseOffset,
+      upperBody: rig.upperBody,
+      headGroup: rig.headGroup,
+      armLGroup: rig.armLGroup,
+      armRGroup: rig.armRGroup,
+      steam1: rig.steam1,
+      steam2: rig.steam2,
+      activeDeskFolder: rig.activeDeskFolder,
+      scrMat: rig.scrMat,
+      beacon,
+      ring,
+      zzzSprites: rig.zzzSprites
+    });
+
+    worldGroup.add(cabin);
+  }
+
+  function addWorkerCharacterRigBaseData(worker) {
+    const isWorking = worker.inprogress.length > 0 && !worker.inprogress.every(t => Boolean(t.pendingFeedback));
+    return { isWorking };
+  }
+
   function buildCubicle(worker, clusterX, clusterZ, quadrantIdx) {
     // 2x2 Pinwheel Quad Cluster: each cubicle has local (-1.85..+1.85) with
     // TWO shared inner walls at local -Z and local -X meeting at cluster center (clusterX, clusterZ),
@@ -2143,15 +2637,7 @@
     group.position.set(1.85, 0, 1.85);
     pivot.add(group);
 
-    const nameHash = hashNameNum(worker.name);
-    const shirtColor = SHIRT_COLORS[nameHash % SHIRT_COLORS.length];
-    const skinColor = SKIN_COLORS[(nameHash >> 3) % SKIN_COLORS.length];
-    const hairColor = HAIR_COLORS[(nameHash >> 5) % HAIR_COLORS.length];
-    const hasGlasses = (nameHash % 3 === 0);
-    const hasHeadphones = (nameHash % 4 === 1);
-    const isWorking = worker.inprogress.length > 0 && !worker.inprogress.every(t => Boolean(t.pendingFeedback));
-    const hasPendingOnly = worker.inprogress.length > 0 && worker.inprogress.every(t => Boolean(t.pendingFeedback));
-    const isSleeping = (worker.openCount === 0);
+    const rigInfo = addWorkerCharacterRigBaseData(worker);
 
     // 1. Floor Carpet Pad + Selection Rim
     const floorMat = new THREE.MeshLambertMaterial({ map: carpetTileTexture });
@@ -2194,7 +2680,7 @@
     leftTrim.position.set(-1.78, 1.43, 0.07);
     group.add(leftTrim);
 
-    // Cute corkboard & sticky note pixels on shared back spine wall
+    // Corkboard & sticky note pixels on shared back spine wall
     const cork = makeBox(1.06, 0.46, 0.05, 0x9c6b3b);
     cork.position.set(-0.85, 1.08, -1.68);
     group.add(cork);
@@ -2210,12 +2696,12 @@
       group.add(note3);
     }
 
-    // Outer Aisle Corner Post + Camera-Facing Pixel Nameplate Sprite (always upright & readable!)
+    // Outer Aisle Corner Post + Camera-Facing Pixel Nameplate Sprite
     const post = makeBox(0.11, 0.85, 0.11, 0x64748b);
     post.position.set(1.52, 0.54, 1.52);
     group.add(post);
 
-    const plateTex = getNameplateTexture(worker.name, isWorking);
+    const plateTex = getNameplateTexture(worker.name, rigInfo.isWorking, false);
     const plateSpriteMat = new THREE.SpriteMaterial({ map: plateTex, transparent: true });
     const plateSprite = new THREE.Sprite(plateSpriteMat);
     plateSprite.position.set(1.52, 1.14, 1.52);
@@ -2224,278 +2710,38 @@
     group.add(plateSprite);
     interactables.push(plateSprite);
 
-    // 3. Retro Blocky Desk
-    const deskTop = makeBox(2.85, 0.14, 1.18, 0xd4a373);
-    deskTop.position.set(0, 0.82, -0.96);
-    deskTop.userData = { hitType: 'cubicle', worker };
-    group.add(deskTop);
-    interactables.push(deskTop);
+    const rig = addDeskWorkstationContent(group, worker, { isBoss: false });
 
-    [[-1.28, -1.45], [1.28, -1.45], [-1.28, -0.46], [1.28, -0.46]].forEach(([lx, lz]) => {
-      const leg = makeBox(0.12, 0.72, 0.12, 0x475569);
-      leg.position.set(lx, 0.42, lz);
-      group.add(leg);
-    });
-
-    // 4. Retro CRT Monitor + Pixel Screen + Keyboard + Coffee Mug
-    const monitorStand = makeBox(0.32, 0.14, 0.24, 0x64748b);
-    monitorStand.position.set(-0.22, 0.96, -1.25);
-    group.add(monitorStand);
-
-    const monitorBody = makeBox(0.76, 0.58, 0.52, 0xd8cfc0);
-    monitorBody.position.set(-0.22, 1.3, -1.26);
-    group.add(monitorBody);
-
-    const scrTex = isWorking
-      ? screenWorkingFrames[0]
-      : (hasPendingOnly ? screenPendingFrames[0] : (isSleeping ? screenSleepFrames[0] : screenQueuedTex));
-    const scrMat = new THREE.MeshBasicMaterial({ map: scrTex });
-    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.44), scrMat);
-    screen.position.set(-0.22, 1.31, -0.995);
-    group.add(screen);
-
-    const keyboard = makeBox(0.68, 0.05, 0.24, 0xe2e8f0);
-    keyboard.position.set(-0.22, 0.915, -0.78);
-    group.add(keyboard);
-
-    // Cute retro coffee mug + dual rising pixel steam puffs
-    const mug = makeBox(0.16, 0.18, 0.16, 0xf43f5e);
-    mug.position.set(-1.12, 0.98, -0.72);
-    group.add(mug);
-    const steam1 = makeBox(0.08, 0.08, 0.08, 0xe2e8f0, { emissive: 0xffffff, emissiveIntensity: 0.35 });
-    steam1.position.set(-1.12, 1.16, -0.72);
-    steam1.visible = isWorking;
-    group.add(steam1);
-    const steam2 = makeBox(0.06, 0.06, 0.06, 0xbae6fd, { emissive: 0xffffff, emissiveIntensity: 0.25 });
-    steam2.position.set(-1.08, 1.24, -0.72);
-    steam2.visible = isWorking;
-    group.add(steam2);
-
-    // 5. PILE OF FOLDERS ON THE DESK! (Real Tasks!)
-    // Active Open Tasks Pile on Right Side of Desk (x = +0.68, z = -0.74)
-    const openStack = worker.openTasks;
-    const maxVisibleOpen = Math.min(openStack.length, 16);
-    for (let i = 0; i < maxVisibleOpen; i++) {
-      const task = openStack[i];
-      const { folderGroup } = buildFolderMesh(task);
-      const jitterX = (((i * 37) % 11) - 5) * 0.01;
-      const jitterZ = (((i * 23) % 9) - 4) * 0.01;
-      const jitterRot = (((i * 19) % 7) - 3) * 0.045;
-      folderGroup.position.set(0.68 + jitterX, 0.89 + i * 0.095, -0.74 + jitterZ);
-      folderGroup.rotation.y = jitterRot;
-      folderGroup.userData = { hitType: 'folder', worker, task };
-      folderGroup.traverse(ch => {
-        if (ch.isMesh) {
-          ch.userData = { hitType: 'folder', worker, task };
-          interactables.push(ch);
-        }
-      });
-      group.add(folderGroup);
-    }
-
-    // Active Open Folder right in front of them if typing!
-    let activeDeskFolder = null;
-    if (worker.inprogress.length > 0) {
-      const curTask = worker.inprogress[0];
-      const { folderGroup } = buildFolderMesh(curTask);
-      folderGroup.scale.set(0.88, 0.88, 0.88);
-      folderGroup.position.set(0.18, 0.89, -0.72);
-      folderGroup.rotation.y = 0.28;
-      folderGroup.traverse(ch => {
-        if (ch.isMesh) {
-          ch.userData = { hitType: 'folder', worker, task: curTask };
-          interactables.push(ch);
-        }
-      });
-      group.add(folderGroup);
-      activeDeskFolder = folderGroup;
-    }
-
-    // Done Tray Stack (Green Folders) on Back-Right Corner of Desk
-    if (showDoneStack && worker.done.length > 0) {
-      const doneCap = Math.min(worker.done.length, 8);
-      for (let i = 0; i < doneCap; i++) {
-        const task = worker.done[i];
-        const { folderGroup } = buildFolderMesh(task);
-        folderGroup.scale.set(0.82, 0.82, 0.82);
-        folderGroup.position.set(1.06, 0.89 + i * 0.075, -1.24);
-        folderGroup.rotation.y = (i % 2 === 0 ? 0.03 : -0.03);
-        folderGroup.traverse(ch => {
-          if (ch.isMesh) {
-            ch.userData = { hitType: 'folder', worker, task };
-            interactables.push(ch);
-          }
-        });
-        group.add(folderGroup);
-      }
-    }
-
-    // 6. Blocky Swivel Chair + Cute Blocky Person!
-    const chairGroup = new THREE.Group();
-    chairGroup.position.set(-0.22, 0.12, -0.02);
-
-    const chairStem = makeBox(0.14, 0.34, 0.14, 0x334155);
-    chairStem.position.y = 0.17;
-    chairGroup.add(chairStem);
-    const chairBase = makeBox(0.56, 0.06, 0.56, 0x475569);
-    chairBase.position.y = 0.03;
-    chairGroup.add(chairBase);
-    const chairSeat = makeBox(0.62, 0.1, 0.56, 0x1e3a5f);
-    chairSeat.position.y = 0.38;
-    chairGroup.add(chairSeat);
-    const chairBack = makeBox(0.58, 0.52, 0.1, 0x1e3a5f);
-    chairBack.position.set(0, 0.68, 0.26);
-    chairGroup.add(chairBack);
-    group.add(chairGroup);
-
-    // Blocky Worker Character
-    const charRoot = new THREE.Group();
-    charRoot.position.set(-0.22, 0.55, -0.1);
-
-    // Legs (seated toward desk -Z)
-    const legL = makeBox(0.18, 0.18, 0.42, 0x1e293b);
-    legL.position.set(-0.14, 0.02, -0.18);
-    charRoot.add(legL);
-    const legR = makeBox(0.18, 0.18, 0.42, 0x1e293b);
-    legR.position.set(0.14, 0.02, -0.18);
-    charRoot.add(legR);
-
-    // Upper body group (for cozy typing bob / lean)
-    const upperBody = new THREE.Group();
-    upperBody.position.y = 0.1;
-    charRoot.add(upperBody);
-
-    const torso = makeBox(0.52, 0.5, 0.32, shirtColor);
-    torso.position.y = 0.26;
-    upperBody.add(torso);
-
-    // Head Group
-    const headGroup = new THREE.Group();
-    headGroup.position.set(0, 0.72, 0);
-    upperBody.add(headGroup);
-
-    const headBox = makeBox(0.46, 0.44, 0.44, skinColor);
-    headGroup.add(headBox);
-
-    // Hair Cap
-    const hairTop = makeBox(0.5, 0.14, 0.48, hairColor);
-    hairTop.position.set(0, 0.22, 0);
-    headGroup.add(hairTop);
-    const hairBack = makeBox(0.48, 0.34, 0.1, hairColor);
-    hairBack.position.set(0, 0.06, 0.2);
-    headGroup.add(hairBack);
-
-    // Cute Pixel Eyes (facing -Z toward monitor)
-    const eyeL = makeBox(0.07, 0.07, 0.04, 0x0f172a);
-    eyeL.position.set(-0.1, 0.02, -0.22);
-    headGroup.add(eyeL);
-    const eyeR = makeBox(0.07, 0.07, 0.04, 0x0f172a);
-    eyeR.position.set(0.1, 0.02, -0.22);
-    headGroup.add(eyeR);
-
-    if (hasGlasses) {
-      const glassBar = makeBox(0.36, 0.05, 0.05, 0x0f172a);
-      glassBar.position.set(0, 0.04, -0.235);
-      headGroup.add(glassBar);
-    }
-    if (hasHeadphones) {
-      const hpBand = makeBox(0.54, 0.08, 0.12, 0x38bdf8);
-      hpBand.position.set(0, 0.3, 0);
-      headGroup.add(hpBand);
-      const hpL = makeBox(0.08, 0.18, 0.18, 0x38bdf8);
-      hpL.position.set(-0.27, 0.02, 0);
-      headGroup.add(hpL);
-      const hpR = makeBox(0.08, 0.18, 0.18, 0x38bdf8);
-      hpR.position.set(0.27, 0.02, 0);
-      headGroup.add(hpR);
-    }
-
-    // Left & Right Typing Arms (hinged at shoulder)
-    const armLGroup = new THREE.Group();
-    armLGroup.position.set(-0.34, 0.44, -0.04);
-    const armLMesh = makeBox(0.15, 0.15, 0.42, shirtColor);
-    armLMesh.position.set(0, -0.04, -0.18);
-    const handL = makeBox(0.13, 0.12, 0.12, skinColor);
-    handL.position.set(0, -0.04, -0.4);
-    armLGroup.add(armLMesh);
-    armLGroup.add(handL);
-    upperBody.add(armLGroup);
-
-    const armRGroup = new THREE.Group();
-    armRGroup.position.set(0.34, 0.44, -0.04);
-    const armRMesh = makeBox(0.15, 0.15, 0.42, shirtColor);
-    armRMesh.position.set(0, -0.04, -0.18);
-    const handR = makeBox(0.13, 0.12, 0.12, skinColor);
-    handR.position.set(0, -0.04, -0.4);
-    armRGroup.add(armRMesh);
-    armRGroup.add(handR);
-    upperBody.add(armRGroup);
-
-    charRoot.traverse(ch => {
-      if (ch.isMesh) {
-        ch.userData = { hitType: 'cubicle', worker };
-        interactables.push(ch);
-      }
-    });
-    group.add(charRoot);
-
-    // Floating status beacon above outer corner post
-    const beaconColor = isWorking
+    const beaconColor = rig.isWorking
       ? 0x38bdf8
-      : (hasPendingOnly ? 0xfbbf24 : (isSleeping ? 0x818cf8 : 0xe8b95b));
+      : (rig.hasPendingOnly ? 0xfbbf24 : (rig.isSleeping ? 0x818cf8 : 0xe8b95b));
     const beacon = makeBox(0.2, 0.2, 0.2, beaconColor, {
       emissive: beaconColor,
-      emissiveIntensity: isSleeping ? 0.4 : 0.75
+      emissiveIntensity: rig.isSleeping ? 0.4 : 0.75
     });
     beacon.position.set(1.52, 1.56, 1.52);
     group.add(beacon);
-
-    // Floating Pixel "Zzz" Sprites for sleeping workers (no active tasks)!
-    const zzzSprites = [];
-    if (isSleeping && zzzSpriteTex) {
-      for (let z = 0; z < 3; z++) {
-        const spMat = new THREE.SpriteMaterial({
-          map: zzzSpriteTex,
-          transparent: true,
-          opacity: 0.9,
-          depthWrite: false
-        });
-        const sp = new THREE.Sprite(spMat);
-        sp.position.set(-0.18, 1.55 + z * 0.35, -0.45);
-        sp.scale.setScalar(0.26);
-        group.add(sp);
-        zzzSprites.push(sp);
-      }
-      // Initial resting pose hunched comfortably onto folded arms over desk
-      upperBody.rotation.x = -0.78;
-      upperBody.position.z = -0.06;
-      headGroup.rotation.x = -0.36;
-      headGroup.rotation.z = 0.28;
-      armLGroup.rotation.x = -0.22;
-      armLGroup.rotation.y = -0.46;
-      armRGroup.rotation.x = -0.22;
-      armRGroup.rotation.y = 0.46;
-    }
 
     cubicleVisuals.push({
       worker,
       gx: worldX,
       gz: worldZ,
-      isWorking,
-      hasPendingOnly,
-      isSleeping,
-      phaseOffset: (nameHash % 100) * 0.1,
-      upperBody,
-      headGroup,
-      armLGroup,
-      armRGroup,
-      steam1,
-      steam2,
-      activeDeskFolder,
-      scrMat,
+      isBoss: false,
+      isWorking: rig.isWorking,
+      hasPendingOnly: rig.hasPendingOnly,
+      isSleeping: rig.isSleeping,
+      phaseOffset: rig.phaseOffset,
+      upperBody: rig.upperBody,
+      headGroup: rig.headGroup,
+      armLGroup: rig.armLGroup,
+      armRGroup: rig.armRGroup,
+      steam1: rig.steam1,
+      steam2: rig.steam2,
+      activeDeskFolder: rig.activeDeskFolder,
+      scrMat: rig.scrMat,
       beacon,
       ring,
-      zzzSprites
+      zzzSprites: rig.zzzSprites
     });
 
     worldGroup.add(pivot);
@@ -2533,11 +2779,11 @@
     keyLight.shadow.mapSize.width = 512;
     keyLight.shadow.mapSize.height = 512;
     keyLight.shadow.camera.near = 2;
-    keyLight.shadow.camera.far = 85;
-    keyLight.shadow.camera.left = -24;
-    keyLight.shadow.camera.right = 24;
-    keyLight.shadow.camera.top = 24;
-    keyLight.shadow.camera.bottom = -24;
+    keyLight.shadow.camera.far = 95;
+    keyLight.shadow.camera.left = -30;
+    keyLight.shadow.camera.right = 30;
+    keyLight.shadow.camera.top = 26;
+    keyLight.shadow.camera.bottom = -26;
     scene.add(keyLight);
 
     const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.35);
@@ -2592,50 +2838,69 @@
       return;
     }
 
-    // Group into 4-person 2x2 quad clusters separated by a clear narrow walkway path
-    const numClusters = Math.ceil(count / 4);
-    const clusterCols = numClusters <= 1 ? 1 : (numClusters <= 4 ? 2 : (numClusters <= 9 ? 3 : 4));
-    const clusterRows = Math.ceil(numClusters / clusterCols);
+    // Separate Karishma (Boss) into her own 4-cubicle-sized Executive Cabin on the right side wing!
+    const bossWorker = filtered.find(isBossWorker) || null;
+    const clusterWorkers = filtered.filter(w => !isBossWorker(w));
+
     const clusterSize = 7.4; // two 3.7 cubicles side-by-side sharing inner cross walls
-    const aisleGap = 1.8;    // clear small walkway path between clusters
+    const aisleGap = 1.8;    // clear small walkway path between clusters & cabin
     const clusterPitch = clusterSize + aisleGap;
 
-    const floorW = clusterCols * clusterPitch + 1.8;
-    const floorD = clusterRows * clusterPitch + 1.8;
+    const numClusters = clusterWorkers.length > 0 ? Math.ceil(clusterWorkers.length / 4) : 0;
+    const clusterCols = numClusters <= 1 ? numClusters : (numClusters <= 4 ? 2 : (numClusters <= 9 ? 3 : 4));
+    const clusterRows = numClusters > 0 ? Math.ceil(numClusters / clusterCols) : 1;
 
-    // Office main floor & crisp rectangular border trim (no overhanging grid lines)
+    const startClusterX = clusterCols > 0 ? -((clusterCols - 1) * clusterPitch) / 2 : 0;
+    const startClusterZ = clusterCols > 0 ? -((clusterRows - 1) * clusterPitch) / 2 : 0;
+
+    // Place Karishma's 7.4x7.4 Boss Cabin neatly on the right side across a 1.8 aisle
+    const hasClusters = clusterCols > 0;
+    const cabinX = hasClusters ? (startClusterX + clusterCols * clusterPitch) : 0;
+    const cabinZ = 0;
+
+    const leftEdgeX = hasClusters
+      ? (startClusterX - clusterSize / 2 - aisleGap)
+      : (cabinX - clusterSize / 2 - aisleGap);
+    const rightEdgeX = bossWorker
+      ? (cabinX + clusterSize / 2 + aisleGap)
+      : (startClusterX + (clusterCols - 1) * clusterPitch + clusterSize / 2 + aisleGap);
+
+    const floorCenterX = (leftEdgeX + rightEdgeX) / 2;
+    const floorW = rightEdgeX - leftEdgeX;
+    const floorD = Math.max(clusterRows, 1) * clusterPitch + 1.8;
+
+    // Office main floor & crisp rectangular border trim
     const subFloor = makeBox(floorW, 0.24, floorD, 0x071a29);
-    subFloor.position.set(0, -0.14, 0);
+    subFloor.position.set(floorCenterX, -0.14, 0);
     propsGroup.add(subFloor);
 
     const trimMat = new THREE.MeshLambertMaterial({ color: 0x1e4c70 });
     const borderTop = new THREE.Mesh(new THREE.BoxGeometry(floorW + 0.16, 0.08, 0.14), trimMat);
-    borderTop.position.set(0, -0.02, -floorD / 2);
+    borderTop.position.set(floorCenterX, -0.02, -floorD / 2);
     propsGroup.add(borderTop);
     const borderBot = borderTop.clone();
-    borderBot.position.set(0, -0.02, floorD / 2);
+    borderBot.position.set(floorCenterX, -0.02, floorD / 2);
     propsGroup.add(borderBot);
     const borderL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, floorD + 0.16), trimMat);
-    borderL.position.set(-floorW / 2, -0.02, 0);
+    borderL.position.set(leftEdgeX, -0.02, 0);
     propsGroup.add(borderL);
     const borderR = borderL.clone();
-    borderR.position.set(floorW / 2, -0.02, 0);
+    borderR.position.set(rightEdgeX, -0.02, 0);
     propsGroup.add(borderR);
 
-    const startClusterX = -((clusterCols - 1) * clusterPitch) / 2;
-    const startClusterZ = -((clusterRows - 1) * clusterPitch) / 2;
-
-    // Compute exact aisle corridor centerlines around and between every 2x2 cluster
+    // Compute exact aisle corridor centerlines including outer edge & path between clusters and Boss Cabin
     aisleGraph.xs = [];
     aisleGraph.zs = [];
-    for (let c = 0; c <= clusterCols; c++) {
-      aisleGraph.xs.push(startClusterX + (c - 0.5) * clusterPitch);
+    const totalXCols = clusterCols + (bossWorker ? 1 : 0);
+    const baseStartX = hasClusters ? startClusterX : cabinX;
+    for (let c = 0; c <= totalXCols; c++) {
+      aisleGraph.xs.push(baseStartX + (c - 0.5) * clusterPitch);
     }
-    for (let r = 0; r <= clusterRows; r++) {
+    for (let r = 0; r <= Math.max(1, clusterRows); r++) {
       aisleGraph.zs.push(startClusterZ + (r - 0.5) * clusterPitch);
     }
 
-    // Subtle inlaid pathway strips along all walkable corridors so cluster paths read clearly
+    // Subtle inlaid pathway strips along all walkable corridors
     const pathMat = new THREE.MeshLambertMaterial({ color: 0x102d44 });
     aisleGraph.xs.forEach(ax => {
       const strip = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.02, floorD - 1.2), pathMat);
@@ -2645,13 +2910,13 @@
     });
     aisleGraph.zs.forEach(az => {
       const strip = new THREE.Mesh(new THREE.BoxGeometry(floorW - 1.2, 0.02, 0.95), pathMat);
-      strip.position.set(0, 0.005, az);
+      strip.position.set(floorCenterX, 0.005, az);
       strip.receiveShadow = true;
       propsGroup.add(strip);
     });
 
     // Place cubicles in 4-pod pinwheel clusters (q = 0..3 sharing two inner walls)
-    filtered.forEach((worker, idx) => {
+    clusterWorkers.forEach((worker, idx) => {
       const clusterIdx = Math.floor(idx / 4);
       const quadrantIdx = idx % 4;
       const cc = clusterIdx % clusterCols;
@@ -2661,26 +2926,32 @@
       buildCubicle(worker, cx, cz, quadrantIdx);
     });
 
-    // Cozy Retro Office Perimeter Props (tucked just outside outer aisle corners so cat paths stay unobstructed)
-    const propHalfW = floorW / 2 - 0.45;
+    // Place Karishma's 4-Cubicle-Sized Open-Top Boss Cabin on the right side!
+    if (bossWorker) {
+      buildBossCabin(bossWorker, cabinX, cabinZ);
+    }
+
+    // Cozy Retro Office Perimeter Props
+    const propMinX = leftEdgeX + 0.45;
+    const propMaxX = rightEdgeX - 0.45;
     const propHalfD = floorD / 2 - 0.45;
-    [[-propHalfW, -propHalfD], [propHalfW, propHalfD], [-propHalfW, propHalfD]].forEach(([px, pz], idx) => {
+    [[propMinX, -propHalfD], [propMaxX, propHalfD], [propMinX, propHalfD]].forEach(([px, pz], idx) => {
       const plant = buildPottedPlant(idx);
       plant.position.set(px, 0, pz);
       propsGroup.add(plant);
     });
     const cooler = buildWaterCooler();
-    cooler.position.set(propHalfW, 0, -propHalfD);
+    cooler.position.set(propMaxX, 0, -propHalfD);
     propsGroup.add(cooler);
 
     // Spawn Mochi the Office Cat on the aisle grid!
     catVisual = buildOfficeCat();
     if (!catState.initialized || catState.ix >= aisleGraph.xs.length || catState.iz >= aisleGraph.zs.length) {
-      const midIx = Math.floor(aisleGraph.xs.length / 2);
+      const midIx = Math.max(0, aisleGraph.xs.length - 2); // spawns right along the Boss Cabin / cluster main aisle!
       const midIz = Math.floor(aisleGraph.zs.length / 2);
       catState.ix = midIx;
       catState.iz = midIz;
-      catState.targetIx = Math.min(aisleGraph.xs.length - 1, midIx + 1);
+      catState.targetIx = Math.max(0, midIx - 1);
       catState.targetIz = midIz;
       catState.x = aisleGraph.xs[catState.ix];
       catState.z = aisleGraph.zs[catState.iz];
@@ -2690,10 +2961,16 @@
     catVisual.root.position.set(catState.x, 0, catState.z);
     catVisual.root.rotation.y = catState.heading;
 
-    // Adjust camera distance nicely to frame whole cluster grid
+    // Frame whole office grid + Boss Cabin nicely
     const span = Math.max(floorW, floorD);
-    camState.initialSpanDistance = Math.min(54, Math.max(22, span * 1.24));
+    camState.homeX = floorCenterX;
+    camState.homeZ = 0;
+    camState.initialSpanDistance = Math.min(58, Math.max(22, span * 1.16));
     if (!worldGroup.datasetHasFramedOnce) {
+      camState.targetX = camState.homeX;
+      camState.goalX = camState.homeX;
+      camState.targetZ = camState.homeZ;
+      camState.goalZ = camState.homeZ;
       camState.goalDistance = camState.initialSpanDistance;
       camState.distance = camState.initialSpanDistance;
       worldGroup.datasetHasFramedOnce = true;
@@ -2748,21 +3025,23 @@
   }
 
   function setCameraPreset(preset) {
+    const hx = camState.homeX || 0;
+    const hz = camState.homeZ || 0;
     if (preset === 'top') {
       camState.goalAzimuth = 0.0;
       camState.goalPolar = 0.24;
-      camState.goalX = 0;
-      camState.goalZ = 0;
+      camState.goalX = hx;
+      camState.goalZ = hz;
     } else if (preset === 'front') {
       camState.goalAzimuth = 0.0;
       camState.goalPolar = 1.05;
-      camState.goalX = 0;
-      camState.goalZ = 0;
+      camState.goalX = hx;
+      camState.goalZ = hz;
     } else {
       camState.goalAzimuth = 0.72;
       camState.goalPolar = 0.88;
-      camState.goalX = 0;
-      camState.goalZ = 0;
+      camState.goalX = hx;
+      camState.goalZ = hz;
       if (camState.initialSpanDistance) camState.goalDistance = camState.initialSpanDistance;
       syncZoomSlider();
     }
@@ -2772,9 +3051,9 @@
     const cv = cubicleVisuals.find(c => c.worker.name === personName);
     if (!cv) return;
     camState.goalX = cv.gx;
-    camState.goalZ = cv.gz - 0.35;
-    camState.goalDistance = distance;
-    camState.goalPolar = 0.92;
+    camState.goalZ = cv.gz - (cv.isBoss ? 0 : 0.35);
+    camState.goalDistance = cv.isBoss ? Math.max(distance, 12.5) : distance;
+    camState.goalPolar = 0.88;
     syncZoomSlider();
   }
 
@@ -2784,6 +3063,27 @@
     } else if (cubicleVisuals.length > 0) {
       focusCubicleByName(cubicleVisuals[0].worker.name, 8.2);
     }
+  }
+
+  function focusBossCabin() {
+    const bossCv = cubicleVisuals.find(c => c.isBoss);
+    if (!bossCv) return;
+    selectedPerson = bossCv.worker.name;
+    selectedTaskId = null;
+    cubicleVisuals.forEach(cv => {
+      const isSel = (cv.worker.name === selectedPerson);
+      cv.ring.visible = isSel;
+      if (cv.isBoss) {
+        cv.ring.material.color.setHex(isSel ? 0xfbbf24 : 0x6b3a24);
+        cv.ring.material.emissive.setHex(isSel ? 0xfbbf24 : 0x000000);
+      } else {
+        cv.ring.material.color.setHex(isSel ? 0x38bdf8 : 0x1d4b6e);
+        cv.ring.material.emissive.setHex(isSel ? 0x38bdf8 : 0x000000);
+      }
+      cv.ring.material.emissiveIntensity = isSel ? 0.65 : 0;
+    });
+    renderDossierPanel();
+    focusCubicleByName(bossCv.worker.name, 13.5);
   }
 
   function triggerCatMeow() {
@@ -2841,9 +3141,10 @@
       subEl.textContent = bits.length > 0 ? bits.join(' · ') : 'Click folder to highlight in desk list';
     } else if (hitData.worker) {
       const w = hitData.worker;
-      eyebrowEl.textContent = w.openCount === 0
+      const bossTag = isBossWorker(w) ? 'BOSS CABIN · ' : '';
+      eyebrowEl.textContent = bossTag + (w.openCount === 0
         ? 'SLEEPING · ZZZ'
-        : (w.inprogress.length > 0 ? 'TYPING AWAY' : 'BACKLOG ON DESK');
+        : (w.inprogress.length > 0 ? 'TYPING AWAY' : 'BACKLOG ON DESK'));
       titleEl.textContent = w.name;
       subEl.textContent = w.openCount === 0
         ? (w.done.length > 0 ? `Catching Zzzs · ${w.done.length} cleared` : 'No active folders — sleeping at desk')
@@ -3002,9 +3303,14 @@
             cubicleVisuals.forEach(cv => {
               const isSel = (cv.worker.name === selectedPerson);
               cv.ring.visible = isSel;
-              cv.ring.material.color.setHex(isSel ? 0x38bdf8 : 0x1d4b6e);
-              cv.ring.material.emissive.setHex(isSel ? 0x38bdf8 : 0x000000);
-              cv.ring.material.emissiveIntensity = isSel ? 0.55 : 0;
+              if (cv.isBoss) {
+                cv.ring.material.color.setHex(isSel ? 0xfbbf24 : 0x6b3a24);
+                cv.ring.material.emissive.setHex(isSel ? 0xfbbf24 : 0x000000);
+              } else {
+                cv.ring.material.color.setHex(isSel ? 0x38bdf8 : 0x1d4b6e);
+                cv.ring.material.emissive.setHex(isSel ? 0x38bdf8 : 0x000000);
+              }
+              cv.ring.material.emissiveIntensity = isSel ? 0.65 : 0;
             });
             renderDossierPanel();
           }
