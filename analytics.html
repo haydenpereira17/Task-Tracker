@@ -991,7 +991,7 @@
           </a>
         </div>
         <div class="nav-menu-wrap" id="header-nav-menu">
-          <button type="button" class="nav-menu-btn" id="header-nav-menu-btn" onclick="toggleHeaderMenu(event)" aria-label="Open menu" aria-expanded="false" aria-controls="header-nav-dropdown" title="Features &amp; Analytics">
+          <button type="button" class="nav-menu-btn" id="header-nav-menu-btn" onclick="toggleHeaderMenu(event)" aria-label="Open menu" aria-expanded="false" aria-controls="header-nav-dropdown" title="Navigation menu">
             <span class="nav-menu-bar"></span>
             <span class="nav-menu-bar"></span>
           </button>
@@ -1012,6 +1012,15 @@
               <span class="nav-menu-meta">
                 <span class="nav-menu-title">Analytics <span class="nav-menu-current-tag">Here</span></span>
                 <span class="nav-menu-sub">Completion time metrics</span>
+              </span>
+            </a>
+            <a href="sessions.html" class="nav-menu-item" role="menuitem">
+              <span class="nav-menu-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </span>
+              <span class="nav-menu-meta">
+                <span class="nav-menu-title">Sessions</span>
+                <span class="nav-menu-sub">Live active users</span>
               </span>
             </a>
           </div>
@@ -1400,12 +1409,119 @@
     `;
   }
 
+  const TAB_SESSION_STORAGE_KEY = 'workpulse_tab_id';
+  let presenceConnRef = null;
+  let presenceConnectedRef = null;
+  let presenceConnectedCb = null;
+  let presenceHeartbeatId = null;
+
+  function getOrCreateTabSessionId() {
+    try {
+      let tid = sessionStorage.getItem(TAB_SESSION_STORAGE_KEY);
+      if (!tid) {
+        tid = 'tab_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+        sessionStorage.setItem(TAB_SESSION_STORAGE_KEY, tid);
+      }
+      return tid;
+    } catch (e) {
+      return 'tab_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+    }
+  }
+
+  function detectDeviceLabel() {
+    const ua = navigator.userAgent || '';
+    if (/iPhone/i.test(ua)) return 'iPhone';
+    if (/iPad/i.test(ua)) return 'iPad';
+    if (/Android/i.test(ua)) return /Mobile/i.test(ua) ? 'Android Phone' : 'Android Tablet';
+    if (/Macintosh|Mac OS X/i.test(ua)) return 'Mac';
+    if (/Windows/i.test(ua)) return 'Windows PC';
+    if (/Linux/i.test(ua)) return 'Linux';
+    return 'Browser';
+  }
+
+  function detectBrowserLabel() {
+    const ua = navigator.userAgent || '';
+    if (/Edg\//i.test(ua)) return 'Edge';
+    if (/OPR\//i.test(ua) || /Opera/i.test(ua)) return 'Opera';
+    if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) return 'Chrome';
+    if (/Safari\//i.test(ua) && !/Chrome\//i.test(ua)) return 'Safari';
+    if (/Firefox\//i.test(ua)) return 'Firefox';
+    return 'Web';
+  }
+
+  function startSessionPresence(role, pageName) {
+    stopSessionPresence();
+    if (!role || typeof db === 'undefined') return;
+    const tabId = getOrCreateTabSessionId();
+    const startedAtKey = 'workpulse_session_started';
+    let startedAt = Date.now();
+    try {
+      const storedStart = Number(sessionStorage.getItem(startedAtKey));
+      if (storedStart > 0) startedAt = storedStart;
+      else sessionStorage.setItem(startedAtKey, String(startedAt));
+    } catch (e) {}
+
+    const connId = tabId + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+    presenceConnRef = db.ref('sessions/' + connId);
+    presenceConnectedRef = db.ref('.info/connected');
+
+    presenceConnectedCb = (snap) => {
+      if (snap.val() === true && presenceConnRef) {
+        presenceConnRef.onDisconnect().remove().then(() => {
+          if (presenceConnRef) {
+            presenceConnRef.set({
+              tabId,
+              role: role === 'view' ? 'view' : 'full',
+              page: pageName,
+              device: detectDeviceLabel(),
+              browser: detectBrowserLabel(),
+              startedAt,
+              lastActiveAt: Date.now(),
+              serverUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+          }
+        }).catch(() => {});
+      }
+    };
+    presenceConnectedRef.on('value', presenceConnectedCb);
+
+    presenceHeartbeatId = setInterval(() => {
+      if (presenceConnRef) {
+        presenceConnRef.update({
+          lastActiveAt: Date.now(),
+          serverUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+        }).catch(() => {});
+      }
+    }, 25000);
+  }
+
+  function stopSessionPresence() {
+    if (presenceHeartbeatId) {
+      clearInterval(presenceHeartbeatId);
+      presenceHeartbeatId = null;
+    }
+    if (presenceConnectedRef && presenceConnectedCb) {
+      presenceConnectedRef.off('value', presenceConnectedCb);
+    }
+    presenceConnectedRef = null;
+    presenceConnectedCb = null;
+    if (presenceConnRef) {
+      const refToClear = presenceConnRef;
+      presenceConnRef = null;
+      try { refToClear.onDisconnect().cancel().catch(() => {}); } catch (e) {}
+      try { refToClear.remove().catch(() => {}); } catch (e) {}
+    }
+  }
+
+  window.addEventListener('pagehide', stopSessionPresence);
+
   function startAnalyticsApp(role = 'full') {
     if (role !== 'full') return;
     document.getElementById('analytics-auth-gate').classList.add('hidden');
     document.getElementById('analytics-shell').classList.remove('hidden');
     const viewPill = document.getElementById('view-only-pill');
     if (viewPill) viewPill.classList.add('hidden');
+    startSessionPresence('full', 'analytics');
 
     if (listenersAttached) return;
     listenersAttached = true;
