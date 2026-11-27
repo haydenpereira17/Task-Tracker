@@ -951,7 +951,7 @@
       <div class="auth-eyebrow">Work Pulse</div>
       <div class="auth-title" style="font-size:0.76rem; font-weight:600; color:var(--pace-periwinkle); margin-bottom:10px;">Product of Hayd's AI Maxing</div>
       <h1 class="auth-title" id="analytics-auth-title">Completion Analytics</h1>
-      <p class="auth-subtitle">Enter workspace passcode to view team metrics</p>
+      <p class="auth-subtitle" id="analytics-auth-subtitle">Enter full-access passcode to view team metrics</p>
       <form onsubmit="verifyAnalyticsPasscode(event)" novalidate>
         <input
           type="password"
@@ -1401,10 +1401,11 @@
   }
 
   function startAnalyticsApp(role = 'full') {
+    if (role !== 'full') return;
     document.getElementById('analytics-auth-gate').classList.add('hidden');
     document.getElementById('analytics-shell').classList.remove('hidden');
     const viewPill = document.getElementById('view-only-pill');
-    if (viewPill) viewPill.classList.toggle('hidden', role !== 'view');
+    if (viewPill) viewPill.classList.add('hidden');
 
     if (listenersAttached) return;
     listenersAttached = true;
@@ -1431,25 +1432,40 @@
     });
   }
 
+  function showAnalyticsAuthError(message) {
+    const input = document.getElementById('analytics-passcode');
+    const errEl = document.getElementById('analytics-auth-error');
+    const card = document.getElementById('analytics-auth-card');
+    if (errEl) {
+      errEl.textContent = message;
+      errEl.classList.add('visible');
+    }
+    if (card) {
+      card.classList.remove('shake');
+      void card.offsetWidth;
+      card.classList.add('shake');
+    }
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+  }
+
   function verifyAnalyticsPasscode(event) {
     if (event) event.preventDefault();
     const input = document.getElementById('analytics-passcode');
     const errEl = document.getElementById('analytics-auth-error');
-    const card = document.getElementById('analytics-auth-card');
     const val = (input.value || '').trim();
     const role = getPasscodeRole(val);
 
-    if (role) {
+    if (role === 'full') {
       errEl.classList.remove('visible');
-      saveUnlockedSession(role);
-      startAnalyticsApp(role);
+      saveUnlockedSession('full');
+      startAnalyticsApp('full');
+    } else if (role === 'view') {
+      showAnalyticsAuthError('Analytics is not available with View-Only (0000) access.');
     } else {
-      errEl.classList.add('visible');
-      card.classList.remove('shake');
-      void card.offsetWidth;
-      card.classList.add('shake');
-      input.value = '';
-      input.focus();
+      showAnalyticsAuthError('Incorrect passcode. Please try again.');
     }
   }
 
@@ -1459,9 +1475,11 @@
     passInputEl.addEventListener('input', () => {
       document.getElementById('analytics-auth-error').classList.remove('visible');
       const role = getPasscodeRole(passInputEl.value);
-      if (role) {
-        saveUnlockedSession(role);
-        startAnalyticsApp(role);
+      if (role === 'full') {
+        saveUnlockedSession('full');
+        startAnalyticsApp('full');
+      } else if (role === 'view') {
+        showAnalyticsAuthError('Analytics is not available with View-Only (0000) access.');
       }
     });
   }
@@ -1492,10 +1510,16 @@
   });
 
   const initialRole = getSessionRole();
-  if (initialRole) {
-    startAnalyticsApp(initialRole);
+  if (initialRole === 'full') {
+    startAnalyticsApp('full');
   } else {
     document.getElementById('analytics-auth-gate').classList.remove('hidden');
+    if (initialRole === 'view') {
+      const subEl = document.getElementById('analytics-auth-subtitle');
+      if (subEl) {
+        subEl.textContent = 'View-Only (0000) sessions cannot open Analytics. Enter full-access passcode.';
+      }
+    }
   }
 </script>
 
