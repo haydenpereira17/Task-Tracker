@@ -1925,11 +1925,11 @@
     ];
   }
 
-  function getNameplateTexture(name, isWorking, isBoss = false) {
-    const key = name + '|' + (isWorking ? '1' : '0') + '|' + (isBoss ? 'B' : 'W');
+  function getNameplateTexture(name, isWorking, isBoss = false, customLabel = null) {
+    const labelStr = customLabel || String(name || '').split(' ')[0].toUpperCase();
+    const key = labelStr + '|' + (isWorking ? '1' : '0') + '|' + (isBoss ? 'B' : 'W');
     if (nameplateTextureCache.has(key)) return nameplateTextureCache.get(key);
-    const first = String(name || '').split(' ')[0].toUpperCase();
-    const shortName = isBoss ? ('BOSS · ' + first.slice(0, 8)) : first.slice(0, 11);
+    const shortName = isBoss ? ('BOSS · ' + labelStr.slice(0, 8)) : labelStr.slice(0, 11);
     const tex = makePixelCanvasTexture(isBoss ? 156 : 128, 32, (ctx, w, h) => {
       ctx.fillStyle = isBoss ? '#1c1208' : '#081e30';
       ctx.fillRect(0, 0, w, h);
@@ -1945,6 +1945,16 @@
     });
     nameplateTextureCache.set(key, tex);
     return tex;
+  }
+
+  function formatOverheadWorkerLabel(name) {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return 'TEAM';
+    const first = parts[0].toUpperCase();
+    if (parts.length > 1 && first === 'SHREYA') {
+      return first + ' ' + parts[1][0].toUpperCase() + '.';
+    }
+    return first.slice(0, 11);
   }
 
   function makeBox(w, h, d, color, opts = {}) {
@@ -4138,10 +4148,21 @@
       : meowSpriteTex;
     const bubbleMat = new THREE.SpriteMaterial({ map: bubTex, transparent: true, opacity: 0, depthWrite: false });
     const bubbleSprite = new THREE.Sprite(bubbleMat);
-    bubbleSprite.position.set(0, 1.78, 0);
+    bubbleSprite.position.set(0, 2.04, 0);
     bubbleSprite.scale.set(0.95, 0.36, 1);
     bubbleSprite.visible = false;
     root.add(bubbleSprite);
+
+    // Overhead pixel nameplate visible when zoomed in on moving/Pantry workers
+    const nameTex = getNameplateTexture(cv.worker.name, false, false, formatOverheadWorkerLabel(cv.worker.name));
+    const nameMat = new THREE.SpriteMaterial({ map: nameTex, transparent: true, opacity: 0, depthWrite: false });
+    const nameSprite = new THREE.Sprite(nameMat);
+    nameSprite.position.set(0, 1.66, 0);
+    nameSprite.scale.set(1.22, 0.30, 1);
+    nameSprite.visible = false;
+    nameSprite.userData = { hitType: 'pantry_worker', worker: cv.worker };
+    root.add(nameSprite);
+    interactables.push(nameSprite);
 
     propsGroup.add(root);
 
@@ -4167,6 +4188,8 @@
       legR: rigParts.legR,
       bubbleSprite,
       bubbleMat,
+      nameSprite,
+      nameMat,
       mode: startAtPantry ? 'laugh' : 'to_pantry',
       x: startAtPantry ? slot.x : cv.deskStandWorld.x,
       y: 0.12,
@@ -4344,7 +4367,6 @@
           v.armRGroup.rotation.x = 0.62 + Math.sin(ph * 12) * 0.24;
           v.armLGroup.rotation.x = 0.35 + Math.cos(ph * 11) * 0.2;
           v.bubbleSprite.visible = true;
-          v.bubbleSprite.position.y = 1.78 + Math.sin(t * 6 + i) * 0.05;
           v.bubbleMat.opacity = Math.min(1, v.laughBurst * 2);
         } else {
           // Sipping coffee & chatting between laughs
@@ -4361,6 +4383,23 @@
         if (v.breakLeft <= 0) {
           sendPantryVisitorHome(v);
         }
+      }
+
+      // Show floating nameplate cleanly above moving/Pantry workers when zoomed in!
+      if (v.nameSprite && v.nameMat) {
+        const zoomInFactor = camState.distance < 21 ? Math.min(1, (21 - camState.distance) / 4.5) : 0;
+        const camDist = camera
+          ? Math.hypot(camera.position.x - v.x, camera.position.y - 1.2, camera.position.z - v.z)
+          : camState.distance;
+        const proxFactor = camDist < 24 ? Math.min(1, (24 - camDist) / 5.0) : 0;
+        const nameAlpha = Math.min(zoomInFactor, proxFactor);
+        v.nameSprite.visible = nameAlpha > 0.04;
+        v.nameMat.opacity = nameAlpha;
+        v.nameSprite.position.y = (v.rig.position.y || 0) + 1.66;
+      }
+      if (v.bubbleSprite && v.bubbleSprite.visible) {
+        const baseBubY = (v.nameSprite && v.nameSprite.visible) ? 2.04 : 1.78;
+        v.bubbleSprite.position.y = baseBubY + (v.rig.position.y || 0) + Math.sin(t * 6 + i) * 0.05;
       }
 
       v.y += ((v.targetY || 0) - v.y) * Math.min(1, dt * 10);
