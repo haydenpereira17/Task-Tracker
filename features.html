@@ -191,6 +191,122 @@
 
     .auth-submit:hover { opacity: 0.94; transform: translateY(-1px); }
 
+    .auth-user-pill-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding: 6px 11px;
+      border-radius: 10px;
+      background: rgba(4, 113, 166, 0.16);
+      border: 1px solid rgba(137, 170, 230, 0.28);
+      font-size: 0.74rem;
+      color: var(--nx-muted);
+    }
+
+    .auth-user-pill-row strong {
+      font-family: 'JetBrains Mono', monospace;
+      color: #ffffff;
+    }
+
+    .btn-auth-switch-user {
+      background: transparent;
+      border: none;
+      color: var(--pace-periwinkle);
+      font-family: inherit;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-auth-switch-user:hover { color: #ffffff; }
+
+    .alpha-keypad {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      margin: 0 0 12px;
+    }
+
+    .alpha-keypad.is-desk-open { display: flex; }
+
+    .alpha-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .alpha-row-mid { padding: 0 10px; }
+
+    .keypad-btn {
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      height: 36px;
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 0;
+      border-radius: 8px;
+      background: rgba(8, 36, 56, 0.68);
+      border: 1px solid rgba(137, 170, 230, 0.22);
+      color: #ffffff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+    }
+
+    .keypad-btn:hover { background: rgba(4, 113, 166, 0.3); }
+
+    .alpha-key-wide {
+      flex: 1.45 1 0;
+      font-size: 0.7rem;
+      color: var(--nx-muted);
+    }
+
+    .mobile-keypad {
+      display: none;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+      margin: 0 0 12px;
+    }
+
+    .mobile-keypad.is-desk-open { display: grid; }
+
+    .auth-input-inline {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .auth-input-inline .auth-input { padding-right: 40px; }
+
+    .btn-pad-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-68%);
+      background: transparent;
+      border: none;
+      color: var(--nx-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-pad-toggle:hover { color: #ffffff; background: rgba(137, 170, 230, 0.14); }
+
+    @media (pointer: coarse), (max-width: 640px) {
+      .alpha-keypad { display: flex; }
+      .mobile-keypad { display: grid; }
+      .btn-pad-toggle { display: none; }
+    }
+
     .auth-error {
       min-height: 18px;
       font-size: 0.74rem;
@@ -777,19 +893,70 @@
       <div class="auth-eyebrow">Work Pulse</div>
       <div class="auth-byline">Product of Hayd's AI Maxing</div>
       <h1 class="auth-title" id="features-auth-title">Workspace Features</h1>
-      <p class="auth-subtitle">Enter workspace passcode to view features</p>
-      <form onsubmit="verifyFeaturesPasscode(event)" novalidate>
-        <input
-          type="password"
-          id="features-passcode"
-          class="auth-input"
-          inputmode="numeric"
-          autocomplete="off"
-          placeholder="••••"
-          aria-label="Workspace passcode"
-          autofocus
-        />
-        <div class="auth-error" id="features-auth-error" role="alert">Incorrect passcode. Please try again.</div>
+      <p class="auth-subtitle" id="features-auth-subtitle">Enter your User ID to continue</p>
+      <form onsubmit="handleFeaturesAuthSubmit(event)" novalidate>
+        <div id="features-step-userid">
+          <div class="auth-input-inline">
+            <input
+              type="text"
+              id="features-userid"
+              class="auth-input"
+              style="letter-spacing:0.1em; text-transform:lowercase;"
+              inputmode="text"
+              pattern="[A-Za-z]*"
+              autocapitalize="none"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="User ID"
+              aria-label="User ID"
+              autofocus
+            />
+            <button type="button" class="btn-pad-toggle" onclick="document.getElementById('features-alpha-keypad').classList.toggle('is-desk-open')" title="Toggle alpha keyboard" aria-label="Toggle alpha keyboard">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/></svg>
+            </button>
+          </div>
+          <div class="alpha-keypad" id="features-alpha-keypad" role="group" aria-label="Alpha-only onscreen keyboard">
+            <div class="alpha-row">
+              <button type="button" class="keypad-btn" onclick="subAlphaAppend('q')">Q</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('w')">W</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('e')">E</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('r')">R</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('t')">T</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('y')">Y</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('u')">U</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('i')">I</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('o')">O</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('p')">P</button>
+            </div>
+            <div class="alpha-row alpha-row-mid">
+              <button type="button" class="keypad-btn" onclick="subAlphaAppend('a')">A</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('s')">S</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('d')">D</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('f')">F</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('g')">G</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('h')">H</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('j')">J</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('k')">K</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('l')">L</button>
+            </div>
+            <div class="alpha-row">
+              <button type="button" class="keypad-btn alpha-key-wide" onclick="subAlphaClear()">Clr</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('z')">Z</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('x')">X</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('c')">C</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('v')">V</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('b')">B</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('n')">N</button><button type="button" class="keypad-btn" onclick="subAlphaAppend('m')">M</button><button type="button" class="keypad-btn alpha-key-wide" onclick="subAlphaBackspace()">&larr;</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="features-step-passcode" class="hidden">
+          <div class="auth-user-pill-row">
+            <span>User: <strong id="features-active-user">hayd</strong></span>
+            <button type="button" class="btn-auth-switch-user" onclick="backToSubUserId()">&larr; Change</button>
+          </div>
+          <div class="auth-input-inline">
+            <input
+              type="password"
+              id="features-passcode"
+              class="auth-input"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              autocomplete="off"
+              placeholder="••••"
+              aria-label="Workspace passcode"
+            />
+            <button type="button" class="btn-pad-toggle" onclick="document.getElementById('features-num-keypad').classList.toggle('is-desk-open')" title="Toggle numeric keypad" aria-label="Toggle numeric keypad">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/></svg>
+            </button>
+          </div>
+          <div class="mobile-keypad" id="features-num-keypad" role="group" aria-label="Numeric keypad">
+            <button type="button" class="keypad-btn" onclick="subNumAppend('1')">1</button><button type="button" class="keypad-btn" onclick="subNumAppend('2')">2</button><button type="button" class="keypad-btn" onclick="subNumAppend('3')">3</button>
+            <button type="button" class="keypad-btn" onclick="subNumAppend('4')">4</button><button type="button" class="keypad-btn" onclick="subNumAppend('5')">5</button><button type="button" class="keypad-btn" onclick="subNumAppend('6')">6</button>
+            <button type="button" class="keypad-btn" onclick="subNumAppend('7')">7</button><button type="button" class="keypad-btn" onclick="subNumAppend('8')">8</button><button type="button" class="keypad-btn" onclick="subNumAppend('9')">9</button>
+            <button type="button" class="keypad-btn alpha-key-wide" onclick="subNumClear()">Clear</button><button type="button" class="keypad-btn" onclick="subNumAppend('0')">0</button><button type="button" class="keypad-btn alpha-key-wide" onclick="subNumBackspace()">&larr;</button>
+          </div>
+        </div>
+
+        <div class="auth-error" id="features-auth-error" role="alert">Incorrect credentials. Please try again.</div>
         <button type="submit" class="auth-submit">Continue</button>
       </form>
       <a href="index.html" class="auth-back-link">&larr; Back to Board</a>
@@ -1192,11 +1359,32 @@
     return (h >>> 0).toString(16).padStart(8, '0');
   }
 
+  const USER_HAYD_HASH = 'c6df031f';
+  const USER_VISITOR_HASH = 'e9505321';
+  const USER_SESSION_KEY = 'workpulse_user_id';
+  let authStep = 'userid';
+  let pendingAuthRole = null;
+  let pendingAuthUser = '';
+
+  function getUserRoleFromId(userId) {
+    const clean = String(userId || '').trim().toLowerCase();
+    const h = hashPassword(clean);
+    if (h === USER_HAYD_HASH) return 'full';
+    if (h === USER_VISITOR_HASH) return 'view';
+    return null;
+  }
+
   function getPasscodeRole(code) {
     const h = hashPassword(String(code || '').trim());
     if (h === PASS_HASH) return 'full';
     if (h === VIEW_PASS_HASH) return 'view';
     return null;
+  }
+
+  function verifyRoleAndPasscode(expectedRole, code) {
+    const r = getPasscodeRole(code);
+    if (expectedRole && r !== expectedRole) return null;
+    return r;
   }
 
   function getSessionRole() {
@@ -1210,10 +1398,11 @@
     }
   }
 
-  function saveUnlockedSession(role = 'full') {
+  function saveUnlockedSession(role = 'full', userLabel = '') {
     try {
       sessionStorage.setItem(SESSION_KEY, role === 'view' ? VIEW_PASS_HASH : PASS_HASH);
       sessionStorage.setItem(ROLE_SESSION_KEY, role);
+      sessionStorage.setItem(USER_SESSION_KEY, userLabel || (role === 'view' ? 'visitor' : 'hayd'));
     } catch (e) {}
   }
 
@@ -1236,35 +1425,129 @@
     startSessionPresence(role, 'features');
   }
 
+  function showSubAuthError(msg, step = authStep) {
+    const errEl = document.getElementById('features-auth-error');
+    const card = document.getElementById('features-auth-card');
+    if (errEl) { errEl.textContent = msg; errEl.classList.add('visible'); }
+    if (card) { card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); }
+    const target = document.getElementById(step === 'userid' ? 'features-userid' : 'features-passcode');
+    if (target) { target.value = ''; target.focus(); }
+  }
+
+  function goToSubPasscode(role, userLabel) {
+    authStep = 'passcode';
+    pendingAuthRole = role;
+    pendingAuthUser = userLabel;
+    document.getElementById('features-active-user').textContent = userLabel;
+    document.getElementById('features-auth-subtitle').textContent = 'Enter workspace passcode to view features';
+    document.getElementById('features-step-userid').classList.add('hidden');
+    document.getElementById('features-step-passcode').classList.remove('hidden');
+    document.getElementById('features-auth-error').classList.remove('visible');
+    const p = document.getElementById('features-passcode');
+    p.value = '';
+    p.focus();
+  }
+
+  function backToSubUserId() {
+    authStep = 'userid';
+    pendingAuthRole = null;
+    pendingAuthUser = '';
+    document.getElementById('features-auth-subtitle').textContent = 'Enter your User ID to continue';
+    document.getElementById('features-step-passcode').classList.add('hidden');
+    document.getElementById('features-step-userid').classList.remove('hidden');
+    document.getElementById('features-auth-error').classList.remove('visible');
+    document.getElementById('features-passcode').value = '';
+    const u = document.getElementById('features-userid');
+    u.value = '';
+    u.focus();
+  }
+
+  function subAlphaAppend(ch) {
+    const letter = String(ch || '').replace(/[^a-zA-Z]/g, '').toLowerCase();
+    const u = document.getElementById('features-userid');
+    document.getElementById('features-auth-error').classList.remove('visible');
+    u.value = String(u.value || '').replace(/[^a-zA-Z]/g, '').toLowerCase() + letter;
+    const role = getUserRoleFromId(u.value);
+    if (role) goToSubPasscode(role, u.value);
+  }
+  function subAlphaBackspace() {
+    const u = document.getElementById('features-userid');
+    document.getElementById('features-auth-error').classList.remove('visible');
+    u.value = String(u.value || '').slice(0, -1);
+  }
+  function subAlphaClear() {
+    document.getElementById('features-auth-error').classList.remove('visible');
+    document.getElementById('features-userid').value = '';
+  }
+
+  function subNumAppend(d) {
+    const p = document.getElementById('features-passcode');
+    document.getElementById('features-auth-error').classList.remove('visible');
+    p.value = String(p.value || '') + String(d);
+    const role = verifyRoleAndPasscode(pendingAuthRole, p.value);
+    if (role) { saveUnlockedSession(role, pendingAuthUser); startFeaturesApp(role); }
+    else if (getPasscodeRole(p.value)) { showSubAuthError('Passcode does not match this User ID.', 'passcode'); }
+  }
+  function subNumBackspace() {
+    const p = document.getElementById('features-passcode');
+    document.getElementById('features-auth-error').classList.remove('visible');
+    p.value = String(p.value || '').slice(0, -1);
+  }
+  function subNumClear() {
+    document.getElementById('features-auth-error').classList.remove('visible');
+    document.getElementById('features-passcode').value = '';
+  }
+
+  function handleFeaturesAuthSubmit(event) {
+    if (event) event.preventDefault();
+    if (authStep === 'userid') {
+      const clean = String(document.getElementById('features-userid').value || '').trim().toLowerCase();
+      const role = getUserRoleFromId(clean);
+      if (role) goToSubPasscode(role, clean);
+      else showSubAuthError('Unknown User ID. Please enter a valid alpha User ID.', 'userid');
+      return;
+    }
+    verifyFeaturesPasscode(event);
+  }
+
   function verifyFeaturesPasscode(event) {
     if (event) event.preventDefault();
     const input = document.getElementById('features-passcode');
     const errEl = document.getElementById('features-auth-error');
-    const card = document.getElementById('features-auth-card');
-    const role = getPasscodeRole(input.value);
+    const role = verifyRoleAndPasscode(pendingAuthRole, input.value);
 
     if (role) {
       errEl.classList.remove('visible');
-      saveUnlockedSession(role);
+      saveUnlockedSession(role, pendingAuthUser);
       startFeaturesApp(role);
+    } else if (getPasscodeRole(input.value)) {
+      showSubAuthError('Passcode does not match this User ID.', 'passcode');
     } else {
-      errEl.classList.add('visible');
-      card.classList.remove('shake');
-      void card.offsetWidth;
-      card.classList.add('shake');
-      input.value = '';
-      input.focus();
+      showSubAuthError('Incorrect passcode. Please try again.', 'passcode');
     }
+  }
+
+  const userIdInputEl = document.getElementById('features-userid');
+  if (userIdInputEl) {
+    userIdInputEl.addEventListener('input', () => {
+      const clean = String(userIdInputEl.value || '').replace(/[^a-zA-Z]/g, '').toLowerCase();
+      if (userIdInputEl.value !== clean) userIdInputEl.value = clean;
+      document.getElementById('features-auth-error').classList.remove('visible');
+      const role = getUserRoleFromId(clean);
+      if (role) goToSubPasscode(role, clean);
+    });
   }
 
   const passInputEl = document.getElementById('features-passcode');
   if (passInputEl) {
     passInputEl.addEventListener('input', () => {
       document.getElementById('features-auth-error').classList.remove('visible');
-      const role = getPasscodeRole(passInputEl.value);
+      const role = verifyRoleAndPasscode(pendingAuthRole, passInputEl.value);
       if (role) {
-        saveUnlockedSession(role);
+        saveUnlockedSession(role, pendingAuthUser);
         startFeaturesApp(role);
+      } else if (getPasscodeRole(passInputEl.value)) {
+        showSubAuthError('Passcode does not match this User ID.', 'passcode');
       }
     });
   }
