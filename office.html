@@ -2694,16 +2694,6 @@
 
     const rig = addDeskWorkstationContent(execDeskPivot, worker, { isBoss: true });
 
-    const beaconColor = rig.isWorking
-      ? 0xfbbf24
-      : (rig.hasPendingOnly ? 0xf59e0b : (rig.isSleeping ? 0x818cf8 : 0x34d399));
-    const beacon = makeBox(0.24, 0.24, 0.24, beaconColor, {
-      emissive: beaconColor,
-      emissiveIntensity: rig.isSleeping ? 0.45 : 0.85
-    });
-    beacon.position.set(-3.62, 1.92, -1.2);
-    cabin.add(beacon);
-
     cubicleVisuals.push({
       worker,
       gx: cabinX,
@@ -2721,7 +2711,6 @@
       steam2: rig.steam2,
       activeDeskFolder: rig.activeDeskFolder,
       scrMat: rig.scrMat,
-      beacon,
       ring,
       zzzSprites: rig.zzzSprites,
       wakeBubbleSprite: rig.wakeBubbleSprite,
@@ -3056,16 +3045,6 @@
 
     const rig = addDeskWorkstationContent(group, worker, { isBoss: false });
 
-    const beaconColor = rig.isWorking
-      ? 0x38bdf8
-      : (rig.hasPendingOnly ? 0xfbbf24 : (rig.isSleeping ? 0x818cf8 : 0xe8b95b));
-    const beacon = makeBox(0.2, 0.2, 0.2, beaconColor, {
-      emissive: beaconColor,
-      emissiveIntensity: rig.isSleeping ? 0.4 : 0.75
-    });
-    beacon.position.set(1.52, 1.56, 1.52);
-    group.add(beacon);
-
     const entryWorld = localToClusterWorld(clusterX, clusterZ, rotY, 0.70, 2.75);
     const deskStandWorld = localToClusterWorld(clusterX, clusterZ, rotY, 0.70, 0.10);
 
@@ -3088,7 +3067,6 @@
       steam2: rig.steam2,
       activeDeskFolder: rig.activeDeskFolder,
       scrMat: rig.scrMat,
-      beacon,
       ring,
       zzzSprites: rig.zzzSprites,
       wakeBubbleSprite: rig.wakeBubbleSprite,
@@ -4510,8 +4488,6 @@
             cv.scrMat.map = screenWorkingFrames[workFrameIdx];
             cv.scrMat.needsUpdate = true;
           }
-          cv.beacon.position.y = 2.02 + Math.sin(ph * 4.0) * 0.1;
-          cv.beacon.rotation.y = ph * 1.8;
         } else if (cv.hasPendingOnly) {
           cv.armLGroup.rotation.x = 0.06;
           cv.armRGroup.rotation.x = -0.14 + Math.sin(ph * 2.8) * 0.12;
@@ -4521,8 +4497,6 @@
             cv.scrMat.map = screenPendingFrames[pendFrameIdx];
             cv.scrMat.needsUpdate = true;
           }
-          cv.beacon.position.y = 2.02 + Math.sin(ph * 2.4) * 0.06;
-          cv.beacon.rotation.y = ph * 0.8;
         } else if (cv.isSleeping) {
           const breath = Math.sin(ph * 1.45);
           if (cv.scrMat.map !== screenSleepFrames[sleepFrameIdx]) {
@@ -4589,8 +4563,6 @@
               sp.material.opacity = Math.sin(zc * Math.PI) * 0.98;
             }
           }
-          cv.beacon.position.y = 1.98 + breath * 0.03;
-          cv.beacon.rotation.y = ph * 0.25;
         } else {
           // Queued backlog: glances toward stacked folders and taps hand gently
           cv.armLGroup.rotation.x = 0.12;
@@ -4598,8 +4570,6 @@
           cv.headGroup.rotation.y = -0.22 + Math.sin(ph * 1.5) * 0.28;
           cv.headGroup.rotation.x = -0.04 + Math.sin(ph * 1.5) * 0.05;
           cv.upperBody.position.y = 0.1 + Math.sin(ph * 1.5) * 0.015;
-          cv.beacon.position.y = 2.02 + Math.sin(ph * 2.0) * 0.06;
-          cv.beacon.rotation.y = ph * 0.6;
         }
       }
 
