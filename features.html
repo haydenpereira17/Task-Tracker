@@ -948,7 +948,7 @@
           </p>
         </div>
         <div class="hero-badges">
-          <span class="hero-stat-pill">9 Core Modules</span>
+          <span class="hero-stat-pill">12 Core Modules</span>
           <span class="hero-stat-pill">Firebase Realtime Sync</span>
         </div>
       </section>
@@ -958,6 +958,7 @@
         <button type="button" class="filter-chip" onclick="filterFeatures('workflow', this)">Board &amp; Workflow</button>
         <button type="button" class="filter-chip" onclick="filterFeatures('logs', this)">Logs &amp; Context</button>
         <button type="button" class="filter-chip" onclick="filterFeatures('automation', this)">Automation</button>
+        <button type="button" class="filter-chip" onclick="filterFeatures('office', this)">Mini Office</button>
         <button type="button" class="filter-chip" onclick="filterFeatures('insights', this)">Insights &amp; Access</button>
       </div>
 
@@ -1131,6 +1132,63 @@
             <li><a href="analytics.html" class="nav-analytics-inline" style="color:var(--pace-periwinkle); font-weight:600;">Analytics</a> (full-access only) calculates average days from creation to completion per owner with min–max &amp; drilldowns.</li>
             <li>Dedicated <strong>View-Only (<span class="inline-code">0000</span>)</strong> login hides edit controls, blocks writes, and restricts access to the Analytics screen.</li>
             <li>Top bar displays live <strong>Total / In Progress / Done</strong> metrics synced across devices.</li>
+          </ul>
+        </article>
+
+        <!-- 10. 3D Retro Mini Office -->
+        <article class="feature-card" data-category="office">
+          <div class="feature-card-top">
+            <div class="feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </div>
+            <span class="feature-cat-tag">Mini Office</span>
+          </div>
+          <h2 class="feature-title">3D Retro Mini Office Floor</h2>
+          <p class="feature-summary">
+            Visualizes the entire team in an interactive voxel cubicle grid backed by live board task stacks.
+          </p>
+          <ul class="feature-points">
+            <li>Organizes desks into shared-wall 4-cubicle clusters with open aisles plus <strong>Karishma's</strong> open-top 4-cubicle <strong>Boss Cabin</strong>.</li>
+            <li>Stacks desk tasks as color-coded folders while workers type actively or sleep with floating <strong>Zzz</strong> bubbles when clear.</li>
+            <li>Includes <strong>Busy Desks Only</strong>, <strong>Fixed Seats</strong>, <strong>Done Tray</strong>, and <strong>+ 2nd Owner</strong> filters, a desk Dossier, and touch gestures (<span class="inline-code">1-finger</span> pan, <span class="inline-code">2-finger</span> rotate/pivot/zoom).</li>
+          </ul>
+        </article>
+
+        <!-- 11. Mochi the Office Cat -->
+        <article class="feature-card" data-category="office">
+          <div class="feature-card-top">
+            <div class="feature-icon amber">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20c4.5 0 8-2.8 8-7 0-2-.7-3.8-1.8-5.1L19 3l-4.2 1.8A8.5 8.5 0 0 0 12 4.3c-1 0-1.9.2-2.8.5L5 3l.8 4.9C4.7 9.2 4 11 4 13c0 4.2 3.5 7 8 7z"/><circle cx="9.5" cy="12" r="1"/><circle cx="14.5" cy="12" r="1"/></svg>
+            </div>
+            <span class="feature-cat-tag">Mini Office</span>
+          </div>
+          <h2 class="feature-title">Mochi the Wandering Office Cat</h2>
+          <p class="feature-summary">
+            An animated pixel-voxel ginger cat who patrols the cubicle corridors and visits the team on the <a href="office.html" style="color:var(--pace-periwinkle); font-weight:600;">Mini Office</a> floor.
+          </p>
+          <ul class="feature-points">
+            <li>Trots along the walkways between 4-cubicle clusters and pauses to inspect nearby desks.</li>
+            <li>Occasionally strolls through the open doorway into <strong>Karishma's Boss Cabin</strong> (<span class="inline-code">PURR~</span>) or curls up for a catnap (<span class="inline-code">Zzz..</span>) beside a sleeping worker.</li>
+            <li>Use <strong>Find Cat</strong> inside the viewport or click Mochi directly for an instant focus glide, happy hop, and <strong>MEOW!</strong> bubble.</li>
+          </ul>
+        </article>
+
+        <!-- 12. Deleted Tasks Archive & Live Sessions -->
+        <article class="feature-card" data-category="insights">
+          <div class="feature-card-top">
+            <div class="feature-icon crimson">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+            </div>
+            <span class="feature-cat-tag">Insights &amp; Access</span>
+          </div>
+          <h2 class="feature-title">Deleted Tasks Archive &amp; Live Sessions</h2>
+          <p class="feature-summary">
+            Preserves an audit trail of deleted board cards alongside real-time monitoring of active team connections.
+          </p>
+          <ul class="feature-points">
+            <li>Deleting any task archives its snapshot under <strong>Deleted Tasks</strong> in <a href="analytics.html#deleted-tasks" class="nav-analytics-inline" style="color:var(--pace-periwinkle); font-weight:600;">Analytics</a> with search and stage filters.</li>
+            <li>Full-access admins can <strong>Restore</strong> archived tasks back to the board or permanently <strong>Purge</strong> entries.</li>
+            <li>The <strong>Sessions</strong> monitor shows live <span class="inline-code">1903</span> Full Access and <span class="inline-code">0000</span> View-Only tabs, devices, and browsers with automatic heartbeat cleanup.</li>
           </ul>
         </article>
       </section>
