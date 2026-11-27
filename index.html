@@ -1574,10 +1574,9 @@
 
     .btn-card-expand {
       flex-shrink: 0;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.67rem;
-      font-weight: 700;
-      padding: 3px 9px;
+      width: 24px;
+      height: 24px;
+      padding: 0;
       border-radius: var(--radius-pill);
       background: rgba(137, 170, 230, 0.12);
       border: 1px solid rgba(137, 170, 230, 0.34);
@@ -1585,7 +1584,7 @@
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      justify-content: center;
       transition: all 0.18s var(--ease);
     }
 
@@ -1593,14 +1592,6 @@
       background: rgba(137, 170, 230, 0.24);
       border-color: var(--pace-periwinkle);
       color: #ffffff;
-    }
-
-    .btn-card-expand.is-open {
-      width: 24px;
-      height: 24px;
-      padding: 0;
-      justify-content: center;
-      gap: 0;
     }
 
     .col-inprogress .btn-card-expand:not(.is-open) {
@@ -6816,9 +6807,8 @@
                 ${cornerMarkersHtml}
                 <div class="card-expand-head">
                   <div class="task-title">${escapeHtml(t.title)}</div>
-                  <button type="button" class="btn-card-expand" onclick="toggleTaskExpand('${t.id}')" aria-expanded="false" title="Expand task details">
-                    <span>Expand</span>
-                    <span>&blacktriangledown;</span>
+                  <button type="button" class="btn-card-expand" onclick="toggleTaskExpand('${t.id}')" aria-expanded="false" title="Expand task details" aria-label="Expand task details">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                   </button>
                 </div>
                 <div class="meta-row">
@@ -7186,7 +7176,7 @@
               <div class="card-expand-head">
                 <div class="task-title">${escapeHtml(t.title)}</div>
                 <button type="button" class="btn-card-expand is-open" onclick="toggleTaskExpand('${t.id}')" aria-expanded="true" title="Collapse task" aria-label="Collapse task">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 15 12 9 18 15"/></svg>
                 </button>
               </div>
 
