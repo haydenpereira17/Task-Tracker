@@ -555,6 +555,52 @@
       flex-shrink: 0;
     }
 
+    .hd-check-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(251, 191, 36, 0.28);
+      color: #fde68a;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s var(--ease);
+    }
+
+    .hd-check-pill:hover {
+      background: rgba(245, 158, 11, 0.16);
+      border-color: rgba(251, 191, 36, 0.52);
+      color: #ffffff;
+    }
+
+    .hd-check-pill:has(input:checked) {
+      background: rgba(245, 158, 11, 0.24);
+      border-color: rgba(251, 191, 36, 0.78);
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.22);
+    }
+
+    .hd-check-pill input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: #f59e0b;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .hd-dot-sample {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #fbbf24;
+      box-shadow: 0 0 8px rgba(251, 191, 36, 0.85);
+      flex-shrink: 0;
+    }
+
     textarea.task-desc-compact {
       min-height: 40px;
       height: 40px;
@@ -1130,6 +1176,51 @@
       color: #ffffff;
     }
 
+    .filter-hd-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      background: rgba(7, 38, 58, 0.56);
+      border: 1px solid var(--nx-border);
+      color: var(--pace-dim-on-dark);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+      white-space: nowrap;
+    }
+
+    .filter-hd-pill:hover {
+      background: rgba(245, 158, 11, 0.16);
+      border-color: rgba(251, 191, 36, 0.5);
+      color: #ffffff;
+    }
+
+    .filter-hd-pill.is-active {
+      background: rgba(245, 158, 11, 0.26);
+      border-color: rgba(251, 191, 36, 0.78);
+      color: #ffffff;
+      box-shadow: 0 2px 12px rgba(245, 158, 11, 0.22);
+    }
+
+    .filter-hd-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: var(--radius-pill);
+      background: rgba(245, 158, 11, 0.18);
+      color: #fde68a;
+    }
+
+    .filter-hd-pill.is-active .filter-hd-count {
+      background: rgba(255, 255, 255, 0.18);
+      color: #ffffff;
+    }
+
     /* ── Kanban Columns ── */
     .board-grid {
       display: grid;
@@ -1416,21 +1507,54 @@
       gap: 7px;
     }
 
-    .vp-corner-dot {
+    .card-corner-markers {
       position: absolute;
-      top: 6px;
+      top: 5px;
       right: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      z-index: 4;
+      pointer-events: auto;
+    }
+
+    .vp-corner-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: #ff3b5c;
       box-shadow: 0 0 0 2px rgba(9, 41, 61, 0.92), 0 0 10px rgba(255, 59, 92, 0.9);
-      z-index: 4;
-      pointer-events: auto;
+      flex-shrink: 0;
+    }
+
+    .hd-corner-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 5px;
+      border-radius: 999px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.56rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      line-height: 1;
+      background: rgba(245, 158, 11, 0.24);
+      border: 1px solid rgba(251, 191, 36, 0.68);
+      color: #fde68a;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
+      flex-shrink: 0;
     }
 
     .task-card.is-vp-followup .card-expand-head {
-      padding-right: 10px;
+      padding-right: 12px;
+    }
+
+    .task-card.is-hard-deadline .card-expand-head {
+      padding-right: 28px;
+    }
+
+    .task-card.is-vp-followup.is-hard-deadline .card-expand-head {
+      padding-right: 40px;
     }
 
     .card-expand-head {
@@ -2396,31 +2520,18 @@
       margin-top: 10px;
     }
 
-    .edit-vp-box {
-      background: rgba(185, 22, 46, 0.09);
-      border: 1px solid rgba(251, 113, 133, 0.28);
-      border-radius: var(--radius-md);
-      padding: 11px 14px;
+    .edit-flags-grid {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
       margin-bottom: 16px;
     }
 
-    .edit-vp-check-label {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #fda4af;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .edit-vp-check-label input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      accent-color: #ff3b5c;
-      cursor: pointer;
-      flex-shrink: 0;
+    .edit-flags-grid .vp-check-pill,
+    .edit-flags-grid .hd-check-pill {
+      padding: 8px 13px;
+      font-size: 0.8rem;
     }
 
     .empty-state {
@@ -3634,10 +3745,15 @@
       </div>
 
       <div class="task-create-options">
-        <label class="vp-check-pill" for="task-vp-followup" title="Mark this task for VP follow-up">
+        <label class="vp-check-pill" for="task-vp-followup" title="Mark task for VP">
           <input type="checkbox" id="task-vp-followup" />
           <span class="vp-dot-sample" aria-hidden="true"></span>
-          <span>VP Follow-up</span>
+          <span>VP</span>
+        </label>
+        <label class="hd-check-pill" for="task-hard-deadline" title="Hard Deadline: date never rolls over at 11 PM and shows overdue if missed">
+          <input type="checkbox" id="task-hard-deadline" />
+          <span class="hd-dot-sample" aria-hidden="true"></span>
+          <span>HD</span>
         </label>
       </div>
     </section>
@@ -3656,10 +3772,16 @@
           <option value="rolled">Auto-Moved (11 PM)</option>
         </select>
 
-        <button type="button" class="filter-vp-pill" id="filter-vp-btn" onclick="toggleVpFilter()" aria-pressed="false" title="Filter to VP follow-up tasks only">
+        <button type="button" class="filter-vp-pill" id="filter-vp-btn" onclick="toggleVpFilter()" aria-pressed="false" title="Filter to VP tasks only">
           <span class="vp-dot-sample" aria-hidden="true"></span>
-          <span>VP Follow-up</span>
+          <span>VP</span>
           <span class="filter-vp-count" id="filter-vp-count">0</span>
+        </button>
+
+        <button type="button" class="filter-hd-pill" id="filter-hd-btn" onclick="toggleHdFilter()" aria-pressed="false" title="Filter to Hard Deadline (HD) tasks only">
+          <span class="hd-dot-sample" aria-hidden="true"></span>
+          <span>HD</span>
+          <span class="filter-hd-count" id="filter-hd-count">0</span>
         </button>
       </div>
 
@@ -3768,11 +3890,16 @@
         </select>
       </div>
 
-      <div class="edit-vp-box">
-        <label class="edit-vp-check-label" for="edit-vp-followup">
+      <div class="edit-flags-grid">
+        <label class="vp-check-pill" for="edit-vp-followup" title="Show red VP marker dot on tile">
           <input type="checkbox" id="edit-vp-followup" />
           <span class="vp-dot-sample" aria-hidden="true"></span>
-          <span>VP Follow-up (show red corner marker)</span>
+          <span>VP (red dot)</span>
+        </label>
+        <label class="hd-check-pill" for="edit-hard-deadline" title="Hard Deadline: date will not roll over after 11 PM">
+          <input type="checkbox" id="edit-hard-deadline" />
+          <span class="hd-dot-sample" aria-hidden="true"></span>
+          <span>HD (no rollover)</span>
         </label>
       </div>
 
@@ -4330,7 +4457,9 @@
       allTasks = [];
       allRecurring = [];
       filterVpOnly = false;
+      filterHdOnly = false;
       syncVpFilterUi();
+      syncHdFilterUi();
       openFollowupDescDrawers.clear();
       editingFollowupDesc.clear();
       fupDescDrafts.clear();
@@ -4414,7 +4543,7 @@
         const updates = [];
 
         for (const t of allTasks) {
-          if (!t.date || t.status === 'done') continue;
+          if (!t.date || t.status === 'done' || t.hardDeadline) continue;
           if (t.date < cutoffDateStr && t.date !== targetDateStr) {
             updates.push(
               tasksRef.child(t.id).update({
@@ -5179,6 +5308,8 @@
       const description = descEl.value.trim();
       const vpFollowupEl = document.getElementById('task-vp-followup');
       const vpFollowup = Boolean(vpFollowupEl && vpFollowupEl.checked);
+      const hardDeadlineEl = document.getElementById('task-hard-deadline');
+      const hardDeadline = Boolean(hardDeadlineEl && hardDeadlineEl.checked);
 
       tasksRef.push({
         title,
@@ -5189,6 +5320,7 @@
         followup: '',
         followupDescription: '',
         vpFollowup,
+        hardDeadline,
         status: 'todo',
         createdAt: new Date().toISOString()
       });
@@ -5199,6 +5331,7 @@
       descEl.value = '';
       descEl.classList.remove('has-content');
       if (vpFollowupEl) vpFollowupEl.checked = false;
+      if (hardDeadlineEl) hardDeadlineEl.checked = false;
       clearTaskValidation('create-form-error', titleEl, personEl, otherPersonEl);
       setDefaultDueDate();
       titleEl.focus();
@@ -5343,6 +5476,7 @@
       document.getElementById('edit-followup').value = task.followup || '';
       document.getElementById('edit-followup-desc').value = task.followupDescription || '';
       document.getElementById('edit-vp-followup').checked = Boolean(task.vpFollowup);
+      document.getElementById('edit-hard-deadline').checked = Boolean(task.hardDeadline);
       document.getElementById('edit-status').value = task.status || 'todo';
       document.getElementById('edit-pending-feedback').checked = isTaskPendingFeedback(task);
       document.getElementById('edit-pending-version').value = getNextVersionLabel(task);
@@ -5387,6 +5521,7 @@
         followup: document.getElementById('edit-followup').value,
         followupDescription: document.getElementById('edit-followup-desc').value.trim(),
         vpFollowup: document.getElementById('edit-vp-followup').checked,
+        hardDeadline: document.getElementById('edit-hard-deadline').checked,
         status: nextStatus,
         pendingFeedback: isPendingChecked
       };
@@ -6035,6 +6170,7 @@
     // ── Render Board Engine ──
     // ══════════════════════════════════════
     let filterVpOnly = false;
+    let filterHdOnly = false;
 
     function syncVpFilterUi(vpCount = null) {
       const btn = document.getElementById('filter-vp-btn');
@@ -6048,9 +6184,27 @@
       }
     }
 
+    function syncHdFilterUi(hdCount = null) {
+      const btn = document.getElementById('filter-hd-btn');
+      if (btn) {
+        btn.classList.toggle('is-active', filterHdOnly);
+        btn.setAttribute('aria-pressed', filterHdOnly ? 'true' : 'false');
+      }
+      if (hdCount !== null) {
+        const countEl = document.getElementById('filter-hd-count');
+        if (countEl) countEl.textContent = String(hdCount);
+      }
+    }
+
     function toggleVpFilter() {
       filterVpOnly = !filterVpOnly;
       syncVpFilterUi();
+      renderBoard();
+    }
+
+    function toggleHdFilter() {
+      filterHdOnly = !filterHdOnly;
+      syncHdFilterUi();
       renderBoard();
     }
 
@@ -6061,6 +6215,7 @@
       const filterOverdue = document.getElementById('filter-overdue').value;
       const searchTerm = document.getElementById('filter-search').value.toLowerCase();
       syncVpFilterUi(tasks.filter(t => Boolean(t.vpFollowup)).length);
+      syncHdFilterUi(tasks.filter(t => Boolean(t.hardDeadline)).length);
 
       // Render Heatmap and Open Tasks by Person strip
       renderHeatmap(tasks);
@@ -6071,6 +6226,7 @@
         if (selectedHeatmapDate && t.date !== selectedHeatmapDate) return false;
         if (filterPerson && !getTaskAssignees(t).includes(filterPerson)) return false;
         if (filterVpOnly && !t.vpFollowup) return false;
+        if (filterHdOnly && !t.hardDeadline) return false;
         if (filterOverdue === 'overdue' && !isOverdue(t.date, t.status)) return false;
         if (filterOverdue === 'pending_feedback' && !isTaskPendingFeedback(t)) return false;
         if (filterOverdue === 'active_inprogress' && (t.status !== 'inprogress' || isTaskPendingFeedback(t))) return false;
@@ -6080,8 +6236,9 @@
           const matchPerson = getTaskAssignees(t).some(n => n.toLowerCase().includes(searchTerm));
           const matchDesc = (t.description || '').toLowerCase().includes(searchTerm);
           const matchPending = (t.pendingFeedbackFrom || '').toLowerCase().includes(searchTerm) || (t.pendingFeedbackVersion || '').toLowerCase().includes(searchTerm);
-          const matchVp = Boolean(t.vpFollowup) && ('vp followup'.includes(searchTerm) || 'vp follow-up'.includes(searchTerm));
-          if (!matchTitle && !matchPerson && !matchDesc && !matchPending && !matchVp) return false;
+          const matchVp = Boolean(t.vpFollowup) && 'vp followup'.includes(searchTerm);
+          const matchHd = Boolean(t.hardDeadline) && ('hd'.includes(searchTerm) || 'hard deadline'.includes(searchTerm));
+          if (!matchTitle && !matchPerson && !matchDesc && !matchPending && !matchVp && !matchHd) return false;
         }
         return true;
       });
@@ -6141,7 +6298,10 @@
           const overdue = isOverdue(t.date, t.status);
           const pendingFb = isTaskPendingFeedback(t);
           const isVp = Boolean(t.vpFollowup);
-          const vpCornerDotHtml = isVp ? '<span class="vp-corner-dot" title="VP Follow-up" aria-label="VP Follow-up"></span>' : '';
+          const isHd = Boolean(t.hardDeadline);
+          const cornerMarkersHtml = (isVp || isHd)
+            ? `<div class="card-corner-markers">${isHd ? '<span class="hd-corner-pill" title="HD (Hard Deadline - never rolls over)" aria-label="Hard Deadline">HD</span>' : ''}${isVp ? '<span class="vp-corner-dot" title="VP" aria-label="VP"></span>' : ''}</div>`
+            : '';
           const isCardExpanded = expandedTasks.has(t.id);
           const completionMeta = isDone ? getCompletionDateMeta(t) : null;
           const vLabel = pendingFb ? getNextVersionLabel(t) : '';
@@ -6159,8 +6319,8 @@
                   : `<span class="nx-badge badge-date">No due date</span>`);
 
             return `
-              <article class="task-card is-collapsed ${overdue ? 'is-overdue' : ''} ${pendingFb ? 'is-pending-feedback' : ''} ${isVp ? 'is-vp-followup' : ''}" data-task-id="${t.id}">
-                ${vpCornerDotHtml}
+              <article class="task-card is-collapsed ${overdue ? 'is-overdue' : ''} ${pendingFb ? 'is-pending-feedback' : ''} ${isVp ? 'is-vp-followup' : ''} ${isHd ? 'is-hard-deadline' : ''}" data-task-id="${t.id}">
+                ${cornerMarkersHtml}
                 <div class="card-expand-head">
                   <div class="task-title">${escapeHtml(t.title)}</div>
                   <button type="button" class="btn-card-expand" onclick="toggleTaskExpand('${t.id}')" aria-expanded="false" title="Expand task details">
@@ -6528,8 +6688,8 @@
               `);
 
           return `
-            <article class="task-card ${overdue ? 'is-overdue' : ''} ${pendingFb ? 'is-pending-feedback' : ''} ${isVp ? 'is-vp-followup' : ''}" data-task-id="${t.id}">
-              ${vpCornerDotHtml}
+            <article class="task-card ${overdue ? 'is-overdue' : ''} ${pendingFb ? 'is-pending-feedback' : ''} ${isVp ? 'is-vp-followup' : ''} ${isHd ? 'is-hard-deadline' : ''}" data-task-id="${t.id}">
+              ${cornerMarkersHtml}
               <div class="card-expand-head">
                 <div class="task-title">${escapeHtml(t.title)}</div>
                 <button type="button" class="btn-card-expand is-open" onclick="toggleTaskExpand('${t.id}')" aria-expanded="true" title="Collapse task">
