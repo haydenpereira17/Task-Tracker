@@ -748,19 +748,43 @@
       border-color: var(--pace-periwinkle);
     }
 
+    .cam-zoom-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 4px;
+      border-left: 1px solid rgba(137, 170, 230, 0.22);
+      margin-left: 2px;
+    }
+
+    .cam-zoom-slider {
+      width: 78px;
+      accent-color: #38bdf8;
+      cursor: pointer;
+    }
+
+    @media (max-width: 640px) {
+      .cam-zoom-slider { width: 58px; }
+    }
+
     .hud-hint-bottom-right {
       position: absolute;
-      bottom: 14px;
-      right: 14px;
+      top: 12px;
+      right: 12px;
       z-index: 5;
       padding: 5px 10px;
       border-radius: 8px;
-      background: rgba(4, 18, 29, 0.78);
-      border: 1px solid rgba(137, 170, 230, 0.2);
+      background: rgba(4, 18, 29, 0.8);
+      border: 1px solid rgba(137, 170, 230, 0.24);
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.64rem;
-      color: var(--nx-faint);
+      font-size: 0.62rem;
+      color: var(--nx-muted);
       pointer-events: none;
+      backdrop-filter: blur(8px);
+    }
+
+    @media (max-width: 960px) {
+      .hud-hint-bottom-right { display: none; }
     }
 
     /* Floating Hover Tooltip inside 3D Viewport */
@@ -1161,6 +1185,7 @@
         <div class="toolbar-left">
           <span class="retro-stat-badge">Cubicles: <strong id="stat-cubicles">0</strong></span>
           <span class="retro-stat-badge">Typing Now: <strong id="stat-working" style="color:var(--nx-cyan);">0</strong></span>
+          <span class="retro-stat-badge">Sleeping: <strong id="stat-sleeping" style="color:#a5b4fc;">0</strong></span>
           <span class="retro-stat-badge">Open Folders: <strong id="stat-open-folders" style="color:#fde68a;">0</strong></span>
           <span class="retro-stat-badge">Done Tray: <strong id="stat-done-folders" style="color:var(--nx-emerald);">0</strong></span>
         </div>
@@ -1188,14 +1213,18 @@
           </div>
 
           <div class="hud-camera-bar" role="group" aria-label="Camera controls">
-            <button type="button" class="cam-btn" onclick="setCameraPreset('iso')">Iso Grid</button>
+            <button type="button" class="cam-btn" onclick="setCameraPreset('iso')" title="Reset isometric overview">Iso Grid</button>
             <button type="button" class="cam-btn" onclick="setCameraPreset('top')">Top-Down</button>
             <button type="button" class="cam-btn" onclick="setCameraPreset('front')">Front Row</button>
-            <button type="button" class="cam-btn" onclick="nudgeZoom(-3)">+</button>
-            <button type="button" class="cam-btn" onclick="nudgeZoom(3)">&minus;</button>
+            <button type="button" class="cam-btn" onclick="focusSelectedCubicle()" title="Zoom in on selected cubicle">Focus Desk</button>
+            <div class="cam-zoom-wrap">
+              <button type="button" class="cam-btn" onclick="nudgeZoom(3.5)" aria-label="Zoom out" title="Zoom out">&minus;</button>
+              <input type="range" id="zoom-slider" class="cam-zoom-slider" min="0" max="100" value="48" aria-label="Zoom level" oninput="setZoomPercent(this.value)" />
+              <button type="button" class="cam-btn" onclick="nudgeZoom(-3.5)" aria-label="Zoom in" title="Zoom in">+</button>
+            </div>
           </div>
 
-          <div class="hud-hint-bottom-right">Drag to orbit · Right-drag to pan · Click any cubicle or folder</div>
+          <div class="hud-hint-bottom-right">Touch: 1-finger pan · 2-finger rotate/pivot/zoom</div>
 
           <div id="office-tooltip" class="office-tooltip hidden" role="status">
             <div class="tt-eyebrow" id="tt-eyebrow">CUBICLE</div>
@@ -1421,6 +1450,7 @@
 
   // ── App State ──
   let rawTasks = [];
+  let tasksLoaded = false;
   let listenersAttached = false;
   let busyOnly = false;
   let showDoneStack = true;
@@ -1517,15 +1547,20 @@
 
   function updateToolbarStats(allList) {
     let workingCount = 0;
+    let sleepingCount = 0;
     let openFolders = 0;
     let doneFolders = 0;
     allList.forEach(w => {
-      if (w.inprogress.length > 0) workingCount++;
+      const hasActiveWork = w.inprogress.length > 0 && !w.inprogress.every(t => Boolean(t.pendingFeedback));
+      if (hasActiveWork) workingCount++;
+      if (w.openCount === 0) sleepingCount++;
       openFolders += w.openCount;
       doneFolders += w.done.length;
     });
     document.getElementById('stat-cubicles').textContent = String(cubicleWorkersCache.length);
     document.getElementById('stat-working').textContent = String(workingCount);
+    const sleepEl = document.getElementById('stat-sleeping');
+    if (sleepEl) sleepEl.textContent = String(sleepingCount);
     document.getElementById('stat-open-folders').textContent = String(openFolders);
     document.getElementById('stat-done-folders').textContent = String(doneFolders);
   }
@@ -1567,8 +1602,10 @@
       statusEl.textContent = `${worker.todo.length} queued folder${worker.todo.length === 1 ? '' : 's'} on desk`;
       statusEl.style.color = '#fde68a';
     } else {
-      statusEl.textContent = worker.done.length > 0 ? 'All desk folders cleared' : 'Chill desk · no open tasks';
-      statusEl.style.color = '#34d399';
+      statusEl.textContent = worker.done.length > 0
+        ? `Sleeping at desk (Zzz) · ${worker.done.length} cleared`
+        : 'Sleeping at desk (Zzz) · no tasks';
+      statusEl.style.color = '#a5b4fc';
     }
 
     document.getElementById('d-count-ip').textContent = String(worker.inprogress.length);
@@ -1638,10 +1675,14 @@
   let raycaster = null;
   let pointerNdc = null;
   let interactables = []; // clickable/hoverable meshes
-  let cubicleVisuals = []; // animated characters, screens, rings
+  let cubicleVisuals = []; // animated characters, screens, rings, Zzzs
+  let envVisuals = []; // animated cooler bubbles, swaying plants
   let hoveredHit = null;
   let clockStart = performance.now();
   let animRafId = null;
+
+  const ZOOM_MIN = 5.5;
+  const ZOOM_MAX = 58;
 
   // Spherical Orbit Camera State
   const camState = {
@@ -1654,7 +1695,8 @@
     goalPolar: 0.88,
     goalDistance: 32,
     goalX: 0,
-    goalZ: 0
+    goalZ: 0,
+    initialSpanDistance: 32
   };
 
   // Retro palette sets per character hash
@@ -1662,12 +1704,14 @@
   const SKIN_COLORS = [0xfcd5b5, 0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524];
   const HAIR_COLORS = [0x1e293b, 0x3f2316, 0x7c4a26, 0xd4a359, 0x0f172a, 0x5c2c2c];
 
-  // Texture caches for crisp pixel-art nameplates & monitor faces
+  // Texture caches for crisp pixel-art nameplates, animated CRT screens & Zzz sprites
   const nameplateTextureCache = new Map();
   let carpetTileTexture = null;
-  let screenWorkingTex = null;
-  let screenPendingTex = null;
-  let screenIdleTex = null;
+  let screenWorkingFrames = [];
+  let screenPendingFrames = [];
+  let screenQueuedTex = null;
+  let screenSleepFrames = [];
+  let zzzSpriteTex = null;
 
   function makePixelCanvasTexture(width, height, drawFn) {
     const c = document.createElement('canvas');
@@ -1697,36 +1741,81 @@
     carpetTileTexture.wrapS = THREE.RepeatWrapping;
     carpetTileTexture.wrapT = THREE.RepeatWrapping;
 
-    screenWorkingTex = makePixelCanvasTexture(32, 24, (ctx, w, h) => {
+    // 3 animated typing CRT frames (scrolling code + blinking pixel cursor)
+    screenWorkingFrames = [0, 1, 2].map(f => makePixelCanvasTexture(32, 24, (ctx, w, h) => {
       ctx.fillStyle = '#06283d';
       ctx.fillRect(0, 0, w, h);
+      const yShift = (f * 4) % 12;
       ctx.fillStyle = '#38bdf8';
-      ctx.fillRect(3, 4, 16, 2);
+      ctx.fillRect(3, 4 + ((0 + yShift) % 12), 16, 2);
       ctx.fillStyle = '#34d399';
-      ctx.fillRect(3, 8, 22, 2);
+      ctx.fillRect(3, 4 + ((4 + yShift) % 12), 22, 2);
       ctx.fillStyle = '#bae6fd';
-      ctx.fillRect(3, 12, 12, 2);
+      ctx.fillRect(3, 4 + ((8 + yShift) % 12), 14, 2);
+      ctx.fillStyle = f % 2 === 0 ? '#ffffff' : '#0284c7';
+      ctx.fillRect(19, 17, 3, 3);
       ctx.fillStyle = '#f43f5e';
-      ctx.fillRect(3, 16, 8, 2);
-      ctx.fillStyle = '#38bdf8';
-      ctx.fillRect(19, 16, 10, 4);
-    });
+      ctx.fillRect(3, 18, 12, 2);
+    }));
 
-    screenPendingTex = makePixelCanvasTexture(32, 24, (ctx, w, h) => {
+    // 2 animated pending-feedback frames (blinking amber progress dots)
+    screenPendingFrames = [0, 1].map(f => makePixelCanvasTexture(32, 24, (ctx, w, h) => {
       ctx.fillStyle = '#291f0b';
       ctx.fillRect(0, 0, w, h);
       ctx.fillStyle = '#fbbf24';
       ctx.fillRect(4, 5, 24, 3);
-      ctx.fillRect(4, 11, 16, 2);
-      ctx.fillStyle = '#fef08a';
-      ctx.fillRect(4, 16, 10, 3);
+      ctx.fillRect(4, 11, f === 0 ? 18 : 10, 2);
+      ctx.fillStyle = f === 0 ? '#fef08a' : '#f59e0b';
+      ctx.fillRect(4, 16, 4, 3);
+      ctx.fillRect(11, 16, 4, 3);
+      ctx.fillRect(18, 16, f === 1 ? 4 : 2, 3);
+    }));
+
+    screenQueuedTex = makePixelCanvasTexture(32, 24, (ctx, w, h) => {
+      ctx.fillStyle = '#0d2538';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#e8b95b';
+      ctx.fillRect(5, 6, 20, 3);
+      ctx.fillRect(5, 11, 15, 2);
+      ctx.fillRect(5, 15, 22, 2);
     });
 
-    screenIdleTex = makePixelCanvasTexture(32, 24, (ctx, w, h) => {
-      ctx.fillStyle = '#0a1f30';
+    // 2 dark sleepy CRT screensaver frames ("- -" sleepy eyes + pixel z)
+    screenSleepFrames = [0, 1].map(f => makePixelCanvasTexture(32, 24, (ctx, w, h) => {
+      ctx.fillStyle = '#07121f';
       ctx.fillRect(0, 0, w, h);
-      ctx.fillStyle = '#3685b5';
-      ctx.fillRect(8, 10, 16, 3);
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(7, 11, 6, 2);
+      ctx.fillRect(19, 11, 6, 2);
+      ctx.fillStyle = '#818cf8';
+      if (f === 0) {
+        ctx.fillRect(22, 4, 5, 1);
+        ctx.fillRect(24, 5, 2, 1);
+        ctx.fillRect(22, 6, 5, 1);
+      } else {
+        ctx.fillRect(21, 3, 6, 1);
+        ctx.fillRect(23, 4, 2, 2);
+        ctx.fillRect(21, 6, 6, 1);
+      }
+    }));
+
+    // Crisp retro pixel-art "Z" sprite for sleeping characters
+    zzzSpriteTex = makePixelCanvasTexture(32, 32, (ctx) => {
+      ctx.clearRect(0, 0, 32, 32);
+      // Dark navy pixel shadow outline
+      ctx.fillStyle = '#04121d';
+      ctx.fillRect(4, 4, 24, 7);
+      ctx.fillRect(17, 10, 7, 5);
+      ctx.fillRect(12, 14, 8, 5);
+      ctx.fillRect(7, 18, 8, 5);
+      ctx.fillRect(4, 21, 24, 7);
+      // Bright sleepy cream-moonlight Z pixels
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(6, 6, 20, 4);
+      ctx.fillRect(19, 10, 4, 4);
+      ctx.fillRect(14, 14, 5, 4);
+      ctx.fillRect(9, 18, 5, 4);
+      ctx.fillRect(6, 22, 20, 4);
     });
   }
 
@@ -1809,7 +1898,7 @@
     return { folderGroup, mainHitMesh: topCover };
   }
 
-  function buildPottedPlant() {
+  function buildPottedPlant(seed = 0) {
     const g = new THREE.Group();
     const pot = makeBox(0.55, 0.45, 0.55, 0xb45309);
     pot.position.y = 0.225;
@@ -1817,12 +1906,16 @@
     const soil = makeBox(0.45, 0.06, 0.45, 0x3f2316);
     soil.position.y = 0.46;
     g.add(soil);
+    const leafWrap = new THREE.Group();
+    leafWrap.position.y = 0.48;
     const leaf1 = makeBox(0.5, 0.45, 0.5, 0x10b981);
-    leaf1.position.y = 0.72;
-    g.add(leaf1);
+    leaf1.position.y = 0.24;
+    leafWrap.add(leaf1);
     const leaf2 = makeBox(0.32, 0.35, 0.32, 0x34d399);
-    leaf2.position.set(0.08, 1.04, -0.05);
-    g.add(leaf2);
+    leaf2.position.set(0.08, 0.56, -0.05);
+    leafWrap.add(leaf2);
+    g.add(leafWrap);
+    envVisuals.push({ kind: 'plant', node: leafWrap, offset: seed * 1.3 });
     return g;
   }
 
@@ -1837,6 +1930,13 @@
     const jug = makeBox(0.48, 0.58, 0.48, 0x38bdf8, { emissive: 0x0284c7, emissiveIntensity: 0.25 });
     jug.position.y = 1.34;
     g.add(jug);
+    const bubble1 = makeBox(0.11, 0.11, 0.11, 0xe0f2fe, { emissive: 0xffffff, emissiveIntensity: 0.4 });
+    bubble1.position.set(-0.06, 1.2, 0.06);
+    g.add(bubble1);
+    const bubble2 = makeBox(0.08, 0.08, 0.08, 0xe0f2fe, { emissive: 0xffffff, emissiveIntensity: 0.4 });
+    bubble2.position.set(0.08, 1.35, -0.05);
+    g.add(bubble2);
+    envVisuals.push({ kind: 'cooler', b1: bubble1, b2: bubble2 });
     const cap = makeBox(0.22, 0.1, 0.22, 0x1d4ed8);
     cap.position.y = 1.66;
     g.add(cap);
@@ -1855,6 +1955,7 @@
     const hasHeadphones = (nameHash % 4 === 1);
     const isWorking = worker.inprogress.length > 0 && !worker.inprogress.every(t => Boolean(t.pendingFeedback));
     const hasPendingOnly = worker.inprogress.length > 0 && worker.inprogress.every(t => Boolean(t.pendingFeedback));
+    const isSleeping = (worker.openCount === 0);
 
     // 1. Floor Carpet Pad + Selection Rim
     const floorMat = new THREE.MeshLambertMaterial({ map: carpetTileTexture });
@@ -1952,7 +2053,9 @@
     monitorBody.position.set(-0.22, 1.3, -1.26);
     group.add(monitorBody);
 
-    const scrTex = isWorking ? screenWorkingTex : (hasPendingOnly ? screenPendingTex : screenIdleTex);
+    const scrTex = isWorking
+      ? screenWorkingFrames[0]
+      : (hasPendingOnly ? screenPendingFrames[0] : (isSleeping ? screenSleepFrames[0] : screenQueuedTex));
     const scrMat = new THREE.MeshBasicMaterial({ map: scrTex });
     const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.44), scrMat);
     screen.position.set(-0.22, 1.31, -0.995);
@@ -1962,22 +2065,26 @@
     keyboard.position.set(-0.22, 0.915, -0.78);
     group.add(keyboard);
 
-    // Cute retro coffee mug + pixel steam
+    // Cute retro coffee mug + dual rising pixel steam puffs
     const mug = makeBox(0.16, 0.18, 0.16, 0xf43f5e);
     mug.position.set(-1.12, 0.98, -0.72);
     group.add(mug);
-    const steam = makeBox(0.08, 0.08, 0.08, 0xe2e8f0, { emissive: 0xffffff, emissiveIntensity: 0.25 });
-    steam.position.set(-1.12, 1.18, -0.72);
-    steam.visible = isWorking;
-    group.add(steam);
+    const steam1 = makeBox(0.08, 0.08, 0.08, 0xe2e8f0, { emissive: 0xffffff, emissiveIntensity: 0.35 });
+    steam1.position.set(-1.12, 1.16, -0.72);
+    steam1.visible = isWorking;
+    group.add(steam1);
+    const steam2 = makeBox(0.06, 0.06, 0.06, 0xbae6fd, { emissive: 0xffffff, emissiveIntensity: 0.25 });
+    steam2.position.set(-1.08, 1.24, -0.72);
+    steam2.visible = isWorking;
+    group.add(steam2);
 
     // 5. PILE OF FOLDERS ON THE DESK! (Real Tasks!)
-    // Active Open Tasks Pile on Right Side of Desk (x = +0.72, z = -0.82)
+    // Active Open Tasks Pile on Right Side of Desk (x = +0.68, z = -0.74)
     const openStack = worker.openTasks;
     const maxVisibleOpen = Math.min(openStack.length, 16);
     for (let i = 0; i < maxVisibleOpen; i++) {
       const task = openStack[i];
-      const { folderGroup, mainHitMesh } = buildFolderMesh(task);
+      const { folderGroup } = buildFolderMesh(task);
       const jitterX = (((i * 37) % 11) - 5) * 0.01;
       const jitterZ = (((i * 23) % 9) - 4) * 0.01;
       const jitterRot = (((i * 19) % 7) - 3) * 0.045;
@@ -1994,6 +2101,7 @@
     }
 
     // Active Open Folder right in front of them if typing!
+    let activeDeskFolder = null;
     if (worker.inprogress.length > 0) {
       const curTask = worker.inprogress[0];
       const { folderGroup } = buildFolderMesh(curTask);
@@ -2007,6 +2115,7 @@
         }
       });
       group.add(folderGroup);
+      activeDeskFolder = folderGroup;
     }
 
     // Done Tray Stack (Green Folders) on Back-Right Corner of Desk
@@ -2138,23 +2247,62 @@
     group.add(charRoot);
 
     // Floating status beacon above cubicle back wall
-    const beaconColor = isWorking ? 0x38bdf8 : (hasPendingOnly ? 0xfbbf24 : (worker.openCount > 0 ? 0xe8b95b : 0x34d399));
-    const beacon = makeBox(0.22, 0.22, 0.22, beaconColor, { emissive: beaconColor, emissiveIntensity: 0.7 });
+    const beaconColor = isWorking
+      ? 0x38bdf8
+      : (hasPendingOnly ? 0xfbbf24 : (isSleeping ? 0x818cf8 : 0xe8b95b));
+    const beacon = makeBox(0.22, 0.22, 0.22, beaconColor, {
+      emissive: beaconColor,
+      emissiveIntensity: isSleeping ? 0.4 : 0.75
+    });
     beacon.position.set(1.45, 2.02, -1.55);
     group.add(beacon);
 
+    // Floating Pixel "Zzz" Sprites for sleeping workers (no active tasks)!
+    const zzzSprites = [];
+    if (isSleeping && zzzSpriteTex) {
+      for (let z = 0; z < 3; z++) {
+        const spMat = new THREE.SpriteMaterial({
+          map: zzzSpriteTex,
+          transparent: true,
+          opacity: 0.9,
+          depthWrite: false
+        });
+        const sp = new THREE.Sprite(spMat);
+        sp.position.set(-0.18, 1.55 + z * 0.35, -0.45);
+        sp.scale.setScalar(0.26);
+        group.add(sp);
+        zzzSprites.push(sp);
+      }
+      // Initial resting pose hunched comfortably onto folded arms over desk
+      upperBody.rotation.x = -0.78;
+      upperBody.position.z = -0.06;
+      headGroup.rotation.x = -0.36;
+      headGroup.rotation.z = 0.28;
+      armLGroup.rotation.x = -0.22;
+      armLGroup.rotation.y = -0.46;
+      armRGroup.rotation.x = -0.22;
+      armRGroup.rotation.y = 0.46;
+    }
+
     cubicleVisuals.push({
       worker,
+      gx,
+      gz,
       isWorking,
       hasPendingOnly,
+      isSleeping,
       phaseOffset: (nameHash % 100) * 0.1,
       upperBody,
       headGroup,
       armLGroup,
       armRGroup,
-      steam,
+      steam1,
+      steam2,
+      activeDeskFolder,
+      scrMat,
       beacon,
-      ring
+      ring,
+      zzzSprites
     });
 
     worldGroup.add(group);
@@ -2189,8 +2337,8 @@
     const keyLight = new THREE.DirectionalLight(0xfff1d6, 0.95);
     keyLight.position.set(18, 28, 20);
     keyLight.castShadow = true;
-    keyLight.shadow.mapSize.width = 1024;
-    keyLight.shadow.mapSize.height = 1024;
+    keyLight.shadow.mapSize.width = 512;
+    keyLight.shadow.mapSize.height = 512;
     keyLight.shadow.camera.near = 2;
     keyLight.shadow.camera.far = 85;
     keyLight.shadow.camera.left = -24;
@@ -2241,6 +2389,7 @@
     while (propsGroup.children.length > 0) propsGroup.remove(propsGroup.children[0]);
     interactables = [];
     cubicleVisuals = [];
+    envVisuals = [];
     hoveredHit = null;
     hideTooltip();
 
@@ -2277,8 +2426,8 @@
     // Cozy Retro Office Perimeter Props (Corner plants & Water Cooler!)
     const halfW = floorW / 2 - 0.85;
     const halfD = floorD / 2 - 0.85;
-    [[-halfW, -halfD], [halfW, halfD], [-halfW, halfD]].forEach(([px, pz]) => {
-      const plant = buildPottedPlant();
+    [[-halfW, -halfD], [halfW, halfD], [-halfW, halfD]].forEach(([px, pz], idx) => {
+      const plant = buildPottedPlant(idx);
       plant.position.set(px, 0, pz);
       propsGroup.add(plant);
     });
@@ -2288,10 +2437,12 @@
 
     // Adjust camera distance nicely to frame whole cubicle island + corners
     const span = Math.max(floorW, floorD);
+    camState.initialSpanDistance = Math.min(50, Math.max(20, span * 1.25));
     if (!worldGroup.datasetHasFramedOnce) {
-      camState.goalDistance = Math.min(48, Math.max(20, span * 1.25));
-      camState.distance = camState.goalDistance;
+      camState.goalDistance = camState.initialSpanDistance;
+      camState.distance = camState.initialSpanDistance;
       worldGroup.datasetHasFramedOnce = true;
+      syncZoomSlider();
     }
   }
 
@@ -2329,6 +2480,18 @@
     rebuildOfficeScene();
   }
 
+  function syncZoomSlider() {
+    const slider = document.getElementById('zoom-slider');
+    if (!slider) return;
+    const pct = Math.round(((ZOOM_MAX - camState.goalDistance) / (ZOOM_MAX - ZOOM_MIN)) * 100);
+    slider.value = String(Math.max(0, Math.min(100, pct)));
+  }
+
+  function setZoomPercent(pct) {
+    const norm = Math.max(0, Math.min(100, Number(pct) || 0)) / 100;
+    camState.goalDistance = ZOOM_MAX - norm * (ZOOM_MAX - ZOOM_MIN);
+  }
+
   function setCameraPreset(preset) {
     if (preset === 'top') {
       camState.goalAzimuth = 0.0;
@@ -2342,14 +2505,35 @@
       camState.goalZ = 0;
     } else {
       camState.goalAzimuth = 0.72;
-      camState.goalPolar = 0.92;
+      camState.goalPolar = 0.88;
       camState.goalX = 0;
       camState.goalZ = 0;
+      if (camState.initialSpanDistance) camState.goalDistance = camState.initialSpanDistance;
+      syncZoomSlider();
+    }
+  }
+
+  function focusCubicleByName(personName, distance = 8.2) {
+    const cv = cubicleVisuals.find(c => c.worker.name === personName);
+    if (!cv) return;
+    camState.goalX = cv.gx;
+    camState.goalZ = cv.gz - 0.35;
+    camState.goalDistance = distance;
+    camState.goalPolar = 0.92;
+    syncZoomSlider();
+  }
+
+  function focusSelectedCubicle() {
+    if (selectedPerson) {
+      focusCubicleByName(selectedPerson, 8.2);
+    } else if (cubicleVisuals.length > 0) {
+      focusCubicleByName(cubicleVisuals[0].worker.name, 8.2);
     }
   }
 
   function nudgeZoom(delta) {
-    camState.goalDistance = Math.max(9, Math.min(54, camState.goalDistance + delta));
+    camState.goalDistance = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, camState.goalDistance + delta));
+    syncZoomSlider();
   }
 
   function hideTooltip() {
@@ -2381,9 +2565,13 @@
       subEl.textContent = bits.length > 0 ? bits.join(' · ') : 'Click folder to highlight in desk list';
     } else if (hitData.worker) {
       const w = hitData.worker;
-      eyebrowEl.textContent = w.inprogress.length > 0 ? 'TYPING AWAY' : (w.openCount > 0 ? 'BACKLOG ON DESK' : 'DESK CLEAR');
+      eyebrowEl.textContent = w.openCount === 0
+        ? 'SLEEPING · ZZZ'
+        : (w.inprogress.length > 0 ? 'TYPING AWAY' : 'BACKLOG ON DESK');
       titleEl.textContent = w.name;
-      subEl.textContent = `${w.inprogress.length} active · ${w.todo.length} queued · ${w.done.length} done`;
+      subEl.textContent = w.openCount === 0
+        ? (w.done.length > 0 ? `Catching Zzzs · ${w.done.length} cleared` : 'No active folders — sleeping at desk')
+        : `${w.inprogress.length} active · ${w.todo.length} queued · ${w.done.length} done`;
     }
 
     tt.style.left = lx + 'px';
@@ -2391,44 +2579,105 @@
     tt.classList.remove('hidden');
   }
 
+  function panCameraBy(dx, dy) {
+    const sinA = Math.sin(camState.azimuth);
+    const cosA = Math.cos(camState.azimuth);
+    const panSpeed = camState.distance * 0.0016;
+    camState.goalX = Math.max(-24, Math.min(24, camState.goalX - (dx * cosA + dy * sinA) * panSpeed));
+    camState.goalZ = Math.max(-24, Math.min(24, camState.goalZ + (dx * sinA - dy * cosA) * panSpeed));
+  }
+
   function setupPointerControls(canvas) {
-    let isDragging = false;
+    const activePointers = new Map();
     let dragMode = 'orbit';
-    let downX = 0;
-    let downY = 0;
     let prevX = 0;
     let prevY = 0;
+    let prevPinchDist = 0;
+    let prevPinchAngle = 0;
+    let prevMidX = 0;
+    let prevMidY = 0;
     let movedDist = 0;
+
+    function syncTwoFingerGestureState() {
+      const pts = Array.from(activePointers.values());
+      if (pts.length >= 2) {
+        prevPinchDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+        prevPinchAngle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
+        prevMidX = (pts[0].x + pts[1].x) * 0.5;
+        prevMidY = (pts[0].y + pts[1].y) * 0.5;
+      } else if (pts.length === 1) {
+        prevX = pts[0].x;
+        prevY = pts[0].y;
+        prevPinchDist = 0;
+      }
+    }
 
     canvas.addEventListener('contextmenu', e => e.preventDefault());
 
     canvas.addEventListener('pointerdown', e => {
-      isDragging = true;
-      dragMode = (e.button === 2 || e.shiftKey) ? 'pan' : 'orbit';
-      downX = prevX = e.clientX;
-      downY = prevY = e.clientY;
-      movedDist = 0;
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, type: e.pointerType || 'mouse' });
+      if (e.pointerType === 'touch') {
+        // Single finger translates/pans; two fingers rotate/pivot/zoom
+        dragMode = 'pan';
+      } else {
+        dragMode = (e.button === 2 || e.shiftKey) ? 'pan' : 'orbit';
+      }
+      prevX = e.clientX;
+      prevY = e.clientY;
+      if (activePointers.size === 1) movedDist = 0;
+      syncTwoFingerGestureState();
       canvas.classList.add('is-dragging');
       try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
     });
 
     canvas.addEventListener('pointermove', e => {
-      if (isDragging) {
+      if (activePointers.has(e.pointerId)) {
+        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, type: e.pointerType || 'mouse' });
+
+        // Two-finger gesture: pinch to zoom + twist/slide to rotate & pivot
+        if (activePointers.size >= 2) {
+          const pts = Array.from(activePointers.values());
+          const curDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+          const curAngle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
+          const curMidX = (pts[0].x + pts[1].x) * 0.5;
+          const curMidY = (pts[0].y + pts[1].y) * 0.5;
+
+          if (prevPinchDist > 0) {
+            const deltaPinch = prevPinchDist - curDist;
+            nudgeZoom(deltaPinch * 0.085);
+
+            const angleDelta = Math.atan2(
+              Math.sin(curAngle - prevPinchAngle),
+              Math.cos(curAngle - prevPinchAngle)
+            );
+            const midDx = curMidX - prevMidX;
+            const midDy = curMidY - prevMidY;
+
+            // Rotate horizontally via twist or horizontal slide; pivot polar tilt via vertical slide
+            camState.goalAzimuth -= (midDx * 0.0085) + (angleDelta * 1.1);
+            camState.goalPolar = Math.max(0.22, Math.min(1.42, camState.goalPolar - midDy * 0.0075));
+          }
+
+          prevPinchDist = curDist;
+          prevPinchAngle = curAngle;
+          prevMidX = curMidX;
+          prevMidY = curMidY;
+          movedDist += 5;
+          hideTooltip();
+          return;
+        }
+
         const dx = e.clientX - prevX;
         const dy = e.clientY - prevY;
         movedDist += Math.hypot(dx, dy);
         prevX = e.clientX;
         prevY = e.clientY;
 
-        if (dragMode === 'orbit') {
+        if (dragMode === 'pan' || e.pointerType === 'touch') {
+          panCameraBy(dx, dy);
+        } else {
           camState.goalAzimuth -= dx * 0.008;
           camState.goalPolar = Math.max(0.22, Math.min(1.42, camState.goalPolar - dy * 0.007));
-        } else {
-          const sinA = Math.sin(camState.azimuth);
-          const cosA = Math.cos(camState.azimuth);
-          const panSpeed = camState.distance * 0.0014;
-          camState.goalX = Math.max(-22, Math.min(22, camState.goalX - (dx * cosA + dy * sinA) * panSpeed));
-          camState.goalZ = Math.max(-22, Math.min(22, camState.goalZ + (dx * sinA - dy * cosA) * panSpeed));
         }
         hideTooltip();
         return;
@@ -2452,10 +2701,11 @@
       }
     });
 
-    canvas.addEventListener('pointerup', e => {
-      const wasClick = isDragging && movedDist < 6;
-      isDragging = false;
-      canvas.classList.remove('is-dragging');
+    const handlePointerEnd = (e, allowClick) => {
+      const wasClick = allowClick && activePointers.size === 1 && movedDist < 6;
+      activePointers.delete(e.pointerId);
+      syncTwoFingerGestureState();
+      if (activePointers.size === 0) canvas.classList.remove('is-dragging');
       try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
 
       if (wasClick && raycaster && camera && interactables.length > 0) {
@@ -2480,6 +2730,21 @@
           }
         }
       }
+    };
+
+    canvas.addEventListener('pointerup', e => handlePointerEnd(e, true));
+    canvas.addEventListener('pointercancel', e => handlePointerEnd(e, false));
+
+    canvas.addEventListener('dblclick', e => {
+      if (!raycaster || !camera || interactables.length === 0) return;
+      const rect = canvas.getBoundingClientRect();
+      pointerNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointerNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointerNdc, camera);
+      const hits = raycaster.intersectObjects(interactables, false);
+      if (hits.length > 0 && hits[0].object && hits[0].object.userData && hits[0].object.userData.worker) {
+        focusCubicleByName(hits[0].object.userData.worker.name, 8.2);
+      }
     });
 
     canvas.addEventListener('pointerleave', () => {
@@ -2489,22 +2754,35 @@
 
     canvas.addEventListener('wheel', e => {
       e.preventDefault();
-      nudgeZoom(e.deltaY * 0.015);
+      if (e.ctrlKey) {
+        nudgeZoom(e.deltaY * 0.14);
+      } else {
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY) * 1.1) {
+          camState.goalAzimuth -= e.deltaX * 0.004;
+        }
+        nudgeZoom(e.deltaY * 0.022);
+      }
     }, { passive: false });
   }
 
+  let lastFrameMs = performance.now();
+
   function startAnimLoop() {
     if (animRafId !== null) return;
+    lastFrameMs = performance.now();
     const loop = (now) => {
       animRafId = requestAnimationFrame(loop);
       const t = (now - clockStart) * 0.001;
+      const dt = Math.min(0.15, Math.max(0.001, (now - lastFrameMs) * 0.001));
+      lastFrameMs = now;
+      const camLerp = 1 - Math.exp(-10 * dt);
 
-      // Smooth damped camera orbit
-      camState.azimuth += (camState.goalAzimuth - camState.azimuth) * 0.14;
-      camState.polar += (camState.goalPolar - camState.polar) * 0.14;
-      camState.distance += (camState.goalDistance - camState.distance) * 0.14;
-      camState.targetX += (camState.goalX - camState.targetX) * 0.14;
-      camState.targetZ += (camState.goalZ - camState.targetZ) * 0.14;
+      // Frame-rate independent smooth damped camera orbit, pan & zoom
+      camState.azimuth += (camState.goalAzimuth - camState.azimuth) * camLerp;
+      camState.polar += (camState.goalPolar - camState.polar) * camLerp;
+      camState.distance += (camState.goalDistance - camState.distance) * camLerp;
+      camState.targetX += (camState.goalX - camState.targetX) * camLerp;
+      camState.targetZ += (camState.goalZ - camState.targetZ) * camLerp;
 
       if (camera) {
         const sinP = Math.sin(camState.polar);
@@ -2516,37 +2794,98 @@
         camera.lookAt(camState.targetX, 0.7, camState.targetZ);
       }
 
-      // Cute Retro Animations for Workers, Typing Hands, Steam & Status Beacons!
+      // Animate Environment Props (Swaying Plants & Bubbling Water Cooler!)
+      for (let i = 0; i < envVisuals.length; i++) {
+        const ev = envVisuals[i];
+        if (ev.kind === 'plant') {
+          ev.node.rotation.z = Math.sin(t * 1.4 + ev.offset) * 0.055;
+          ev.node.rotation.x = Math.cos(t * 1.1 + ev.offset) * 0.035;
+        } else if (ev.kind === 'cooler') {
+          const c1 = (t * 0.45) % 1;
+          const c2 = (t * 0.45 + 0.5) % 1;
+          ev.b1.position.y = 1.12 + c1 * 0.42;
+          ev.b1.scale.setScalar(0.6 + Math.sin(c1 * Math.PI) * 0.5);
+          ev.b2.position.y = 1.12 + c2 * 0.42;
+          ev.b2.scale.setScalar(0.6 + Math.sin(c2 * Math.PI) * 0.5);
+        }
+      }
+
+      const workFrameIdx = Math.floor(t / 0.35) % screenWorkingFrames.length;
+      const pendFrameIdx = Math.floor(t / 0.55) % screenPendingFrames.length;
+      const sleepFrameIdx = Math.floor(t / 0.9) % screenSleepFrames.length;
+
+      // Cute Retro Animations for Workers, Typing Hands, Steam, Screens & Sleeping Zzzs!
       for (let i = 0; i < cubicleVisuals.length; i++) {
         const cv = cubicleVisuals[i];
         const ph = t + cv.phaseOffset;
 
         if (cv.isWorking) {
-          // Brisk happy typing motion!
-          cv.armLGroup.rotation.x = Math.sin(ph * 14) * 0.28 - 0.12;
-          cv.armRGroup.rotation.x = Math.sin(ph * 14 + Math.PI) * 0.28 - 0.12;
-          cv.headGroup.rotation.x = Math.sin(ph * 4.5) * 0.08 + 0.08;
-          cv.headGroup.rotation.y = Math.sin(ph * 2.1) * 0.1;
-          cv.upperBody.position.y = 0.1 + Math.abs(Math.sin(ph * 7)) * 0.025;
-          cv.steam.position.y = 1.16 + ((ph * 0.5) % 0.28);
-          cv.steam.scale.setScalar(1 - (((ph * 0.5) % 0.28) * 1.8));
-          cv.beacon.position.y = 2.02 + Math.sin(ph * 3.5) * 0.08;
-          cv.beacon.rotation.y = ph * 1.4;
+          // Lively rhythmic typing + head groove between CRT and active folder
+          cv.armLGroup.rotation.x = Math.sin(ph * 16) * 0.36 - 0.14;
+          cv.armRGroup.rotation.x = Math.sin(ph * 16 + Math.PI) * 0.36 - 0.14;
+          cv.headGroup.rotation.x = Math.sin(ph * 5) * 0.09 + 0.08;
+          cv.headGroup.rotation.y = Math.sin(ph * 2.2) * 0.16;
+          cv.upperBody.position.y = 0.1 + Math.abs(Math.sin(ph * 8)) * 0.035;
+
+          // Rising coffee steam puffs
+          const s1 = (ph * 0.65) % 1;
+          const s2 = (ph * 0.65 + 0.5) % 1;
+          cv.steam1.position.y = 1.14 + s1 * 0.34;
+          cv.steam1.scale.setScalar(Math.max(0.2, 1 - s1 * 0.8));
+          cv.steam2.position.y = 1.14 + s2 * 0.34;
+          cv.steam2.scale.setScalar(Math.max(0.2, 1 - s2 * 0.8));
+
+          if (cv.activeDeskFolder) {
+            cv.activeDeskFolder.rotation.y = 0.28 + Math.sin(ph * 3.2) * 0.045;
+          }
+          if (cv.scrMat.map !== screenWorkingFrames[workFrameIdx]) {
+            cv.scrMat.map = screenWorkingFrames[workFrameIdx];
+            cv.scrMat.needsUpdate = true;
+          }
+          cv.beacon.position.y = 2.02 + Math.sin(ph * 4.0) * 0.1;
+          cv.beacon.rotation.y = ph * 1.8;
         } else if (cv.hasPendingOnly) {
-          cv.armLGroup.rotation.x = 0.05;
-          cv.armRGroup.rotation.x = -0.1 + Math.sin(ph * 2.2) * 0.08;
-          cv.headGroup.rotation.y = Math.sin(ph * 1.4) * 0.16;
-          cv.upperBody.position.y = 0.1 + Math.sin(ph * 1.8) * 0.015;
-          cv.beacon.position.y = 2.02 + Math.sin(ph * 2.2) * 0.05;
-          cv.beacon.rotation.y = ph * 0.6;
+          cv.armLGroup.rotation.x = 0.06;
+          cv.armRGroup.rotation.x = -0.14 + Math.sin(ph * 2.8) * 0.12;
+          cv.headGroup.rotation.y = Math.sin(ph * 1.6) * 0.22;
+          cv.upperBody.position.y = 0.1 + Math.sin(ph * 2.0) * 0.02;
+          if (cv.scrMat.map !== screenPendingFrames[pendFrameIdx]) {
+            cv.scrMat.map = screenPendingFrames[pendFrameIdx];
+            cv.scrMat.needsUpdate = true;
+          }
+          cv.beacon.position.y = 2.02 + Math.sin(ph * 2.4) * 0.06;
+          cv.beacon.rotation.y = ph * 0.8;
+        } else if (cv.isSleeping) {
+          // Sleeping hunched onto desk with slow chest breath & floating Zzzs!
+          const breath = Math.sin(ph * 1.45);
+          cv.upperBody.rotation.x = -0.78 + breath * 0.045;
+          cv.upperBody.position.y = 0.06 + breath * 0.015;
+          cv.headGroup.rotation.x = -0.36 + breath * 0.04;
+          cv.headGroup.rotation.z = 0.28;
+          if (cv.scrMat.map !== screenSleepFrames[sleepFrameIdx]) {
+            cv.scrMat.map = screenSleepFrames[sleepFrameIdx];
+            cv.scrMat.needsUpdate = true;
+          }
+          for (let z = 0; z < cv.zzzSprites.length; z++) {
+            const sp = cv.zzzSprites[z];
+            const zc = (ph * 0.48 + z * 0.333) % 1;
+            sp.position.y = 1.5 + zc * 1.25;
+            sp.position.x = -0.18 + Math.sin(ph * 2.2 + z) * 0.16;
+            sp.position.z = -0.52 + Math.cos(ph * 1.5 + z) * 0.08;
+            sp.scale.setScalar(0.24 + zc * 0.22);
+            sp.material.opacity = Math.sin(zc * Math.PI) * 0.98;
+          }
+          cv.beacon.position.y = 1.98 + breath * 0.03;
+          cv.beacon.rotation.y = ph * 0.25;
         } else {
-          // Relaxed chill sway (looks toward folder pile or leans slightly)
-          cv.armLGroup.rotation.x = 0.15;
-          cv.armRGroup.rotation.x = 0.15;
-          cv.headGroup.rotation.y = Math.sin(ph * 0.9) * 0.12;
-          cv.headGroup.rotation.x = -0.05 + Math.sin(ph * 1.2) * 0.04;
-          cv.upperBody.position.y = 0.1;
-          cv.beacon.rotation.y = ph * 0.3;
+          // Queued backlog: glances toward stacked folders and taps hand gently
+          cv.armLGroup.rotation.x = 0.12;
+          cv.armRGroup.rotation.x = -0.05 + Math.abs(Math.sin(ph * 4.5)) * 0.14;
+          cv.headGroup.rotation.y = -0.22 + Math.sin(ph * 1.5) * 0.28;
+          cv.headGroup.rotation.x = -0.04 + Math.sin(ph * 1.5) * 0.05;
+          cv.upperBody.position.y = 0.1 + Math.sin(ph * 1.5) * 0.015;
+          cv.beacon.position.y = 2.02 + Math.sin(ph * 2.0) * 0.06;
+          cv.beacon.rotation.y = ph * 0.6;
         }
       }
 
@@ -2588,6 +2927,7 @@
       snapshot.forEach(child => {
         rawTasks.push({ id: child.key, ...child.val() });
       });
+      tasksLoaded = true;
       rebuildOfficeScene();
     });
   }
