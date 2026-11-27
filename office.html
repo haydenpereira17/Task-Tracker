@@ -3192,9 +3192,9 @@
   }
 
   function buildCubicle(worker, clusterX, clusterZ, quadrantIdx) {
-    // 2x2 Pinwheel Quad Cluster: each cubicle has local (-1.85..+1.85) with
-    // TWO shared inner walls at local -Z and local -X meeting at cluster center (clusterX, clusterZ),
-    // and both outer edges completely open onto the small walkway path!
+    // 2x2 Pinwheel Quad Cluster: each cubicle spans local (-1.85..+1.85) with
+    // THREE partition sides (shared back -Z, shared left -X, and right +X side wall),
+    // leaving the front (+Z) open as the walkable entrance onto the aisle!
     const ROTATIONS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
     const WORLD_OFFSETS = [
       [1.85, 1.85],   // q=0: +X, +Z
@@ -3235,28 +3235,24 @@
     ring.visible = isSelected;
     group.add(ring);
 
-    // 2. Two Shared Inner Partition Walls (meeting at quad spine center with neighbor cubicles!)
+    // 2. Three Partition Walls: back (-Z), left (-X), and right (+X), keeping front (+Z) open
     const wallColor = 0x1b4666;
     const trimColor = 0x5c85b8;
-    const backWall = makeBox(3.7, 1.28, 0.14, wallColor);
-    backWall.position.set(0, 0.76, -1.78);
-    backWall.userData = { hitType: 'cubicle', worker };
-    group.add(backWall);
-    interactables.push(backWall);
+    [
+      { w: 3.7, d: 0.14, x: 0, z: -1.78, trimW: 3.72, trimD: 0.16, trimZ: -1.78 },
+      { w: 0.14, d: 3.56, x: -1.78, z: 0.07, trimW: 0.16, trimD: 3.56, trimZ: 0.08 },
+      { w: 0.14, d: 3.56, x: 1.78, z: 0.07, trimW: 0.16, trimD: 3.56, trimZ: 0.08 }
+    ].forEach(spec => {
+      const wall = makeBox(spec.w, 1.28, spec.d, wallColor);
+      wall.position.set(spec.x, 0.76, spec.z);
+      wall.userData = { hitType: 'cubicle', worker };
+      group.add(wall);
+      interactables.push(wall);
 
-    const backTrim = makeBox(3.72, 0.07, 0.16, trimColor);
-    backTrim.position.set(0, 1.43, -1.78);
-    group.add(backTrim);
-
-    const leftWall = makeBox(0.14, 1.28, 3.56, wallColor);
-    leftWall.position.set(-1.78, 0.76, 0.07);
-    leftWall.userData = { hitType: 'cubicle', worker };
-    group.add(leftWall);
-    interactables.push(leftWall);
-
-    const leftTrim = makeBox(0.16, 0.07, 3.58, trimColor);
-    leftTrim.position.set(-1.78, 1.43, 0.07);
-    group.add(leftTrim);
+      const trim = makeBox(spec.trimW, 0.07, spec.trimD, trimColor);
+      trim.position.set(spec.x, 1.43, spec.trimZ);
+      group.add(trim);
+    });
 
     // Corkboard & sticky note pixels on shared back spine wall
     const cork = makeBox(1.06, 0.46, 0.05, 0x9c6b3b);
@@ -3274,15 +3270,15 @@
       group.add(note3);
     }
 
-    // Outer Aisle Corner Post + Camera-Facing Pixel Nameplate Sprite
-    const post = makeBox(0.11, 0.85, 0.11, 0x64748b);
-    post.position.set(1.52, 0.54, 1.52);
+    // Outer Aisle End-Cap Riser Post + Camera-Facing Pixel Nameplate Sprite (mounted cleanly above right wall trim)
+    const post = makeBox(0.12, 0.22, 0.12, 0x64748b);
+    post.position.set(1.78, 1.54, 1.78);
     group.add(post);
 
     const plateTex = getNameplateTexture(worker.name, rigInfo.isWorking, false);
     const plateSpriteMat = new THREE.SpriteMaterial({ map: plateTex, transparent: true });
     const plateSprite = new THREE.Sprite(plateSpriteMat);
-    plateSprite.position.set(1.52, 1.14, 1.52);
+    plateSprite.position.set(1.78, 1.74, 1.78);
     plateSprite.scale.set(1.36, 0.34, 1);
     plateSprite.userData = { hitType: 'cubicle', worker };
     group.add(plateSprite);
@@ -3523,7 +3519,7 @@
       propsGroup.add(strip);
     });
 
-    // Place cubicles in 4-pod pinwheel clusters (q = 0..3 sharing two inner walls)
+    // Place cubicles in 4-pod pinwheel clusters (q = 0..3, each 3-sided with open +Z front walkway access)
     clusterWorkers.forEach((worker, idx) => {
       const clusterIdx = Math.floor(idx / 4);
       const quadrantIdx = idx % 4;
