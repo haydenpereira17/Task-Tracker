@@ -2940,95 +2940,6 @@
       opacity: 0.9;
     }
 
-    .auth-userid-input {
-      letter-spacing: 0.08em;
-      padding-right: 44px;
-      text-transform: lowercase;
-    }
-
-    .auth-user-pill-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 12px;
-      padding: 6px 11px;
-      border-radius: 10px;
-      background: rgba(4, 113, 166, 0.16);
-      border: 1px solid rgba(137, 170, 230, 0.28);
-    }
-
-    .auth-user-chip {
-      font-size: 0.74rem;
-      color: var(--nx-muted);
-      font-weight: 500;
-    }
-
-    .auth-user-chip strong {
-      font-family: 'JetBrains Mono', monospace;
-      color: #ffffff;
-      font-weight: 700;
-    }
-
-    .btn-auth-switch-user {
-      background: transparent;
-      border: none;
-      color: var(--pace-periwinkle);
-      font-family: inherit;
-      font-size: 0.72rem;
-      font-weight: 600;
-      cursor: pointer;
-      padding: 2px 6px;
-      border-radius: 6px;
-      transition: background 0.15s var(--ease), color 0.15s var(--ease);
-    }
-
-    .btn-auth-switch-user:hover {
-      background: rgba(137, 170, 230, 0.14);
-      color: #ffffff;
-    }
-
-    .alpha-keypad {
-      display: none;
-      flex-direction: column;
-      gap: 6px;
-      margin-top: 10px;
-    }
-
-    .alpha-keypad.is-desk-open {
-      display: flex;
-      animation: fadeIn 0.2s var(--ease);
-    }
-
-    .alpha-row {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .alpha-row-mid {
-      padding: 0 12px;
-    }
-
-    .alpha-key {
-      flex: 1 1 0;
-      min-width: 0;
-      height: 38px;
-      padding: 0;
-      font-size: 0.84rem;
-      font-weight: 600;
-      border-radius: 8px;
-    }
-
-    .alpha-key-wide {
-      flex: 1.45 1 0;
-      min-width: 0;
-      height: 38px;
-      padding: 0;
-      font-size: 0.72rem;
-      border-radius: 8px;
-    }
-
     /* Minimalist Architectural Keypad */
     .mobile-keypad {
       display: none;
@@ -3097,20 +3008,9 @@
         margin-top: 8px;
       }
 
-      .alpha-keypad:not(.os-kbd-open) {
-        display: flex;
-        margin-top: 8px;
-      }
-
       .mobile-keypad .keypad-btn {
         height: 41px;
         font-size: 1rem;
-      }
-
-      .alpha-keypad .alpha-key,
-      .alpha-keypad .alpha-key-wide {
-        height: 36px;
-        font-size: 0.8rem;
       }
 
       .auth-card {
@@ -3623,137 +3523,61 @@
         </div>
         <h1 class="auth-title" id="auth-title">Work Pulse</h1>
         <p class="auth-byline">Product of Hayd's AI Maxing</p>
-        <p class="auth-subtitle" id="auth-subtitle">Enter your User ID to continue</p>
+        <p class="auth-subtitle" id="auth-subtitle">Enter workspace passcode to continue</p>
       </div>
 
-      <form id="auth-form" onsubmit="handleAuthSubmit(event)" novalidate>
-        <div id="auth-step-userid">
-          <div class="field-group">
-            <label class="field-label" for="auth-userid">User ID</label>
-            <div class="auth-input-shell">
-              <div class="auth-input-wrap">
-                <input
-                  type="text"
-                  id="auth-userid"
-                  class="nx-input auth-input auth-userid-input"
-                  placeholder="Enter User ID"
-                  inputmode="text"
-                  pattern="[A-Za-z]*"
-                  autocapitalize="none"
-                  autocomplete="off"
-                  spellcheck="false"
-                  enterkeyhint="next"
-                  autofocus
-                />
-                <div class="auth-input-actions">
-                  <button type="button" class="btn-pad-inline" id="btn-toggle-alpha-pad" onclick="toggleDesktopAlphaKeypad()" aria-label="Toggle alpha onscreen keyboard" title="Toggle onscreen alpha keyboard" aria-pressed="false">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/></svg>
-                  </button>
-                </div>
-              </div>
-              <div class="auth-progress-track" aria-hidden="true">
-                <div class="auth-progress-fill" id="auth-userid-progress-fill"></div>
+      <form id="auth-form" onsubmit="verifyPassword(event)" novalidate>
+        <div class="field-group">
+          <label class="field-label" for="auth-password">Passcode</label>
+          <div class="auth-input-shell">
+            <div class="auth-input-wrap">
+              <input
+                type="password"
+                id="auth-password"
+                class="nx-input auth-input"
+                placeholder="Enter passcode"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                enterkeyhint="go"
+                autocomplete="one-time-code"
+                autofocus
+              />
+              <div class="auth-input-actions">
+                <button type="button" class="btn-pad-inline" id="btn-toggle-desktop-pad" onclick="toggleDesktopKeypad()" aria-label="Toggle numeric keypad" title="Toggle on-screen keypad" aria-pressed="false">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/></svg>
+                </button>
+                <button type="button" class="btn-eye" id="toggle-eye" onclick="togglePasswordVisibility()" aria-label="Show password" title="Show or hide passcode">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
               </div>
             </div>
-          </div>
-
-          <div class="alpha-keypad" id="alpha-keypad" role="group" aria-label="Alpha-only onscreen keyboard">
-            <div class="alpha-row">
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('q')">Q</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('w')">W</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('e')">E</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('r')">R</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('t')">T</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('y')">Y</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('u')">U</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('i')">I</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('o')">O</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('p')">P</button>
-            </div>
-            <div class="alpha-row alpha-row-mid">
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('a')">A</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('s')">S</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('d')">D</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('f')">F</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('g')">G</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('h')">H</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('j')">J</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('k')">K</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('l')">L</button>
-            </div>
-            <div class="alpha-row">
-              <button type="button" class="keypad-btn keypad-btn-action keypad-btn-clear alpha-key-wide" onclick="alphaClear()" aria-label="Clear User ID">Clr</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('z')">Z</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('x')">X</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('c')">C</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('v')">V</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('b')">B</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('n')">N</button>
-              <button type="button" class="keypad-btn alpha-key" onclick="alphaAppend('m')">M</button>
-              <button type="button" class="keypad-btn keypad-btn-action alpha-key-wide" onclick="alphaBackspace()" aria-label="Backspace">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
-              </button>
+            <div class="auth-progress-track" aria-hidden="true">
+              <div class="auth-progress-fill" id="auth-progress-fill"></div>
             </div>
           </div>
         </div>
 
-        <div id="auth-step-passcode" class="hidden">
-          <div class="auth-user-pill-row">
-            <span class="auth-user-chip">User: <strong id="auth-active-user-label">hayd</strong></span>
-            <button type="button" class="btn-auth-switch-user" onclick="backToUserIdStep()">&larr; Change</button>
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="auth-password">Passcode</label>
-            <div class="auth-input-shell">
-              <div class="auth-input-wrap">
-                <input
-                  type="password"
-                  id="auth-password"
-                  class="nx-input auth-input"
-                  placeholder="Enter passcode"
-                  inputmode="numeric"
-                  pattern="[0-9]*"
-                  enterkeyhint="go"
-                  autocomplete="one-time-code"
-                />
-                <div class="auth-input-actions">
-                  <button type="button" class="btn-pad-inline" id="btn-toggle-desktop-pad" onclick="toggleDesktopKeypad()" aria-label="Toggle numeric keypad" title="Toggle on-screen keypad" aria-pressed="false">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/></svg>
-                  </button>
-                  <button type="button" class="btn-eye" id="toggle-eye" onclick="togglePasswordVisibility()" aria-label="Show password" title="Show or hide passcode">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  </button>
-                </div>
-              </div>
-              <div class="auth-progress-track" aria-hidden="true">
-                <div class="auth-progress-fill" id="auth-progress-fill"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mobile-keypad" id="mobile-keypad" role="group" aria-label="Numeric keypad">
-            <button type="button" class="keypad-btn" onclick="keypadAppend('1')">1</button>
-            <button type="button" class="keypad-btn" onclick="keypadAppend('2')">2</button>
-            <button type="button" class="keypad-btn" onclick="keypadAppend('3')">3</button>
-            <button type="button" class="keypad-btn" onclick="keypadAppend('4')">4</button>
-            <button type="button" class="keypad-btn" onclick="keypadAppend('5')">5</button>
-            <button type="button" class="keypad-btn" onclick="keypadAppend('6')">6</button>
-            <button type="button" class="keypad-btn" onclick="keypadAppend('7')">7</button>
-            <button type="button" class="keypad-btn" onclick="keypadAppend('8')">8</button>
-            <button type="button" class="keypad-btn" onclick="keypadAppend('9')">9</button>
-            <button type="button" class="keypad-btn keypad-btn-action keypad-btn-clear" onclick="keypadClear()" aria-label="Clear passcode">Clear</button>
-            <button type="button" class="keypad-btn" onclick="keypadAppend('0')">0</button>
-            <button type="button" class="keypad-btn keypad-btn-action" onclick="keypadBackspace()" aria-label="Backspace">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
-            </button>
-          </div>
+        <div class="mobile-keypad" id="mobile-keypad" role="group" aria-label="Numeric keypad">
+          <button type="button" class="keypad-btn" onclick="keypadAppend('1')">1</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('2')">2</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('3')">3</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('4')">4</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('5')">5</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('6')">6</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('7')">7</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('8')">8</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('9')">9</button>
+          <button type="button" class="keypad-btn keypad-btn-action keypad-btn-clear" onclick="keypadClear()" aria-label="Clear passcode">Clear</button>
+          <button type="button" class="keypad-btn" onclick="keypadAppend('0')">0</button>
+          <button type="button" class="keypad-btn keypad-btn-action" onclick="keypadBackspace()" aria-label="Backspace">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+          </button>
         </div>
 
-        <div class="auth-error" id="auth-error" role="alert">Incorrect credentials. Please try again.</div>
+        <div class="auth-error" id="auth-error" role="alert">Incorrect passcode. Please try again.</div>
 
         <button type="submit" class="btn-nx-primary auth-submit">
-          <span>Continue</span>
+          <span>Unlock</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </button>
 
@@ -4566,13 +4390,8 @@
     // ══════════════════════════════════════
     const PASS_HASH = '2a5afdea';
     const VIEW_PASS_HASH = 'b5edd2d5';
-    const USER_HAYD_HASH = 'c6df031f';
-    const USER_VISITOR_HASH = 'e9505321';
     let isUnlocked = false;
     let isViewOnly = false;
-    let authStep = 'userid';
-    let pendingAuthRole = null;
-    let pendingAuthUser = '';
 
     function hashPassword(str) {
       let h = 2166136261;
@@ -4583,14 +4402,6 @@
       return (h >>> 0).toString(16).padStart(8, '0');
     }
 
-    function getUserRoleFromId(userId) {
-      const clean = String(userId || '').trim().toLowerCase();
-      const h = hashPassword(clean);
-      if (h === USER_HAYD_HASH) return 'full';
-      if (h === USER_VISITOR_HASH) return 'view';
-      return null;
-    }
-
     function getPasscodeRole(entered) {
       const h = hashPassword(String(entered || '').trim());
       if (h === PASS_HASH) return 'full';
@@ -4598,24 +4409,7 @@
       return null;
     }
 
-    function verifyRoleAndPasscode(expectedRole, entered) {
-      const role = getPasscodeRole(entered);
-      if (expectedRole && role !== expectedRole) return null;
-      return role;
-    }
-
     let authUnlockTimer = null;
-
-    function toggleDesktopAlphaKeypad() {
-      const pad = document.getElementById('alpha-keypad');
-      const btn = document.getElementById('btn-toggle-alpha-pad');
-      if (!pad) return;
-      const isOpen = pad.classList.toggle('is-desk-open');
-      if (btn) {
-        btn.classList.toggle('is-on', isOpen);
-        btn.setAttribute('aria-pressed', isOpen ? 'true' : 'false');
-      }
-    }
 
     function toggleDesktopKeypad() {
       const pad = document.getElementById('mobile-keypad');
@@ -4626,24 +4420,6 @@
         btn.classList.toggle('is-on', isOpen);
         btn.setAttribute('aria-pressed', isOpen ? 'true' : 'false');
       }
-    }
-
-    function updateUserIdProgress(state) {
-      const fill = document.getElementById('auth-userid-progress-fill');
-      const input = document.getElementById('auth-userid');
-      if (!fill) return;
-      fill.classList.remove('is-error', 'is-granted');
-      if (state === 'error') {
-        fill.classList.add('is-error');
-        return;
-      }
-      if (state === 'granted') {
-        fill.classList.add('is-granted');
-        return;
-      }
-      const len = input ? String(input.value || '').length : 0;
-      const pct = len === 0 ? 0 : Math.min(100, len * 20);
-      fill.style.width = pct + '%';
     }
 
     function updateAuthProgress(state) {
@@ -4664,137 +4440,28 @@
       fill.style.width = pct + '%';
     }
 
-    function goToPasscodeStep(role, cleanUser) {
-      authStep = 'passcode';
-      pendingAuthRole = role;
-      pendingAuthUser = cleanUser;
-      const stepUser = document.getElementById('auth-step-userid');
-      const stepPass = document.getElementById('auth-step-passcode');
-      const subEl = document.getElementById('auth-subtitle');
-      const userLabelEl = document.getElementById('auth-active-user-label');
-      if (userLabelEl) userLabelEl.textContent = cleanUser;
-      if (subEl) subEl.textContent = 'Enter workspace passcode to continue';
-      if (stepUser) stepUser.classList.add('hidden');
-      if (stepPass) stepPass.classList.remove('hidden');
-      clearAuthError();
-      const passEl = document.getElementById('auth-password');
-      if (passEl) passEl.value = '';
-      updateAuthProgress();
-      setTimeout(focusAuthInput, 20);
-    }
-
-    function backToUserIdStep() {
-      authStep = 'userid';
-      pendingAuthRole = null;
-      pendingAuthUser = '';
-      const stepUser = document.getElementById('auth-step-userid');
-      const stepPass = document.getElementById('auth-step-passcode');
-      const subEl = document.getElementById('auth-subtitle');
-      const passEl = document.getElementById('auth-password');
-      const userEl = document.getElementById('auth-userid');
-      if (subEl) subEl.textContent = 'Enter your User ID to continue';
-      if (stepPass) stepPass.classList.add('hidden');
-      if (stepUser) stepUser.classList.remove('hidden');
-      if (passEl) passEl.value = '';
-      if (userEl) userEl.value = '';
-      clearAuthError();
-      updateUserIdProgress();
-      updateAuthProgress();
-      setTimeout(focusAuthInput, 20);
-    }
-
-    function showAuthStepError(message, step = authStep) {
-      const errorEl = document.getElementById('auth-error');
-      const card = document.getElementById('auth-card');
-      if (errorEl) {
-        errorEl.textContent = message;
-        errorEl.classList.add('visible');
-      }
-      if (card) {
-        card.classList.remove('shake');
-        void card.offsetWidth;
-        card.classList.add('shake');
-      }
-      if (step === 'userid') {
-        const u = document.getElementById('auth-userid');
-        if (u) { u.value = ''; u.focus(); }
-        updateUserIdProgress('error');
-      } else {
-        const p = document.getElementById('auth-password');
-        if (p) { p.value = ''; p.focus(); }
-        updateAuthProgress('error');
-      }
-    }
-
-    function maybeAdvanceUserId() {
-      if (isUnlocked || authStep !== 'userid') return false;
-      const input = document.getElementById('auth-userid');
-      if (!input) return false;
-      const clean = String(input.value || '').trim().toLowerCase();
-      const role = getUserRoleFromId(clean);
-      if (role) {
-        goToPasscodeStep(role, clean);
-        return true;
-      }
-      return false;
-    }
-
-    function alphaAppend(ch) {
-      const letter = String(ch || '').replace(/[^a-zA-Z]/g, '').toLowerCase();
-      if (!letter) return;
-      const input = document.getElementById('auth-userid');
-      clearAuthError();
-      input.value = String(input.value || '').replace(/[^a-zA-Z]/g, '').toLowerCase() + letter;
-      updateUserIdProgress();
-      if (navigator.vibrate) {
-        try { navigator.vibrate(8); } catch (e) {}
-      }
-      maybeAdvanceUserId();
-    }
-
-    function alphaBackspace() {
-      const input = document.getElementById('auth-userid');
-      clearAuthError();
-      input.value = String(input.value || '').slice(0, -1);
-      updateUserIdProgress();
-    }
-
-    function alphaClear() {
-      const input = document.getElementById('auth-userid');
-      clearAuthError();
-      input.value = '';
-      updateUserIdProgress();
-    }
-
-    function handleAuthSubmit(event) {
-      if (event) event.preventDefault();
-      if (authStep === 'userid') {
-        const input = document.getElementById('auth-userid');
-        const clean = String(input ? input.value : '').trim().toLowerCase();
-        const role = getUserRoleFromId(clean);
-        if (role) {
-          goToPasscodeStep(role, clean);
-        } else {
-          showAuthStepError('Unknown User ID. Please enter a valid alpha User ID.', 'userid');
-        }
-        return;
-      }
-      verifyPassword(event);
-    }
-
     function verifyPassword(event) {
       if (event) event.preventDefault();
       const input = document.getElementById('auth-password');
-      const role = verifyRoleAndPasscode(pendingAuthRole, input.value);
+      const role = getPasscodeRole(input.value);
+      const errorEl = document.getElementById('auth-error');
+      const card = document.getElementById('auth-card');
 
       if (role) {
-        unlockApp(false, role, pendingAuthUser);
+        unlockApp(false, role);
       } else {
-        const wrongOtherRole = getPasscodeRole(input.value);
-        showAuthStepError(
-          wrongOtherRole ? 'Passcode does not match this User ID.' : 'Incorrect passcode. Please try again.',
-          'passcode'
-        );
+        if (errorEl) {
+          errorEl.textContent = 'Incorrect passcode. Please try again.';
+          errorEl.classList.add('visible');
+        }
+        if (card) {
+          card.classList.remove('shake');
+          void card.offsetWidth;
+          card.classList.add('shake');
+        }
+        input.value = '';
+        updateAuthProgress('error');
+        input.focus();
       }
     }
 
@@ -4805,9 +4472,7 @@
 
     function focusAuthInput() {
       if (isUnlocked) return;
-      const input = authStep === 'userid'
-        ? document.getElementById('auth-userid')
-        : document.getElementById('auth-password');
+      const input = document.getElementById('auth-password');
       if (!input) return;
       try {
         input.focus({ preventScroll: true });
@@ -4820,13 +4485,11 @@
     }
 
     function maybeAutoUnlock() {
-      if (isUnlocked || authStep !== 'passcode') return;
+      if (isUnlocked) return;
       const input = document.getElementById('auth-password');
-      const role = verifyRoleAndPasscode(pendingAuthRole, input.value);
+      const role = getPasscodeRole(input.value);
       if (role) {
-        unlockApp(false, role, pendingAuthUser);
-      } else if (getPasscodeRole(input.value)) {
-        showAuthStepError('Passcode does not match this User ID.', 'passcode');
+        unlockApp(false, role);
       }
     }
 
@@ -4867,18 +4530,16 @@
       input.focus();
     }
 
-    function unlockApp(instant = false, role = 'full', userLabel = '') {
+    function unlockApp(instant = false, role = 'full') {
       if (isUnlocked) return;
       isUnlocked = true;
       isViewOnly = (role === 'view');
-      const resolvedUser = userLabel || (isViewOnly ? 'visitor' : 'hayd');
       document.body.classList.toggle('is-view-only', isViewOnly);
       const viewPill = document.getElementById('view-only-pill');
       if (viewPill) viewPill.classList.toggle('hidden', !isViewOnly);
       try {
         sessionStorage.setItem('workpulse_unlocked', isViewOnly ? VIEW_PASS_HASH : PASS_HASH);
         sessionStorage.setItem('workpulse_role', isViewOnly ? 'view' : 'full');
-        sessionStorage.setItem('workpulse_user_id', resolvedUser);
       } catch (e) {}
       const gate = document.getElementById('auth-gate');
       const card = document.getElementById('auth-card');
@@ -4890,8 +4551,6 @@
       populatePersonSelects();
       document.getElementById('app-shell').classList.remove('hidden');
       document.getElementById('auth-password').value = '';
-      const uidEl = document.getElementById('auth-userid');
-      if (uidEl) uidEl.value = '';
       clearAuthError();
       attachFirebaseListeners();
       startSessionPresence(isViewOnly ? 'view' : 'full', 'index');
@@ -4928,7 +4587,6 @@
       try {
         sessionStorage.removeItem('workpulse_unlocked');
         sessionStorage.removeItem('workpulse_role');
-        sessionStorage.removeItem('workpulse_user_id');
       } catch (e) {}
       if (authUnlockTimer) {
         clearTimeout(authUnlockTimer);
@@ -4975,11 +4633,9 @@
       btn.setAttribute('aria-label', 'Show password');
       btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
       clearAuthError();
+      updateAuthProgress();
       const pad = document.getElementById('mobile-keypad');
       if (pad) pad.classList.remove('os-kbd-open');
-      const aPad = document.getElementById('alpha-keypad');
-      if (aPad) aPad.classList.remove('os-kbd-open');
-      backToUserIdStep();
       startAuthCanvas();
       setTimeout(focusAuthInput, 50);
     }
@@ -5933,13 +5589,11 @@
     }
 
     function commitTaskArchiveAndDelete(id, taskData) {
-      let deletedBy = '';
-      try { deletedBy = sessionStorage.getItem('workpulse_user_id') || ''; } catch (e) {}
       const payload = sanitizeForFirebase({
         ...(taskData || {}),
         originalId: id,
         deletedAt: new Date().toISOString(),
-        deletedBy: deletedBy || 'hayd'
+        deletedBy: isViewOnly ? '0000' : '1903'
       });
       delete payload.id;
       const archiveKey = deletedTasksRef.push().key;
@@ -7439,11 +7093,9 @@
     });
 
     // ── Initial State ──
-    const authUserInputEl = document.getElementById('auth-userid');
     const authInputEl = document.getElementById('auth-password');
     const authGateEl = document.getElementById('auth-gate');
     const mobileKeypadEl = document.getElementById('mobile-keypad');
-    const alphaKeypadEl = document.getElementById('alpha-keypad');
 
     // ── Architectural Silk Waves & Subtle Rim Catchlight ──
     const authCardEl = document.getElementById('auth-card');
@@ -7536,18 +7188,7 @@
     }
 
     startAuthCanvas();
-    updateUserIdProgress();
     updateAuthProgress();
-
-    if (authUserInputEl) {
-      authUserInputEl.addEventListener('input', () => {
-        const sanitized = String(authUserInputEl.value || '').replace(/[^a-zA-Z]/g, '').toLowerCase();
-        if (authUserInputEl.value !== sanitized) authUserInputEl.value = sanitized;
-        clearAuthError();
-        updateUserIdProgress();
-        maybeAdvanceUserId();
-      });
-    }
 
     authInputEl.addEventListener('input', () => {
       clearAuthError();
@@ -7556,27 +7197,19 @@
     });
 
     authGateEl.addEventListener('click', e => {
-      if (e.target.closest('button, input, a, #mobile-keypad, #alpha-keypad')) return;
+      if (e.target.closest('button, input, a, #mobile-keypad')) return;
       focusAuthInput();
     });
 
     function syncOsKeyboardState() {
       const vv = window.visualViewport;
-      const activeEl = authStep === 'userid' ? authUserInputEl : authInputEl;
-      const kbdLikelyOpen = document.activeElement === activeEl &&
+      const kbdLikelyOpen = document.activeElement === authInputEl &&
         ((vv && (window.innerHeight - vv.height > 120 || vv.height < 480)) || window.innerHeight < 480);
       if (mobileKeypadEl) mobileKeypadEl.classList.toggle('os-kbd-open', Boolean(kbdLikelyOpen));
-      if (alphaKeypadEl) alphaKeypadEl.classList.toggle('os-kbd-open', Boolean(kbdLikelyOpen));
     }
 
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', syncOsKeyboardState);
-    }
-    if (authUserInputEl) {
-      authUserInputEl.addEventListener('focus', () => setTimeout(syncOsKeyboardState, 120));
-      authUserInputEl.addEventListener('blur', () => {
-        if (alphaKeypadEl) alphaKeypadEl.classList.remove('os-kbd-open');
-      });
     }
     authInputEl.addEventListener('focus', () => setTimeout(syncOsKeyboardState, 120));
     authInputEl.addEventListener('blur', () => {
@@ -7593,7 +7226,6 @@
     if (restoredRole) {
       unlockApp(true, restoredRole);
     } else {
-      backToUserIdStep();
       focusAuthInput();
       window.addEventListener('DOMContentLoaded', focusAuthInput);
       window.addEventListener('pageshow', () => setTimeout(focusAuthInput, 60));
