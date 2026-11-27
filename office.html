@@ -1172,7 +1172,7 @@
           <input type="search" id="office-search" class="retro-input" placeholder="Find person or task…" aria-label="Search cubicles" oninput="scheduleRebuildFromFilter()" />
           <button type="button" id="btn-busy-only" class="retro-btn" onclick="toggleBusyOnly()" aria-pressed="false" title="Show only cubicles with open folders">Busy Desks Only</button>
           <button type="button" id="btn-fixed-seats" class="retro-btn" onclick="toggleFixedSeats()" aria-pressed="false" title="Keep everyone in permanent roster seats instead of moving busiest desks to front row">Fixed Seats</button>
-          <button type="button" id="btn-shift-mode" class="retro-btn" onclick="cycleShiftMode()" title="Auto follows local clock (after-hours cleaning crew 7 PM–8:45 AM), or preview Night / Day shift">Shift: Auto</button>
+          <button type="button" id="btn-shift-mode" class="retro-btn" onclick="cycleShiftMode()" title="Auto follows office hours (Mon–Fri 8:45 AM–7 PM; after-hours & weekend cleaning crew), or preview Night / Day shift">Shift: Auto</button>
           <button type="button" id="btn-include-done" class="retro-btn is-active" onclick="toggleDoneStack()" aria-pressed="true" title="Show completed green folder tray on desk">Done Tray</button>
           <button type="button" id="btn-include-2nd" class="retro-btn is-active" onclick="toggleSecondary()" aria-pressed="true" title="Include secondary owner tasks in desk pile">+ 2nd Owner</button>
         </div>
@@ -1601,8 +1601,13 @@
       : '';
     nameEl.textContent = isBossWorker(worker) ? `${worker.name} · Boss Cabin` : worker.name;
 
+    const clock = getOfficeClockState();
     const hasPendingOnly = worker.inprogress.length > 0 && worker.inprogress.every(t => Boolean(t.pendingFeedback));
-    if (worker.inprogress.length > 0 && !hasPendingOnly) {
+    if (clock.afterHours) {
+      const openNote = worker.openCount > 0 ? ` · ${worker.openCount} open` : '';
+      statusEl.textContent = (clock.isMondayReturn ? 'Gone home · back on Monday 8:45 AM' : 'Gone home · back at 8:45 AM') + openNote;
+      statusEl.style.color = '#a5b4fc';
+    } else if (worker.inprogress.length > 0 && !hasPendingOnly) {
       statusEl.textContent = `Typing away on ${worker.inprogress.length} active folder${worker.inprogress.length === 1 ? '' : 's'}`;
       statusEl.style.color = '#38bdf8';
     } else if (hasPendingOnly) {
@@ -1760,28 +1765,77 @@
 
   let shiftMode = 'auto'; // 'auto' | 'night' | 'day'
   let simMinutesOverride = null;
+  let simDayOverride = null;
   let lastAfterHoursApplied = null;
   let shiftCheckAccum = 0;
 
-  function getEffectiveClockMinutes() {
-    if (shiftMode === 'night') return 20 * 60 + 30;
-    if (shiftMode === 'day') return 14 * 60;
-    if (typeof simMinutesOverride === 'number' && !Number.isNaN(simMinutesOverride)) {
-      return ((simMinutesOverride % 1440) + 1440) % 1440;
+  function getOfficeClockState() {
+    const realNow = new Date();
+    const day = (typeof simDayOverride === 'number' && !Number.isNaN(simDayOverride))
+      ? (((Math.floor(simDayOverride) % 7) + 7) % 7)
+      : realNow.getDay();
+
+    if (shiftMode === 'day') {
+      return {
+        day,
+        mins: 14 * 60,
+        isWeekend: false,
+        afterHours: false,
+        isNightLight: false,
+        isMondayReturn: false,
+        returnShort: '8:45 AM'
+      };
     }
-    const d = new Date();
-    return d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
+
+    if (shiftMode === 'night') {
+      const isWeekend = (day === 6 || day === 0);
+      const isMondayReturn = (day === 5 || isWeekend);
+      return {
+        day,
+        mins: 20 * 60 + 30,
+        isWeekend,
+        afterHours: true,
+        isNightLight: true,
+        isMondayReturn,
+        returnShort: isMondayReturn ? 'Monday 8:45 AM' : '8:45 AM'
+      };
+    }
+
+    const mins = (typeof simMinutesOverride === 'number' && !Number.isNaN(simMinutesOverride))
+      ? ((simMinutesOverride % 1440) + 1440) % 1440
+      : (realNow.getHours() * 60 + realNow.getMinutes() + realNow.getSeconds() / 60);
+    const isWeekend = (day === 6 || day === 0);
+    const isNightLight = mins >= 19 * 60 || mins < (8 * 60 + 45);
+    const afterHours = isWeekend || isNightLight;
+    // After Friday 7:00 PM or on weekends, next workday starts Monday 8:45 AM
+    const isMondayReturn = (day === 5 && mins >= 19 * 60) || isWeekend;
+    return {
+      day,
+      mins,
+      isWeekend,
+      afterHours,
+      isNightLight,
+      isMondayReturn,
+      returnShort: isMondayReturn ? 'Monday 8:45 AM' : '8:45 AM'
+    };
   }
 
-  function isOfficeAfterHours(mins = getEffectiveClockMinutes()) {
-    // Office empties after 7:00 PM (1140) and team returns at 8:45 AM (525)
-    return mins >= 19 * 60 || mins < (8 * 60 + 45);
+  function getEffectiveClockMinutes() {
+    return getOfficeClockState().mins;
+  }
+
+  function isOfficeAfterHours(minsArg, dayArg) {
+    if (typeof minsArg === 'number') {
+      const isWknd = (typeof dayArg === 'number') && (dayArg === 0 || dayArg === 6);
+      return isWknd || minsArg >= 19 * 60 || minsArg < (8 * 60 + 45);
+    }
+    return getOfficeClockState().afterHours;
   }
 
   function syncShiftModeButton() {
     const btn = document.getElementById('btn-shift-mode');
     if (!btn) return;
-    const afterHours = isOfficeAfterHours();
+    const clock = getOfficeClockState();
     if (shiftMode === 'night') {
       btn.textContent = 'Shift: Night';
       btn.classList.add('is-active');
@@ -1789,8 +1843,8 @@
       btn.textContent = 'Shift: Day';
       btn.classList.add('is-active');
     } else {
-      btn.textContent = afterHours ? 'Shift: Auto (Night)' : 'Shift: Auto';
-      btn.classList.toggle('is-active', afterHours);
+      btn.textContent = clock.afterHours ? (clock.isWeekend && !clock.isNightLight ? 'Shift: Auto (Wknd)' : 'Shift: Auto (Night)') : 'Shift: Auto';
+      btn.classList.toggle('is-active', clock.afterHours);
     }
   }
 
@@ -1811,8 +1865,8 @@
   }
 
   function getLightingProfile(mins = getEffectiveClockMinutes()) {
-    // After-hours cozy night-shift studio (7:00 PM - 8:44 AM)
-    if (isOfficeAfterHours(mins)) {
+    // Cozy night-shift studio (7:00 PM - 8:44 AM); weekend daytime uses natural daylight over empty office
+    if (mins >= 19 * 60 || mins < (8 * 60 + 45)) {
       return {
         mood: 'night',
         hemiSky: 0x4f72ab,
@@ -3953,18 +4007,22 @@
         subEl.textContent = 'Wandering the cubicle cluster aisles · Click to pet!';
       }
     } else if (hitData.hitType === 'cleaner' && hitData.cleaner) {
-      eyebrowEl.textContent = 'NIGHT CLEANING CREW · 7 PM–8:45 AM';
+      const clock = getOfficeClockState();
+      eyebrowEl.textContent = clock.isWeekend
+        ? 'WEEKEND CLEANING CREW · BACK MON 8:45 AM'
+        : (clock.isMondayReturn ? 'NIGHT CLEANING CREW · BACK MON 8:45 AM' : 'NIGHT CLEANING CREW · 7 PM–8:45 AM');
       titleEl.textContent = `${hitData.cleaner.name} (${hitData.cleaner.toolLabel})`;
       subEl.textContent = hitData.cleaner.mode === 'clean'
-        ? 'Sweeping & polishing the empty office floor until 8:45 AM!'
+        ? `Sweeping & polishing the empty office floor until ${clock.returnShort}!`
         : 'Heading to the next sector with cleaning gear';
     } else if (hitData.hitType === 'pantry') {
-      const afterHours = isOfficeAfterHours();
+      const clock = getOfficeClockState();
+      const afterHours = clock.afterHours;
       const nPantry = pantryVisitors.length;
-      eyebrowEl.textContent = afterHours ? 'PANTRY · NIGHT CLEANUP' : 'PANTRY · SNACKS & ESPRESSO';
+      eyebrowEl.textContent = afterHours ? (clock.isWeekend ? 'PANTRY · WEEKEND CLEANUP' : 'PANTRY · NIGHT CLEANUP') : 'PANTRY · SNACKS & ESPRESSO';
       titleEl.textContent = 'Office Breakroom Cafe';
       subEl.textContent = afterHours
-        ? 'Team is home for the night · Cleaning crew sprucing up counters'
+        ? `Team is ${clock.isMondayReturn ? 'off until Monday 8:45 AM' : 'home for the night'} · Cleaning crew sprucing up counters`
         : (nPantry > 0
           ? `${nPantry} sleepy teammate${nPantry === 1 ? '' : 's'} sneaking snacks & sharing a laugh!`
           : 'Espresso machine, fridge & donuts — open for breaks');
@@ -3984,10 +4042,11 @@
     } else if (hitData.worker) {
       const w = hitData.worker;
       const bossTag = isBossWorker(w) ? 'BOSS CABIN · ' : '';
-      const afterHours = isOfficeAfterHours();
+      const clock = getOfficeClockState();
+      const afterHours = clock.afterHours;
       const awayPantry = pantryVisitors.some(v => v.worker && v.worker.name === w.name);
       eyebrowEl.textContent = bossTag + (afterHours
-        ? 'GONE HOME · BACK AT 8:45 AM'
+        ? (clock.isMondayReturn ? 'GONE HOME · BACK ON MONDAY 8:45 AM' : 'GONE HOME · BACK AT 8:45 AM')
         : (awayPantry
           ? 'AWAY AT PANTRY · COFFEE BREAK'
           : (w.openCount === 0
@@ -3995,7 +4054,7 @@
             : (w.inprogress.length > 0 ? 'TYPING AWAY' : 'BACKLOG ON DESK'))));
       titleEl.textContent = w.name;
       subEl.textContent = afterHours
-        ? `Shift ended at 7:00 PM · ${w.inprogress.length} active · ${w.todo.length} queued`
+        ? `${clock.isWeekend ? 'Weekend off' : 'Shift ended at 7:00 PM'} · ${w.inprogress.length} active · ${w.todo.length} queued`
         : (awayPantry
           ? 'Grabbed a mug and strolled to the Pantry for a laugh!'
           : (w.openCount === 0
