@@ -1758,6 +1758,7 @@
   let cleanerBubbleTextures = [];
   let pantrySignTexture = null;
   let meetingSignTexture = null;
+  let phoneSignTexture = null;
   let meetingTvTexture = null;
 
   let hemiLight = null;
@@ -1766,6 +1767,7 @@
   let bossLampLight = null;
   let pantryLampLight = null;
   let meetingLampLight = null;
+  let phoneLampLight = null;
   let meetingTvMat = null;
   let meetingTvAfterHoursApplied = null;
   let bossLampShadeMats = [];
@@ -1943,7 +1945,7 @@
   }
 
   let aisleGraph = { xs: [], zs: [] };
-  const officePlaces = { boss: null, pantry: null, meeting: null, sleepingSpots: [] };
+  const officePlaces = { boss: null, pantry: null, meeting: null, phone: null, sleepingSpots: [] };
   let pantryVisitors = [];
   let cleaningCrew = [];
   let catVisual = null;
@@ -2249,6 +2251,30 @@
       ctx.strokeText(label, 78, 66, w - 98);
       ctx.fillStyle = '#e0f2fe';
       ctx.fillText(label, 78, 66, w - 98);
+    });
+
+    phoneSignTexture = makeCrispTextTexture(512, 128, (ctx, w, h) => {
+      ctx.fillStyle = '#12102b';
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = '#818cf8';
+      ctx.lineWidth = 8;
+      ctx.strokeRect(4, 4, w - 8, h - 8);
+      // Mini retro handset icon
+      ctx.fillStyle = '#818cf8';
+      ctx.fillRect(24, 38, 38, 12);
+      ctx.fillRect(24, 46, 12, 16);
+      ctx.fillRect(50, 46, 12, 16);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(30, 68, 26, 14);
+      const label = 'TELEPHONE';
+      ctx.font = '700 46px "JetBrains Mono", "Cascadia Mono", Consolas, "Segoe UI", monospace';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 7;
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#070614';
+      ctx.strokeText(label, 80, 66, w - 100);
+      ctx.fillStyle = '#e0e7ff';
+      ctx.fillText(label, 80, 66, w - 100);
     });
 
     meetingTvTexture = makeCrispTextTexture(512, 256, (ctx, w, h) => {
@@ -3628,6 +3654,210 @@
     };
   }
 
+  function buildTelephoneRoom(phoneX, phoneZ) {
+    // Open-Top Acoustic Telephone Room (7.4 x 7.4): 2 Soundproof Glass Phone Booths + Call Lounge
+    const room = new THREE.Group();
+    room.position.set(phoneX, 0, phoneZ);
+
+    const floor = makeBox(7.4, 0.12, 7.4, 0x161c36, { castShadow: false });
+    floor.position.y = 0.06;
+    floor.userData = { hitType: 'phone' };
+    room.add(floor);
+    interactables.push(floor);
+
+    const rim = makeBox(7.52, 0.06, 7.52, 0x6366f1, { castShadow: false });
+    rim.position.y = 0.025;
+    room.add(rim);
+
+    // Acoustic runner carpet down the center & lounge
+    const rugBorder = makeBox(5.2, 0.03, 5.4, 0x818cf8, { castShadow: false });
+    rugBorder.position.set(0.3, 0.132, 0.1);
+    room.add(rugBorder);
+    const rug = makeBox(5.02, 0.035, 5.22, 0x22254a, { castShadow: false });
+    rug.position.set(0.3, 0.136, 0.1);
+    rug.userData = { hitType: 'phone' };
+    room.add(rug);
+    interactables.push(rug);
+
+    const wallHex = 0x1b1938;
+    const trimHex = 0x818cf8;
+    const glassMat = new THREE.MeshLambertMaterial({
+      color: 0xc7d2fe,
+      transparent: true,
+      opacity: 0.2,
+      depthWrite: false
+    });
+    const addPhoneGlassWall = (w, h, d, x, z) => {
+      const base = makeBox(w, 0.28, d, wallHex, { castShadow: false });
+      base.position.set(x, 0.26, z);
+      room.add(base);
+      const glass = new THREE.Mesh(getSharedBoxGeo(w * (w > d ? 0.98 : 0.55), h, d * (d > w ? 0.98 : 0.55)), glassMat);
+      glass.position.set(x, 0.4 + h / 2, z);
+      room.add(glass);
+      const rail = makeBox(w, 0.06, d, trimHex, { castShadow: false });
+      rail.position.set(x, 0.4 + h + 0.03, z);
+      room.add(rail);
+    };
+
+    // Solid Acoustic West Wall (-X) with vertical wooden sound-baffle slats
+    const backWall = makeBox(0.18, 2.02, 7.4, wallHex);
+    backWall.position.set(-3.61, 1.13, 0);
+    backWall.userData = { hitType: 'phone' };
+    room.add(backWall);
+    interactables.push(backWall);
+    const backTrim = makeBox(0.2, 0.08, 7.44, trimHex, { castShadow: false });
+    backTrim.position.set(-3.61, 2.16, 0);
+    room.add(backTrim);
+    [-2.7, -2.15, -1.6, -1.05, 0.55, 1.1, 1.65, 2.2].forEach(sz => {
+      const slat = makeBox(0.06, 1.72, 0.16, 0x9a5b32, { castShadow: false });
+      slat.position.set(-3.49, 1.12, sz);
+      room.add(slat);
+    });
+
+    // North Aisle Wall (-Z) with 2.4-unit doorway onto bottom walkway + TELEPHONE Sign Sprite
+    addPhoneGlassWall(2.45, 1.05, 0.16, -2.42, -3.62);
+    addPhoneGlassWall(2.45, 1.05, 0.16, 2.42, -3.62);
+    [-1.2, 1.2].forEach(px => {
+      const post = makeBox(0.2, 1.56, 0.2, trimHex, { castShadow: false });
+      post.position.set(px, 0.9, -3.62);
+      room.add(post);
+    });
+    if (phoneSignTexture) {
+      const signSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: phoneSignTexture, transparent: false }));
+      signSprite.position.set(0, 2.04, -3.62);
+      signSprite.scale.set(1.88, 0.47, 1);
+      signSprite.userData = { hitType: 'phone' };
+      room.add(signSprite);
+      interactables.push(signSprite);
+    }
+
+    // South (+Z) & East (+X) Low Glass Rails for clean isometric visibility
+    addPhoneGlassWall(7.32, 0.72, 0.14, 0, 3.63);
+    addPhoneGlassWall(0.14, 0.72, 7.32, 3.63, 0);
+
+    // 2 Soundproof Private Glass Phone Booths along West Wall (-X) facing +X
+    const buildBooth = (bz, phoneColor, busyDotColor) => {
+      const bg = new THREE.Group();
+      bg.position.set(-2.35, 0.12, bz);
+
+      // Raised booth acoustic carpet plinth
+      const pad = makeBox(2.2, 0.06, 2.32, 0x2e2a5c, { castShadow: false });
+      pad.position.y = 0.03;
+      pad.userData = { hitType: 'phone' };
+      bg.add(pad);
+      interactables.push(pad);
+
+      // Glass acoustic booth side frames & top acoustic canopy frame
+      [-1.12, 1.12].forEach(dz => {
+        const panel = new THREE.Mesh(getSharedBoxGeo(2.06, 1.72, 0.08), glassMat);
+        panel.position.set(0, 0.92, dz);
+        bg.add(panel);
+        const frame = makeBox(2.14, 0.07, 0.11, 0x6366f1, { castShadow: false });
+        frame.position.set(0, 1.81, dz);
+        bg.add(frame);
+      });
+      const frontHdr = makeBox(0.11, 0.16, 2.34, 0x6366f1, { castShadow: false });
+      frontHdr.position.set(1.06, 1.76, 0);
+      bg.add(frontHdr);
+
+      // Glowing call-status beacon (green = free / amber = active vibe)
+      const statusDot = makeBox(0.12, 0.1, 0.24, busyDotColor, {
+        emissive: busyDotColor,
+        emissiveIntensity: 0.75,
+        castShadow: false
+      });
+      statusDot.position.set(1.09, 1.86, 0);
+      bg.add(statusDot);
+
+      // Walnut phone desk shelf inside booth
+      const shelf = makeBox(0.66, 0.08, 1.56, 0x854d27);
+      shelf.position.set(-0.62, 0.82, 0);
+      shelf.userData = { hitType: 'phone' };
+      bg.add(shelf);
+      interactables.push(shelf);
+
+      // Retro Blocky Desk Telephone + Handset + Note Pad
+      const phoneBase = makeBox(0.28, 0.11, 0.3, phoneColor, { castShadow: false });
+      phoneBase.position.set(-0.66, 0.915, -0.26);
+      phoneBase.userData = { hitType: 'phone' };
+      bg.add(phoneBase);
+      interactables.push(phoneBase);
+      const handset = makeBox(0.11, 0.09, 0.38, 0x0f172a, { castShadow: false });
+      handset.position.set(-0.71, 1.0, -0.26);
+      bg.add(handset);
+      const padNotes = makeBox(0.26, 0.03, 0.34, 0xfef3c7, { castShadow: false });
+      padNotes.position.set(-0.56, 0.875, 0.34);
+      bg.add(padNotes);
+
+      // Tall booth acoustic stool facing -X phone
+      const stBase = makeBox(0.4, 0.05, 0.4, 0x475569, { castShadow: false });
+      stBase.position.set(0.22, 0.08, 0);
+      bg.add(stBase);
+      const stStem = makeBox(0.1, 0.46, 0.1, 0x334155, { castShadow: false });
+      stStem.position.set(0.22, 0.32, 0);
+      bg.add(stStem);
+      const stSeat = makeBox(0.44, 0.09, 0.44, 0x1e293b);
+      stSeat.position.set(0.22, 0.56, 0);
+      stSeat.userData = { hitType: 'phone' };
+      bg.add(stSeat);
+      interactables.push(stSeat);
+
+      // Warm sconce lamp inside booth
+      const sconce = makeBox(0.12, 0.16, 0.14, 0xfef08a, {
+        emissive: 0xfde047,
+        emissiveIntensity: 0.75,
+        castShadow: false
+      });
+      sconce.position.set(-0.98, 1.48, 0);
+      bg.add(sconce);
+
+      room.add(bg);
+    };
+
+    buildBooth(-1.55, 0x38bdf8, 0x34d399);
+    buildBooth(1.55, 0xf472b6, 0xfbbf24);
+
+    // Waiting Lounge Bench + End Table with Directory & Plant on East side (+X)
+    const bench = new THREE.Group();
+    bench.position.set(2.35, 0.12, 1.45);
+    const bSeat = makeBox(0.84, 0.24, 2.2, 0x312e81);
+    bSeat.position.y = 0.24;
+    bSeat.userData = { hitType: 'phone' };
+    const bBack = makeBox(0.22, 0.54, 2.2, 0x4338ca);
+    bBack.position.set(0.32, 0.52, 0);
+    bBack.userData = { hitType: 'phone' };
+    bench.add(bSeat, bBack);
+    interactables.push(bSeat, bBack);
+    room.add(bench);
+
+    const sideTbl = makeBox(0.68, 0.44, 0.68, 0x7c4a2d);
+    sideTbl.position.set(2.35, 0.34, -0.32);
+    room.add(sideTbl);
+    const mug = makeBox(0.14, 0.16, 0.14, 0xfef3c7, { castShadow: false });
+    mug.position.set(2.35, 0.64, -0.32);
+    room.add(mug);
+
+    const phonePlant = buildPottedPlant(15);
+    phonePlant.position.set(2.85, 0.12, -2.55);
+    room.add(phonePlant);
+
+    phoneLampLight = new THREE.PointLight(0xffe0a3, 0, 15, 1.7);
+    phoneLampLight.position.set(-0.3, 2.35, 0);
+    room.add(phoneLampLight);
+
+    worldGroup.add(room);
+
+    officePlaces.phone = {
+      centerX: phoneX,
+      centerZ: phoneZ,
+      doorEntrance: { x: phoneX, z: phoneZ - 4.6 },
+      doorThreshold: { x: phoneX, z: phoneZ - 3.62, y: 0.12 },
+      foyer: { x: phoneX, z: phoneZ - 2.35, y: 0.12 },
+      rugSpot: { x: phoneX + 0.55, z: phoneZ - 1.85, y: 0.14 },
+      lookTarget: { x: phoneX - 2.35, z: phoneZ - 1.55 }
+    };
+  }
+
   function addWorkerCharacterRigBaseData(worker) {
     const isWorking = worker.inprogress.length > 0 && !worker.inprogress.every(t => Boolean(t.pendingFeedback));
     return { isWorking };
@@ -3876,6 +4106,7 @@
     bossLampLight = null;
     pantryLampLight = null;
     meetingLampLight = null;
+    phoneLampLight = null;
     meetingTvMat = null;
     meetingTvAfterHoursApplied = null;
     lastLightingBucketKey = '';
@@ -3883,6 +4114,7 @@
     officePlaces.boss = null;
     officePlaces.pantry = null;
     officePlaces.meeting = null;
+    officePlaces.phone = null;
     officePlaces.sleepingSpots = [];
     pantryVisitors = [];
     hoveredHit = null;
@@ -3895,48 +4127,57 @@
       return;
     }
 
-    // Separate Karishma (Boss) into Row 0 Right Wing, Pantry on Row 1 Right Wing, and 7-Seater Meeting Room on Bottom-Left Breadth Row
+    // Separate Karishma (Boss) into Row 0 Right Wing, Pantry on Row 1 Right Wing, and 7-Seater Meeting Room + Telephone Room on Bottom-Left Breadth Row
     const bossWorker = filtered.find(isBossWorker) || null;
     const clusterWorkers = filtered.filter(w => !isBossWorker(w));
     const showPantry = count > 0;
     const showMeetingRoom = count > 0;
+    const showPhoneRoom = count > 0;
     const rightWingRows = (bossWorker ? 1 : 0) + (showPantry ? 1 : 0);
 
     const clusterSize = 7.4; // two 3.7 cubicles side-by-side sharing inner cross walls
-    const aisleGap = 1.8;    // clear small walkway path between clusters, Boss Cabin, Pantry & Meeting Room
+    const aisleGap = 1.8;    // clear small walkway path between clusters, Boss Cabin, Pantry, Meeting Room & Telephone Room
     const clusterPitch = clusterSize + aisleGap;
 
     const numClusters = clusterWorkers.length > 0 ? Math.ceil(clusterWorkers.length / 4) : 0;
     const clusterCols = numClusters <= 1 ? numClusters : (numClusters <= 4 ? 2 : (numClusters <= 9 ? 3 : 4));
     const clusterRows = numClusters > 0 ? Math.ceil(numClusters / clusterCols) : 0;
-    const leftBreadthRows = clusterRows + (showMeetingRoom ? 1 : 0);
-    const effectiveRows = Math.max(leftBreadthRows, rightWingRows, 1);
+    const upperRows = Math.max(clusterRows, rightWingRows, 1);
+    const hasBottomAnnex = showMeetingRoom || showPhoneRoom;
+    const effectiveRows = hasBottomAnnex ? (clusterRows + 1) : upperRows;
 
     const startClusterX = clusterCols > 0 ? -((clusterCols - 1) * clusterPitch) / 2 : 0;
     const startWingZ = -((effectiveRows - 1) * clusterPitch) / 2;
     const startClusterZ = startWingZ;
 
-    // Wing sits beside cubicle clusters; Meeting Room sits on the Bottom-Left Breadth Row flush with Col 0
+    // Right Wing holds Boss & Pantry; Bottom-Left Annex holds 7-Seater Meeting Room + Telephone Room side-by-side
     const hasClusters = clusterCols > 0;
     const hasRightWing = rightWingRows > 0;
     const wingX = hasClusters ? (startClusterX + clusterCols * clusterPitch) : 0;
     const cabinZ = startWingZ;
     const pantryZ = startWingZ + (bossWorker ? clusterPitch : 0);
     const meetX = hasClusters ? (startClusterX - clusterSize / 2 + 4.8) : 0;
-    const meetZ = startWingZ + clusterRows * clusterPitch;
+    const phoneX = meetX + 4.8 + aisleGap + 3.7;
+    const annexZ = startWingZ + clusterRows * clusterPitch;
 
-    const baseLeftEdgeX = hasClusters
+    const leftEdgeX = hasClusters
       ? (startClusterX - clusterSize / 2 - aisleGap)
       : (wingX - clusterSize / 2 - aisleGap);
     const baseRightEdgeX = hasRightWing
       ? (wingX + clusterSize / 2 + aisleGap)
       : (startClusterX + (clusterCols - 1) * clusterPitch + clusterSize / 2 + aisleGap);
-    const leftEdgeX = showMeetingRoom ? Math.min(baseLeftEdgeX, meetX - 4.8 - aisleGap) : baseLeftEdgeX;
-    const rightEdgeX = showMeetingRoom ? Math.max(baseRightEdgeX, meetX + 4.8 + aisleGap) : baseRightEdgeX;
+    const annexRightX = showPhoneRoom
+      ? (phoneX + 3.7 + aisleGap)
+      : (meetX + 4.8 + aisleGap);
+    const rightEdgeX = hasBottomAnnex ? Math.max(baseRightEdgeX, annexRightX) : baseRightEdgeX;
+    const hasRightCutout = hasBottomAnnex && (annexRightX < baseRightEdgeX - 0.1);
 
     const floorCenterX = (leftEdgeX + rightEdgeX) / 2;
     const floorW = rightEdgeX - leftEdgeX;
-    const floorD = effectiveRows * clusterPitch + 1.8;
+    const topEdgeZ = startWingZ - clusterSize / 2 - aisleGap;
+    const upperBotZ = startWingZ + (upperRows - 1) * clusterPitch + clusterSize / 2 + aisleGap;
+    const outerBotZ = startWingZ + (effectiveRows - 1) * clusterPitch + clusterSize / 2 + aisleGap;
+    const floorD = outerBotZ - topEdgeZ;
 
     if (keyLight) {
       keyLight.position.set(floorCenterX + 18, 30, 20);
@@ -3951,28 +4192,58 @@
       keyLight.shadow.camera.updateProjectionMatrix();
     }
 
-    // Office main floor & crisp rectangular border trim
-    const subFloor = makeBox(floorW, 0.24, floorD, 0x071a29, { castShadow: false });
-    subFloor.position.set(floorCenterX, -0.14, 0);
+    // Tight architectural floor slabs closing up any unused lower-right expanse
+    const upperDepth = hasRightCutout ? (upperBotZ - topEdgeZ) : floorD;
+    const upperCenterZ = hasRightCutout ? ((topEdgeZ + upperBotZ) / 2) : ((topEdgeZ + outerBotZ) / 2);
+    const subFloor = makeBox(floorW, 0.24, upperDepth, 0x071a29, { castShadow: false });
+    subFloor.position.set(floorCenterX, -0.14, upperCenterZ);
     propsGroup.add(subFloor);
 
     const trimMat = getSharedLambertMat(0x1e4c70);
-    const borderHGeo = getSharedBoxGeo(floorW + 0.16, 0.08, 0.14);
-    const borderTop = new THREE.Mesh(borderHGeo, trimMat);
-    borderTop.position.set(floorCenterX, -0.02, -floorD / 2);
+    const borderTop = new THREE.Mesh(getSharedBoxGeo(floorW + 0.16, 0.08, 0.14), trimMat);
+    borderTop.position.set(floorCenterX, -0.02, topEdgeZ);
     propsGroup.add(borderTop);
-    const borderBot = new THREE.Mesh(borderHGeo, trimMat);
-    borderBot.position.set(floorCenterX, -0.02, floorD / 2);
-    propsGroup.add(borderBot);
-    const borderVGeo = getSharedBoxGeo(0.14, 0.08, floorD + 0.16);
-    const borderL = new THREE.Mesh(borderVGeo, trimMat);
-    borderL.position.set(leftEdgeX, -0.02, 0);
-    propsGroup.add(borderL);
-    const borderR = new THREE.Mesh(borderVGeo, trimMat);
-    borderR.position.set(rightEdgeX, -0.02, 0);
-    propsGroup.add(borderR);
 
-    // Compute exact aisle corridor centerlines including outer edge & path between clusters, Boss Cabin, Pantry & Meeting Room
+    const borderL = new THREE.Mesh(getSharedBoxGeo(0.14, 0.08, floorD + 0.16), trimMat);
+    borderL.position.set(leftEdgeX, -0.02, (topEdgeZ + outerBotZ) / 2);
+    propsGroup.add(borderL);
+
+    if (hasRightCutout) {
+      const annexW = annexRightX - leftEdgeX;
+      const annexD = outerBotZ - upperBotZ;
+      const annexCenterX = (leftEdgeX + annexRightX) / 2;
+      const annexCenterZ = (upperBotZ + outerBotZ) / 2;
+      const subFloorAnnex = makeBox(annexW, 0.24, annexD, 0x071a29, { castShadow: false });
+      subFloorAnnex.position.set(annexCenterX, -0.14, annexCenterZ);
+      propsGroup.add(subFloorAnnex);
+
+      const borderRUpper = new THREE.Mesh(getSharedBoxGeo(0.14, 0.08, upperDepth + 0.14), trimMat);
+      borderRUpper.position.set(rightEdgeX, -0.02, upperCenterZ);
+      propsGroup.add(borderRUpper);
+
+      const stepW = rightEdgeX - annexRightX;
+      const borderStepH = new THREE.Mesh(getSharedBoxGeo(stepW + 0.14, 0.08, 0.14), trimMat);
+      borderStepH.position.set((annexRightX + rightEdgeX) / 2, -0.02, upperBotZ);
+      propsGroup.add(borderStepH);
+
+      const borderRLower = new THREE.Mesh(getSharedBoxGeo(0.14, 0.08, annexD + 0.14), trimMat);
+      borderRLower.position.set(annexRightX, -0.02, annexCenterZ);
+      propsGroup.add(borderRLower);
+
+      const borderBot = new THREE.Mesh(getSharedBoxGeo(annexW + 0.16, 0.08, 0.14), trimMat);
+      borderBot.position.set(annexCenterX, -0.02, outerBotZ);
+      propsGroup.add(borderBot);
+    } else {
+      const borderBot = new THREE.Mesh(getSharedBoxGeo(floorW + 0.16, 0.08, 0.14), trimMat);
+      borderBot.position.set(floorCenterX, -0.02, outerBotZ);
+      propsGroup.add(borderBot);
+
+      const borderR = new THREE.Mesh(getSharedBoxGeo(0.14, 0.08, floorD + 0.16), trimMat);
+      borderR.position.set(rightEdgeX, -0.02, (topEdgeZ + outerBotZ) / 2);
+      propsGroup.add(borderR);
+    }
+
+    // Compute walkable upper aisle grid (keeps Mochi & cleaners strictly on solid corridor intersections)
     aisleGraph.xs = [];
     aisleGraph.zs = [];
     const totalXCols = clusterCols + (hasRightWing ? 1 : 0);
@@ -3980,17 +4251,20 @@
     for (let c = 0; c <= totalXCols; c++) {
       aisleGraph.xs.push(baseStartX + (c - 0.5) * clusterPitch);
     }
-    for (let r = 0; r <= effectiveRows; r++) {
+    for (let r = 0; r <= upperRows; r++) {
       aisleGraph.zs.push(startWingZ + (r - 0.5) * clusterPitch);
     }
 
-    // Subtle inlaid pathway strips along all walkable corridors
+    // Subtle inlaid pathway strips along active upper corridors & lower room walkways
     const pathMat = getSharedLambertMat(0x102d44);
-    const stripXGeo = getSharedBoxGeo(0.95, 0.02, floorD - 1.2);
+    const upperStripEndZ = hasRightCutout ? (upperBotZ - 0.425) : (outerBotZ - 0.6);
+    const upperStripLenZ = Math.max(1.0, upperStripEndZ - (topEdgeZ + 0.6));
+    const upperStripCenterZ = (topEdgeZ + 0.6 + upperStripEndZ) / 2;
+    const stripXUpperGeo = getSharedBoxGeo(0.95, 0.02, upperStripLenZ);
     const stripZGeo = getSharedBoxGeo(floorW - 1.2, 0.02, 0.95);
     aisleGraph.xs.forEach(ax => {
-      const strip = new THREE.Mesh(stripXGeo, pathMat);
-      strip.position.set(ax, 0.004, 0);
+      const strip = new THREE.Mesh(stripXUpperGeo, pathMat);
+      strip.position.set(ax, 0.004, upperStripCenterZ);
       strip.receiveShadow = true;
       propsGroup.add(strip);
     });
@@ -4000,6 +4274,30 @@
       strip.receiveShadow = true;
       propsGroup.add(strip);
     });
+    if (hasBottomAnnex) {
+      const annexSpanEndX = (hasRightCutout ? annexRightX : rightEdgeX) - 0.6;
+      const annexStripW = Math.max(1.0, annexSpanEndX - (leftEdgeX + 0.6));
+      const annexBotZ = outerBotZ - 0.9;
+      const botStrip = new THREE.Mesh(getSharedBoxGeo(annexStripW, 0.02, 0.95), pathMat);
+      botStrip.position.set((leftEdgeX + 0.6 + annexSpanEndX) / 2, 0.005, annexBotZ);
+      botStrip.receiveShadow = true;
+      propsGroup.add(botStrip);
+
+      const lowerStartZ = upperBotZ - 0.9;
+      const lowerEndZ = outerBotZ - 0.425;
+      const lowerLenZ = Math.max(1.0, lowerEndZ - lowerStartZ);
+      const lowerCenterZ = (lowerStartZ + lowerEndZ) / 2;
+      const stripXLowerGeo = getSharedBoxGeo(0.95, 0.02, lowerLenZ);
+      const lowerXs = [leftEdgeX + 0.9];
+      if (showMeetingRoom && showPhoneRoom) lowerXs.push(meetX + 4.8 + aisleGap / 2);
+      lowerXs.push(annexRightX - 0.9);
+      lowerXs.forEach(lx => {
+        const strip = new THREE.Mesh(stripXLowerGeo, pathMat);
+        strip.position.set(lx, 0.004, lowerCenterZ);
+        strip.receiveShadow = true;
+        propsGroup.add(strip);
+      });
+    }
 
     // Place cubicles in 4-pod clusters (all desks on North +X wall facing Boss Cabin; center rows open into center aisle, outer rows open onto sides)
     clusterWorkers.forEach((worker, idx) => {
@@ -4017,12 +4315,15 @@
       buildBossCabin(bossWorker, wingX, cabinZ);
     }
 
-    // Place the Open-Top Office Pantry on Row 1 Right Wing & 7-Seater Meeting Room on Bottom-Left Breadth Row
+    // Place Pantry on Row 1 Right Wing, and 7-Seater Meeting Room + Telephone Room on Bottom-Left Annex
     if (showPantry) {
       buildPantry(wingX, pantryZ);
     }
     if (showMeetingRoom) {
-      buildMeetingRoom(meetX, meetZ);
+      buildMeetingRoom(meetX, annexZ);
+    }
+    if (showPhoneRoom) {
+      buildTelephoneRoom(phoneX, annexZ);
     }
     if (afterHours) {
       initCleaningCrew();
@@ -4031,17 +4332,21 @@
     }
     updateTimeOfDayLighting(0);
 
-    // Cozy Retro Office Perimeter Props
+    // Cozy Retro Office Perimeter Props (hug outer corners of active L-shaped footprint)
     const propMinX = leftEdgeX + 0.45;
     const propMaxX = rightEdgeX - 0.45;
-    const propHalfD = floorD / 2 - 0.45;
-    [[propMinX, -propHalfD], [propMaxX, propHalfD], [propMinX, propHalfD]].forEach(([px, pz], idx) => {
+    const propTopZ = topEdgeZ + 0.45;
+    const propBotZ = outerBotZ - 0.45;
+    const propLowerRightX = (hasRightCutout ? annexRightX : rightEdgeX) - 0.45;
+    const cornerPlants = [[propMinX, propTopZ], [propMinX, propBotZ], [propLowerRightX, propBotZ]];
+    if (hasRightCutout) cornerPlants.push([propMaxX, upperBotZ - 0.45]);
+    cornerPlants.forEach(([px, pz], idx) => {
       const plant = buildPottedPlant(idx);
       plant.position.set(px, 0, pz);
       propsGroup.add(plant);
     });
     const cooler = buildWaterCooler();
-    cooler.position.set(propMaxX, 0, -propHalfD);
+    cooler.position.set(propMaxX, 0, propTopZ);
     propsGroup.add(cooler);
 
     // Spawn Mochi the Office Cat on the aisle grid!
@@ -4054,6 +4359,7 @@
       || catState.mode === 'visit_boss'
       || catState.mode === 'visit_pantry'
       || catState.mode === 'visit_meeting'
+      || catState.mode === 'visit_phone'
       || catState.mode === 'nap'
       || Math.abs(catState.y || 0) > 0.01;
     if (needsCatReset) {
@@ -4344,6 +4650,10 @@
         eyebrowEl.textContent = 'OFFICE CAT · BOARDROOM INSPECTION';
         titleEl.textContent = 'Mochi (Chief Meow Officer)';
         subEl.textContent = 'Watching charts on the Meeting Room Big TV · Click to pet!';
+      } else if (catState.mode === 'visit_phone') {
+        eyebrowEl.textContent = 'OFFICE CAT · CALL BOOTH PATROL';
+        titleEl.textContent = 'Mochi (Chief Meow Officer)';
+        subEl.textContent = 'Checking the acoustic Telephone Room booths · Click to pet!';
       } else if (catState.mode === 'nap') {
         eyebrowEl.textContent = 'OFFICE CAT · CATNAP TIME';
         titleEl.textContent = 'Mochi (Snoozing Zzz)';
@@ -4380,6 +4690,13 @@
       subEl.textContent = clock.afterHours
         ? `TV on standby · 3 side + 3 side + 1 head seat ready for ${clock.returnShort}`
         : '3 seats left · 3 seats right · 1 executive head seat facing the Big TV';
+    } else if (hitData.hitType === 'phone') {
+      const clock = getOfficeClockState();
+      eyebrowEl.textContent = clock.afterHours ? 'TELEPHONE ROOM · NIGHT STANDBY' : 'TELEPHONE ROOM · ACOUSTIC PODS';
+      titleEl.textContent = 'Quiet Call Booths';
+      subEl.textContent = clock.afterHours
+        ? `2 soundproof glass booths sanitized & ready for ${clock.returnShort}`
+        : '2 private acoustic phone booths with desk handsets & waiting lounge';
     } else if (hitData.hitType === 'pantry_worker' && hitData.worker) {
       eyebrowEl.textContent = 'COFFEE BREAK · AT PANTRY';
       titleEl.textContent = hitData.worker.name;
@@ -4807,6 +5124,19 @@
     }) : false;
   }
 
+  function startCatPhoneVisit() {
+    const phone = officePlaces.phone;
+    return (phone && phone.rugSpot) ? startCatRoomVisit(phone, {
+      targetSpot: phone.rugSpot,
+      lastVisitKind: 'phone',
+      mode: 'visit_phone',
+      pause: 4.6,
+      bubble: 'purr',
+      bubbleTimer: 4.2,
+      lookTarget: phone.lookTarget
+    }) : false;
+  }
+
   function startCatNapVisit(workerName = null) {
     const deskSpots = (officePlaces.sleepingSpots || []).filter(s => !isWorkerAtPantry(s.name));
     const spots = deskSpots.length > 0 ? deskSpots : officePlaces.sleepingSpots;
@@ -4856,6 +5186,7 @@
     if (officePlaces.boss) candidates.push('boss');
     if (officePlaces.pantry && officePlaces.pantry.snackSpot) candidates.push('pantry');
     if (officePlaces.meeting && officePlaces.meeting.rugSpot) candidates.push('meeting');
+    if (officePlaces.phone && officePlaces.phone.rugSpot) candidates.push('phone');
     if (!afterHours && officePlaces.sleepingSpots.length > 0) candidates.push('nap');
     if (candidates.length === 0) return false;
     const pool = candidates.length > 1 ? candidates.filter(k => k !== catState.lastVisitKind) : candidates;
@@ -4863,6 +5194,7 @@
     if (choice === 'boss') return startCatBossVisit();
     if (choice === 'pantry') return startCatPantryVisit();
     if (choice === 'meeting') return startCatMeetingVisit();
+    if (choice === 'phone') return startCatPhoneVisit();
     return startCatNapVisit();
   }
 
@@ -4896,7 +5228,7 @@
     if (catState.hopTimer > 0) catState.hopTimer = Math.max(0, catState.hopTimer - dt);
     if (catState.meowTimer > 0) catState.meowTimer = Math.max(0, catState.meowTimer - dt);
 
-    if (catState.mode === 'pause' || catState.mode === 'visit_boss' || catState.mode === 'visit_pantry' || catState.mode === 'visit_meeting' || catState.mode === 'nap') {
+    if (catState.mode === 'pause' || catState.mode === 'visit_boss' || catState.mode === 'visit_pantry' || catState.mode === 'visit_meeting' || catState.mode === 'visit_phone' || catState.mode === 'nap') {
       catState.pauseLeft -= dt;
 
       if (catState.visitGoalHeading !== null && catState.visitGoalHeading !== undefined) {
@@ -4923,7 +5255,7 @@
         catVisual.tailPivot.rotation.z = Math.sin(t * 1.4) * 0.14;
       } else {
         // Alert sit / purring pose (Boss Cabin rug visit, Pantry snack visit, Meeting room visit or corridor pause)
-        const visitingRoom = (catState.mode === 'visit_boss' || catState.mode === 'visit_pantry' || catState.mode === 'visit_meeting');
+        const visitingRoom = (catState.mode === 'visit_boss' || catState.mode === 'visit_pantry' || catState.mode === 'visit_meeting' || catState.mode === 'visit_phone');
         catVisual.rig.position.y = 0;
         catVisual.legFL.rotation.x = 0;
         catVisual.legFR.rotation.x = 0;
@@ -5381,6 +5713,9 @@
       if (meetingLampLight) {
         meetingLampLight.intensity = prof.pantryLampIntensity;
       }
+      if (phoneLampLight) {
+        phoneLampLight.intensity = prof.pantryLampIntensity;
+      }
       for (let i = 0; i < bossLampShadeMats.length; i++) {
         bossLampShadeMats[i].emissiveIntensity = prof.lampEmissive;
       }
@@ -5414,6 +5749,7 @@
     if (officePlaces.pantry && officePlaces.pantry.slots.length > 0) targets.push('pantry');
     if (officePlaces.boss) targets.push('boss');
     if (officePlaces.meeting) targets.push('meeting');
+    if (officePlaces.phone) targets.push('phone');
     const deskCvs = cubicleVisuals.filter(cv => !cv.isBoss && cv.entryWorld && cv.deskStandWorld);
     if (deskCvs.length > 0) targets.push('desk');
     targets.push('aisle');
@@ -5437,8 +5773,8 @@
         { x: p.doorEntrance.x, z: p.doorEntrance.z, y: 0 },
         { x: xs[doorIx], z: zs[doorIz], y: 0, ix: doorIx, iz: doorIz }
       ];
-    } else if (pick === 'boss' || pick === 'meeting') {
-      const rm = pick === 'boss' ? officePlaces.boss : officePlaces.meeting;
+    } else if (pick === 'boss' || pick === 'meeting' || pick === 'phone') {
+      const rm = officePlaces[pick];
       const doorIx = findClosestAisleCoordIdx(xs, rm.doorEntrance.x);
       const doorIz = findClosestAisleCoordIdx(zs, rm.doorEntrance.z);
       c.waypoints = [
