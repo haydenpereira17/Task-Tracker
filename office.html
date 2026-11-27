@@ -3431,30 +3431,30 @@
   }
 
   function buildMeetingRoom(meetX, meetZ) {
-    // Open-Top 7-Seater Conference Room (7.4 x 9.6) with Big 4K TV, 3 seats each side + 1 Head of Table
+    // Open-Top 7-Seater Conference Room (9.6 x 7.4) with Big 4K TV, 3 seats each side + 1 Head of Table
     const room = new THREE.Group();
     room.position.set(meetX, 0, meetZ);
 
-    const floor = makeBox(7.4, 0.12, 9.6, 0x162436, { castShadow: false });
+    const floor = makeBox(9.6, 0.12, 7.4, 0x162436, { castShadow: false });
     floor.position.y = 0.06;
     floor.userData = { hitType: 'meeting' };
     room.add(floor);
     interactables.push(floor);
 
-    const rim = makeBox(7.52, 0.06, 9.72, 0x0e7490, { castShadow: false });
+    const rim = makeBox(9.72, 0.06, 7.52, 0x0e7490, { castShadow: false });
     rim.position.y = 0.025;
     room.add(rim);
 
-    const rugBorder = makeBox(5.14, 0.03, 7.14, 0x38bdf8, { castShadow: false });
-    rugBorder.position.set(0, 0.132, 0.2);
+    const rugBorder = makeBox(7.14, 0.03, 5.14, 0x38bdf8, { castShadow: false });
+    rugBorder.position.set(0.2, 0.132, 0);
     room.add(rugBorder);
-    const rug = makeBox(4.98, 0.035, 6.98, 0x1b3352, { castShadow: false });
-    rug.position.set(0, 0.136, 0.2);
+    const rug = makeBox(6.98, 0.035, 4.98, 0x1b3352, { castShadow: false });
+    rug.position.set(0.2, 0.136, 0);
     rug.userData = { hitType: 'meeting' };
     room.add(rug);
     interactables.push(rug);
 
-    // Back solid TV presentation wall (-Z) & open-view half-glass perimeter
+    // Back solid TV presentation wall (-X facing +X camera & Head chair) & open-view half-glass perimeter
     const wallHex = 0x102a43;
     const trimHex = 0x38bdf8;
     const glassMat = new THREE.MeshLambertMaterial({
@@ -3467,7 +3467,7 @@
       const base = makeBox(w, 0.28, d, wallHex, { castShadow: false });
       base.position.set(x, 0.26, z);
       room.add(base);
-      const glass = new THREE.Mesh(getSharedBoxGeo(w * 0.98, h, d * 0.55), glassMat);
+      const glass = new THREE.Mesh(getSharedBoxGeo(w * (w > d ? 0.98 : 0.55), h, d * (d > w ? 0.98 : 0.55)), glassMat);
       glass.position.set(x, 0.4 + h / 2, z);
       room.add(glass);
       const rail = makeBox(w, 0.06, d, trimHex, { castShadow: false });
@@ -3475,43 +3475,43 @@
       room.add(rail);
     };
 
-    const backWall = makeBox(7.4, 2.02, 0.18, wallHex);
-    backWall.position.set(0, 1.13, -4.71);
+    const backWall = makeBox(0.18, 2.02, 7.4, wallHex);
+    backWall.position.set(-4.71, 1.13, 0);
     backWall.userData = { hitType: 'meeting' };
     room.add(backWall);
     interactables.push(backWall);
-    const backTrim = makeBox(7.44, 0.08, 0.2, trimHex, { castShadow: false });
-    backTrim.position.set(0, 2.16, -4.71);
+    const backTrim = makeBox(0.2, 0.08, 7.44, trimHex, { castShadow: false });
+    backTrim.position.set(-4.71, 2.16, 0);
     room.add(backTrim);
 
-    // Left Aisle Wall (-X) with 2.6-unit open doorway centered at z = 0 onto Center Aisle
-    addRoomGlassWall(0.16, 1.05, 3.45, -3.62, -3.0);
-    addRoomGlassWall(0.16, 1.05, 3.45, -3.62, 3.0);
-    const postTop = makeBox(0.2, 1.56, 0.2, trimHex, { castShadow: false });
-    postTop.position.set(-3.62, 0.9, -1.3);
-    room.add(postTop);
-    const postBot = makeBox(0.2, 1.56, 0.2, trimHex, { castShadow: false });
-    postBot.position.set(-3.62, 0.9, 1.3);
-    room.add(postBot);
+    // North Aisle Wall (-Z) with 2.6-unit open doorway centered at x = 0 onto bottom walkway
+    addRoomGlassWall(3.45, 1.05, 0.16, -3.0, -3.62);
+    addRoomGlassWall(3.45, 1.05, 0.16, 3.0, -3.62);
+    const postLeft = makeBox(0.2, 1.56, 0.2, trimHex, { castShadow: false });
+    postLeft.position.set(-1.3, 0.9, -3.62);
+    room.add(postLeft);
+    const postRight = makeBox(0.2, 1.56, 0.2, trimHex, { castShadow: false });
+    postRight.position.set(1.3, 0.9, -3.62);
+    room.add(postRight);
 
-    // Front (+Z) & Right (+X) Low Glass Rails for clean isometric visibility of all 7 seats
-    addRoomGlassWall(7.32, 0.72, 0.14, 0, 4.73);
-    addRoomGlassWall(0.14, 0.72, 9.46, 3.63, 0);
+    // South (+Z) & East (+X) Low Glass Rails for clean isometric visibility of all 7 seats & Big TV
+    addRoomGlassWall(9.46, 0.72, 0.14, 0, 3.63);
+    addRoomGlassWall(0.14, 0.72, 7.32, 4.73, 0);
 
     // Meeting Room Doorway Sign Sprite
     if (meetingSignTexture) {
       const signSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: meetingSignTexture, transparent: false }));
-      signSprite.position.set(-3.62, 2.04, 0);
+      signSprite.position.set(0, 2.04, -3.62);
       signSprite.scale.set(1.88, 0.47, 1);
       signSprite.userData = { hitType: 'meeting' };
       room.add(signSprite);
       interactables.push(signSprite);
     }
 
-    // Wall-Mounted Big 4K TV + Video Soundbar + Media Credenza on Back Wall (-Z)
+    // Wall-Mounted Big 4K TV + Video Soundbar + Media Credenza on Back Wall (-X facing +X)
     const afterHours = isOfficeAfterHours();
-    const tvBezel = makeBox(4.56, 2.04, 0.14, 0x0b1220);
-    tvBezel.position.set(0, 1.5, -4.55);
+    const tvBezel = makeBox(0.14, 2.04, 4.56, 0x0b1220);
+    tvBezel.position.set(-4.55, 1.5, 0);
     tvBezel.userData = { hitType: 'meeting_tv' };
     room.add(tvBezel);
     interactables.push(tvBezel);
@@ -3521,44 +3521,45 @@
       map: afterHours ? (screenStandbyTex || meetingTvTexture) : (meetingTvTexture || screenWorkingFrames[0])
     });
     const tvScreen = new THREE.Mesh(getSharedPlaneGeo(4.24, 1.78), meetingTvMat);
-    tvScreen.position.set(0, 1.5, -4.475);
+    tvScreen.position.set(-4.475, 1.5, 0);
+    tvScreen.rotation.y = Math.PI / 2;
     tvScreen.userData = { hitType: 'meeting_tv' };
     room.add(tvScreen);
     interactables.push(tvScreen);
 
-    const soundbar = makeBox(1.15, 0.12, 0.14, 0x334155, { castShadow: false });
-    soundbar.position.set(0, 2.58, -4.54);
+    const soundbar = makeBox(0.14, 0.12, 1.15, 0x334155, { castShadow: false });
+    soundbar.position.set(-4.54, 2.58, 0);
     room.add(soundbar);
-    const camLens = makeBox(0.14, 0.07, 0.06, 0x38bdf8, { emissive: 0x38bdf8, emissiveIntensity: 0.7, castShadow: false });
-    camLens.position.set(0, 2.58, -4.46);
+    const camLens = makeBox(0.06, 0.07, 0.14, 0x38bdf8, { emissive: 0x38bdf8, emissiveIntensity: 0.7, castShadow: false });
+    camLens.position.set(-4.46, 2.58, 0);
     room.add(camLens);
 
-    const credenza = makeBox(3.6, 0.48, 0.62, 0x5c321e);
-    credenza.position.set(0, 0.36, -4.25);
+    const credenza = makeBox(0.62, 0.48, 3.6, 0x5c321e);
+    credenza.position.set(-4.25, 0.36, 0);
     room.add(credenza);
 
-    // Long Walnut Conference Table (1.92 wide x 4.64 long)
-    const tableTop = makeBox(1.92, 0.12, 4.64, 0x7c4a2d);
-    tableTop.position.set(0, 0.78, 0.48);
+    // Long Walnut Conference Table (4.64 long x 1.92 wide)
+    const tableTop = makeBox(4.64, 0.12, 1.92, 0x7c4a2d);
+    tableTop.position.set(0.48, 0.78, 0);
     tableTop.userData = { hitType: 'meeting' };
     room.add(tableTop);
     interactables.push(tableTop);
 
-    [-0.88, 1.84].forEach(lz => {
-      const ped = makeBox(0.92, 0.64, 0.46, 0x334155);
-      ped.position.set(0, 0.42, lz);
+    [-0.88, 1.84].forEach(lx => {
+      const ped = makeBox(0.46, 0.64, 0.92, 0x334155);
+      ped.position.set(lx, 0.42, 0);
       room.add(ped);
     });
 
-    // Center Speakerphone Puck, Laptops & Coffee Mugs on Table
+    // Center Speakerphone Puck & Laptops on Table
     const spBase = makeBox(0.36, 0.05, 0.36, 0x1e293b, { castShadow: false });
-    spBase.position.set(0, 0.865, 0.48);
+    spBase.position.set(0.48, 0.865, 0);
     room.add(spBase);
     const spRing = makeBox(0.16, 0.03, 0.16, 0x38bdf8, { emissive: 0x38bdf8, emissiveIntensity: 0.55, castShadow: false });
-    spRing.position.set(0, 0.895, 0.48);
+    spRing.position.set(0.48, 0.895, 0);
     room.add(spRing);
 
-    [[-0.58, -0.82, 0.25], [0.58, 0.52, -0.2], [0.0, 2.22, 0]].forEach(([lx, lz, rot]) => {
+    [[-0.82, -0.58, 2.89], [0.52, 0.58, 0.2], [2.22, 0, Math.PI / 2]].forEach(([lx, lz, rot]) => {
       const lap = new THREE.Group();
       lap.position.set(lx, 0.85, lz);
       lap.rotation.y = rot;
@@ -3571,7 +3572,7 @@
       room.add(lap);
     });
 
-    // 7 Chairs: 3 on Left (-X), 3 on Right (+X), + 1 Executive Head of Table (+Z facing TV)
+    // 7 Chairs: 3 on North Side (-Z), 3 on South Side (+Z), + 1 Executive Head of Table (+X facing TV)
     const addMeetingChair = (cx, cz, rotY, isHead = false) => {
       const cg = new THREE.Group();
       cg.position.set(cx, 0.12, cz);
@@ -3600,18 +3601,18 @@
       room.add(cg);
     };
 
-    [-0.90, 0.48, 1.86].forEach(sz => {
-      addMeetingChair(-1.34, sz, -Math.PI / 2, false); // Left side (3 seats)
-      addMeetingChair(1.34, sz, Math.PI / 2, false);   // Right side (3 seats)
+    [-0.90, 0.48, 1.86].forEach(sx => {
+      addMeetingChair(sx, -1.34, Math.PI, false); // North side (3 seats)
+      addMeetingChair(sx, 1.34, 0, false);        // South side (3 seats)
     });
-    addMeetingChair(0, 3.24, 0, true); // Head of the table (1 executive seat facing -Z Big TV)
+    addMeetingChair(3.24, 0, Math.PI / 2, true); // Head of the table (1 executive seat facing -X Big TV)
 
     const meetPlant = buildPottedPlant(14);
-    meetPlant.position.set(2.92, 0.12, -3.92);
+    meetPlant.position.set(-3.92, 0.12, 2.92);
     room.add(meetPlant);
 
     meetingLampLight = new THREE.PointLight(0xffe0a3, 0, 17, 1.6);
-    meetingLampLight.position.set(0, 2.45, -0.4);
+    meetingLampLight.position.set(-0.4, 2.45, 0);
     room.add(meetingLampLight);
 
     worldGroup.add(room);
@@ -3619,11 +3620,11 @@
     officePlaces.meeting = {
       centerX: meetX,
       centerZ: meetZ,
-      doorEntrance: { x: meetX - 4.6, z: meetZ },
-      doorThreshold: { x: meetX - 3.62, z: meetZ, y: 0.12 },
-      foyer: { x: meetX - 2.45, z: meetZ, y: 0.12 },
-      rugSpot: { x: meetX - 2.35, z: meetZ - 2.45, y: 0.14 },
-      lookTarget: { x: meetX, z: meetZ - 4.55 }
+      doorEntrance: { x: meetX, z: meetZ - 4.6 },
+      doorThreshold: { x: meetX, z: meetZ - 3.62, y: 0.12 },
+      foyer: { x: meetX, z: meetZ - 2.45, y: 0.12 },
+      rugSpot: { x: meetX - 2.45, z: meetZ - 2.35, y: 0.14 },
+      lookTarget: { x: meetX - 4.55, z: meetZ }
     };
   }
 
@@ -3894,7 +3895,7 @@
       return;
     }
 
-    // Separate Karishma (Boss) into Row 0 Right Wing, Pantry on Row 1 Right Wing, and 7-Seater Meeting Room along Center Aisle
+    // Separate Karishma (Boss) into Row 0 Right Wing, Pantry on Row 1 Right Wing, and 7-Seater Meeting Room on Bottom-Left Breadth Row
     const bossWorker = filtered.find(isBossWorker) || null;
     const clusterWorkers = filtered.filter(w => !isBossWorker(w));
     const showPantry = count > 0;
@@ -3908,29 +3909,30 @@
     const numClusters = clusterWorkers.length > 0 ? Math.ceil(clusterWorkers.length / 4) : 0;
     const clusterCols = numClusters <= 1 ? numClusters : (numClusters <= 4 ? 2 : (numClusters <= 9 ? 3 : 4));
     const clusterRows = numClusters > 0 ? Math.ceil(numClusters / clusterCols) : 0;
-    const effectiveRows = Math.max(clusterRows, rightWingRows, 1);
+    const leftBreadthRows = clusterRows + (showMeetingRoom ? 1 : 0);
+    const effectiveRows = Math.max(leftBreadthRows, rightWingRows, 1);
 
     const startClusterX = clusterCols > 0 ? -((clusterCols - 1) * clusterPitch) / 2 : 0;
     const startWingZ = -((effectiveRows - 1) * clusterPitch) / 2;
     const startClusterZ = startWingZ;
 
-    // Wing 1 sits beside cubicle clusters; Wing 2 (7-Seater Meeting Room) caps the Center Aisle at z = 0
+    // Wing sits beside cubicle clusters; Meeting Room sits on the Bottom-Left Breadth Row flush with Col 0
     const hasClusters = clusterCols > 0;
     const hasRightWing = rightWingRows > 0;
     const wingX = hasClusters ? (startClusterX + clusterCols * clusterPitch) : 0;
-    const wing2X = (hasRightWing ? wingX : (hasClusters ? startClusterX + (clusterCols - 1) * clusterPitch : 0))
-      + ((hasRightWing || hasClusters) ? clusterPitch : 0);
     const cabinZ = startWingZ;
     const pantryZ = startWingZ + (bossWorker ? clusterPitch : 0);
+    const meetX = hasClusters ? (startClusterX - clusterSize / 2 + 4.8) : 0;
+    const meetZ = startWingZ + clusterRows * clusterPitch;
 
-    const leftEdgeX = hasClusters
+    const baseLeftEdgeX = hasClusters
       ? (startClusterX - clusterSize / 2 - aisleGap)
       : (wingX - clusterSize / 2 - aisleGap);
-    const rightEdgeX = showMeetingRoom
-      ? (wing2X + clusterSize / 2 + aisleGap)
-      : (hasRightWing
-        ? (wingX + clusterSize / 2 + aisleGap)
-        : (startClusterX + (clusterCols - 1) * clusterPitch + clusterSize / 2 + aisleGap));
+    const baseRightEdgeX = hasRightWing
+      ? (wingX + clusterSize / 2 + aisleGap)
+      : (startClusterX + (clusterCols - 1) * clusterPitch + clusterSize / 2 + aisleGap);
+    const leftEdgeX = showMeetingRoom ? Math.min(baseLeftEdgeX, meetX - 4.8 - aisleGap) : baseLeftEdgeX;
+    const rightEdgeX = showMeetingRoom ? Math.max(baseRightEdgeX, meetX + 4.8 + aisleGap) : baseRightEdgeX;
 
     const floorCenterX = (leftEdgeX + rightEdgeX) / 2;
     const floorW = rightEdgeX - leftEdgeX;
@@ -3973,7 +3975,7 @@
     // Compute exact aisle corridor centerlines including outer edge & path between clusters, Boss Cabin, Pantry & Meeting Room
     aisleGraph.xs = [];
     aisleGraph.zs = [];
-    const totalXCols = clusterCols + (hasRightWing ? 1 : 0) + (showMeetingRoom ? 1 : 0);
+    const totalXCols = clusterCols + (hasRightWing ? 1 : 0);
     const baseStartX = hasClusters ? startClusterX : wingX;
     for (let c = 0; c <= totalXCols; c++) {
       aisleGraph.xs.push(baseStartX + (c - 0.5) * clusterPitch);
@@ -4015,12 +4017,12 @@
       buildBossCabin(bossWorker, wingX, cabinZ);
     }
 
-    // Place the Open-Top Office Pantry on Row 1 Right Wing & 7-Seater Meeting Room along Center Aisle
+    // Place the Open-Top Office Pantry on Row 1 Right Wing & 7-Seater Meeting Room on Bottom-Left Breadth Row
     if (showPantry) {
       buildPantry(wingX, pantryZ);
     }
     if (showMeetingRoom) {
-      buildMeetingRoom(wing2X, 0);
+      buildMeetingRoom(meetX, meetZ);
     }
     if (afterHours) {
       initCleaningCrew();
