@@ -1217,6 +1217,7 @@
             <button type="button" class="cam-btn" onclick="setCameraPreset('top')">Top-Down</button>
             <button type="button" class="cam-btn" onclick="setCameraPreset('front')">Front Row</button>
             <button type="button" class="cam-btn" onclick="focusSelectedCubicle()" title="Zoom in on selected cubicle">Focus Desk</button>
+            <button type="button" class="cam-btn" onclick="focusOnCat()" title="Jump camera to Mochi the Office Cat" style="color:#fdba74;">Find Cat</button>
             <div class="cam-zoom-wrap">
               <button type="button" class="cam-btn" onclick="nudgeZoom(3.5)" aria-label="Zoom out" title="Zoom out">&minus;</button>
               <input type="range" id="zoom-slider" class="cam-zoom-slider" min="0" max="100" value="48" aria-label="Zoom level" oninput="setZoomPercent(this.value)" />
@@ -1712,6 +1713,27 @@
   let screenQueuedTex = null;
   let screenSleepFrames = [];
   let zzzSpriteTex = null;
+  let meowSpriteTex = null;
+
+  let aisleGraph = { xs: [], zs: [] };
+  let catVisual = null;
+  const catState = {
+    ix: 0,
+    iz: 0,
+    prevIx: -1,
+    prevIz: -1,
+    targetIx: 0,
+    targetIz: 0,
+    x: 0,
+    z: 0,
+    heading: 0,
+    mode: 'pause',
+    pauseLeft: 1.2,
+    walkSpeed: 1.75,
+    hopTimer: 0,
+    meowTimer: 0,
+    initialized: false
+  };
 
   function makePixelCanvasTexture(width, height, drawFn) {
     const c = document.createElement('canvas');
@@ -1816,6 +1838,26 @@
       ctx.fillRect(14, 14, 5, 4);
       ctx.fillRect(9, 18, 5, 4);
       ctx.fillRect(6, 22, 20, 4);
+    });
+
+    // Cute retro "<3 MEOW" speech bubble sprite for office cat
+    meowSpriteTex = makePixelCanvasTexture(96, 36, (ctx, w, h) => {
+      ctx.fillStyle = '#071b2c';
+      ctx.fillRect(2, 2, w - 4, h - 8);
+      ctx.strokeStyle = '#fb923c';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(3, 3, w - 6, h - 10);
+      ctx.fillStyle = '#071b2c';
+      ctx.fillRect(42, h - 8, 12, 6);
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillRect(11, 11, 4, 4);
+      ctx.fillRect(17, 11, 4, 4);
+      ctx.fillRect(10, 14, 12, 5);
+      ctx.fillRect(13, 19, 6, 3);
+      ctx.fillStyle = '#ffedd5';
+      ctx.font = 'bold 14px "JetBrains Mono", monospace';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('MEOW!', 28, 16);
     });
   }
 
@@ -1943,9 +1985,163 @@
     return g;
   }
 
-  function buildCubicle(worker, gx, gz) {
+  function buildOfficeCat() {
+    const root = new THREE.Group();
+    const rig = new THREE.Group();
+    root.add(rig);
+
+    const orange = 0xf97316;
+    const stripe = 0xc2410c;
+    const cream = 0xffedd5;
+    const pawWhite = 0xffffff;
+
+    // Torso facing +Z
+    const body = makeBox(0.36, 0.28, 0.56, orange);
+    body.position.set(0, 0.26, 0);
+    rig.add(body);
+
+    const chest = makeBox(0.28, 0.22, 0.08, cream);
+    chest.position.set(0, 0.23, 0.26);
+    rig.add(chest);
+
+    const st1 = makeBox(0.38, 0.06, 0.08, stripe);
+    st1.position.set(0, 0.38, -0.05);
+    rig.add(st1);
+    const st2 = makeBox(0.38, 0.06, 0.08, stripe);
+    st2.position.set(0, 0.38, 0.12);
+    rig.add(st2);
+
+    // Cute Coral Collar & Gold Bell
+    const collar = makeBox(0.38, 0.06, 0.1, 0xf43f5e);
+    collar.position.set(0, 0.31, 0.24);
+    rig.add(collar);
+    const bell = makeBox(0.09, 0.09, 0.09, 0xfbbf24, { emissive: 0xf59e0b, emissiveIntensity: 0.4 });
+    bell.position.set(0, 0.25, 0.31);
+    rig.add(bell);
+
+    // Head Group
+    const head = new THREE.Group();
+    head.position.set(0, 0.46, 0.34);
+    rig.add(head);
+
+    const skull = makeBox(0.34, 0.28, 0.3, orange);
+    head.add(skull);
+
+    const muzzle = makeBox(0.18, 0.11, 0.08, cream);
+    muzzle.position.set(0, -0.06, 0.16);
+    head.add(muzzle);
+
+    const nose = makeBox(0.06, 0.04, 0.04, 0xf472b6);
+    nose.position.set(0, -0.03, 0.2);
+    head.add(nose);
+
+    // Bright green/dark pixel eyes
+    const eyeL = makeBox(0.06, 0.07, 0.04, 0x22c55e, { emissive: 0x4ade80, emissiveIntensity: 0.35 });
+    eyeL.position.set(-0.08, 0.03, 0.155);
+    head.add(eyeL);
+    const eyeR = makeBox(0.06, 0.07, 0.04, 0x22c55e, { emissive: 0x4ade80, emissiveIntensity: 0.35 });
+    eyeR.position.set(0.08, 0.03, 0.155);
+    head.add(eyeR);
+
+    // Pointed Triangle-Voxel Cat Ears!
+    const earBaseL = makeBox(0.11, 0.11, 0.08, orange);
+    earBaseL.position.set(-0.1, 0.18, 0.02);
+    head.add(earBaseL);
+    const earTipL = makeBox(0.06, 0.06, 0.06, cream);
+    earTipL.position.set(-0.1, 0.25, 0.02);
+    head.add(earTipL);
+
+    const earBaseR = makeBox(0.11, 0.11, 0.08, orange);
+    earBaseR.position.set(0.1, 0.18, 0.02);
+    head.add(earBaseR);
+    const earTipR = makeBox(0.06, 0.06, 0.06, cream);
+    earTipR.position.set(0.1, 0.25, 0.02);
+    head.add(earTipR);
+
+    // 4 Trotting Legs with White Sock Paws
+    const makeCatLeg = (lx, lz) => {
+      const lp = new THREE.Group();
+      lp.position.set(lx, 0.16, lz);
+      const upper = makeBox(0.1, 0.12, 0.1, orange);
+      upper.position.y = -0.05;
+      lp.add(upper);
+      const paw = makeBox(0.11, 0.06, 0.13, pawWhite);
+      paw.position.set(0, -0.13, 0.015);
+      lp.add(paw);
+      rig.add(lp);
+      return lp;
+    };
+    const legFL = makeCatLeg(-0.11, 0.18);
+    const legFR = makeCatLeg(0.11, 0.18);
+    const legBL = makeCatLeg(-0.11, -0.18);
+    const legBR = makeCatLeg(0.11, -0.18);
+
+    // Expressive Swishing Tail
+    const tailPivot = new THREE.Group();
+    tailPivot.position.set(0, 0.34, -0.26);
+    rig.add(tailPivot);
+    const tailSeg1 = makeBox(0.08, 0.24, 0.08, orange);
+    tailSeg1.position.set(0, 0.11, -0.04);
+    tailSeg1.rotation.x = -0.32;
+    tailPivot.add(tailSeg1);
+    const tailSeg2 = makeBox(0.08, 0.22, 0.08, cream);
+    tailSeg2.position.set(0, 0.3, -0.09);
+    tailSeg2.rotation.x = 0.2;
+    tailPivot.add(tailSeg2);
+
+    // Invisible larger touch/click target around kitty so it's easy to click/pet
+    const hitBoxMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+    const hitBox = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.9, 1.05), hitBoxMat);
+    hitBox.position.set(0, 0.42, 0.05);
+    rig.add(hitBox);
+
+    root.traverse(ch => {
+      if (ch.isMesh) {
+        ch.userData = { hitType: 'cat' };
+        interactables.push(ch);
+      }
+    });
+
+    // Floating MEOW! Sprite Bubble
+    const meowMat = new THREE.SpriteMaterial({
+      map: meowSpriteTex,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false
+    });
+    const meowSprite = new THREE.Sprite(meowMat);
+    meowSprite.position.set(0, 1.05, 0.1);
+    meowSprite.scale.set(0.98, 0.38, 1);
+    meowSprite.visible = false;
+    root.add(meowSprite);
+
+    propsGroup.add(root);
+    return { root, rig, head, legFL, legFR, legBL, legBR, tailPivot, meowSprite };
+  }
+
+  function buildCubicle(worker, clusterX, clusterZ, quadrantIdx) {
+    // 2x2 Pinwheel Quad Cluster: each cubicle has local (-1.85..+1.85) with
+    // TWO shared inner walls at local -Z and local -X meeting at cluster center (clusterX, clusterZ),
+    // and both outer edges completely open onto the small walkway path!
+    const ROTATIONS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
+    const WORLD_OFFSETS = [
+      [1.85, 1.85],   // q=0: +X, +Z
+      [1.85, -1.85],  // q=1: +X, -Z
+      [-1.85, -1.85], // q=2: -X, -Z
+      [-1.85, 1.85]   // q=3: -X, +Z
+    ];
+    const rotY = ROTATIONS[quadrantIdx % 4];
+    const [ox, oz] = WORLD_OFFSETS[quadrantIdx % 4];
+    const worldX = clusterX + ox;
+    const worldZ = clusterZ + oz;
+
+    const pivot = new THREE.Group();
+    pivot.position.set(clusterX, 0, clusterZ);
+    pivot.rotation.y = rotY;
+
     const group = new THREE.Group();
-    group.position.set(gx, 0, gz);
+    group.position.set(1.85, 0, 1.85);
+    pivot.add(group);
 
     const nameHash = hashNameNum(worker.name);
     const shirtColor = SHIRT_COLORS[nameHash % SHIRT_COLORS.length];
@@ -1967,69 +2163,66 @@
     interactables.push(floor);
 
     const isSelected = (selectedPerson === worker.name);
-    const ring = makeBox(3.78, 0.06, 3.78, isSelected ? 0x38bdf8 : 0x1d4b6e, {
+    const ring = makeBox(3.74, 0.06, 3.74, isSelected ? 0x38bdf8 : 0x1d4b6e, {
       emissive: isSelected ? 0x38bdf8 : 0x000000,
-      emissiveIntensity: isSelected ? 0.55 : 0
+      emissiveIntensity: isSelected ? 0.65 : 0
     });
     ring.position.y = 0.025;
     ring.visible = isSelected;
     group.add(ring);
 
-    // 2. Retro Blocky Cubicle Partition Walls (Back + Left + Right half-walls)
+    // 2. Two Shared Inner Partition Walls (meeting at quad spine center with neighbor cubicles!)
     const wallColor = 0x1b4666;
     const trimColor = 0x5c85b8;
-    const backWall = makeBox(3.7, 1.55, 0.16, wallColor);
-    backWall.position.set(0, 0.89, -1.77);
+    const backWall = makeBox(3.7, 1.28, 0.14, wallColor);
+    backWall.position.set(0, 0.76, -1.78);
     backWall.userData = { hitType: 'cubicle', worker };
     group.add(backWall);
     interactables.push(backWall);
 
-    const backTrim = makeBox(3.74, 0.08, 0.2, trimColor);
-    backTrim.position.set(0, 1.68, -1.77);
+    const backTrim = makeBox(3.72, 0.07, 0.16, trimColor);
+    backTrim.position.set(0, 1.43, -1.78);
     group.add(backTrim);
 
-    const leftWall = makeBox(0.16, 1.4, 3.55, wallColor);
-    leftWall.position.set(-1.77, 0.82, 0.02);
+    const leftWall = makeBox(0.14, 1.28, 3.56, wallColor);
+    leftWall.position.set(-1.78, 0.76, 0.07);
+    leftWall.userData = { hitType: 'cubicle', worker };
     group.add(leftWall);
-    const leftTrim = makeBox(0.2, 0.08, 3.58, trimColor);
-    leftTrim.position.set(-1.77, 1.54, 0.02);
+    interactables.push(leftWall);
+
+    const leftTrim = makeBox(0.16, 0.07, 3.58, trimColor);
+    leftTrim.position.set(-1.78, 1.43, 0.07);
     group.add(leftTrim);
 
-    const rightWall = makeBox(0.16, 1.1, 2.3, wallColor);
-    rightWall.position.set(1.77, 0.67, -0.62);
-    group.add(rightWall);
-    const rightTrim = makeBox(0.2, 0.08, 2.34, trimColor);
-    rightTrim.position.set(1.77, 1.24, -0.62);
-    group.add(rightTrim);
-
-    // Cute corkboard & sticky note pixels on back wall
-    const cork = makeBox(1.1, 0.52, 0.06, 0x9c6b3b);
-    cork.position.set(-0.85, 1.22, -1.66);
+    // Cute corkboard & sticky note pixels on shared back spine wall
+    const cork = makeBox(1.06, 0.46, 0.05, 0x9c6b3b);
+    cork.position.set(-0.85, 1.08, -1.68);
     group.add(cork);
-    const note1 = makeBox(0.18, 0.18, 0.03, 0xfde047);
-    note1.position.set(-1.12, 1.25, -1.62);
+    const note1 = makeBox(0.16, 0.16, 0.03, 0xfde047);
+    note1.position.set(-1.12, 1.11, -1.65);
     group.add(note1);
-    const note2 = makeBox(0.18, 0.18, 0.03, 0x38bdf8);
-    note2.position.set(-0.86, 1.22, -1.62);
+    const note2 = makeBox(0.16, 0.16, 0.03, 0x38bdf8);
+    note2.position.set(-0.86, 1.08, -1.65);
     group.add(note2);
     if (worker.openCount > 0) {
-      const note3 = makeBox(0.18, 0.18, 0.03, 0xf43f5e);
-      note3.position.set(-0.58, 1.26, -1.62);
+      const note3 = makeBox(0.16, 0.16, 0.03, 0xf43f5e);
+      note3.position.set(-0.58, 1.12, -1.65);
       group.add(note3);
     }
 
-    // Front Corner Nameplate Signpost
-    const plateTex = getNameplateTexture(worker.name, isWorking);
-    const plateMat = new THREE.MeshBasicMaterial({ map: plateTex });
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(1.38, 0.34, 0.08), plateMat);
-    plate.position.set(-0.98, 0.92, 1.72);
-    plate.userData = { hitType: 'cubicle', worker };
-    group.add(plate);
-    interactables.push(plate);
-
-    const post = makeBox(0.1, 0.85, 0.1, 0x64748b);
-    post.position.set(-1.55, 0.54, 1.72);
+    // Outer Aisle Corner Post + Camera-Facing Pixel Nameplate Sprite (always upright & readable!)
+    const post = makeBox(0.11, 0.85, 0.11, 0x64748b);
+    post.position.set(1.52, 0.54, 1.52);
     group.add(post);
+
+    const plateTex = getNameplateTexture(worker.name, isWorking);
+    const plateSpriteMat = new THREE.SpriteMaterial({ map: plateTex, transparent: true });
+    const plateSprite = new THREE.Sprite(plateSpriteMat);
+    plateSprite.position.set(1.52, 1.14, 1.52);
+    plateSprite.scale.set(1.36, 0.34, 1);
+    plateSprite.userData = { hitType: 'cubicle', worker };
+    group.add(plateSprite);
+    interactables.push(plateSprite);
 
     // 3. Retro Blocky Desk
     const deskTop = makeBox(2.85, 0.14, 1.18, 0xd4a373);
@@ -2246,15 +2439,15 @@
     });
     group.add(charRoot);
 
-    // Floating status beacon above cubicle back wall
+    // Floating status beacon above outer corner post
     const beaconColor = isWorking
       ? 0x38bdf8
       : (hasPendingOnly ? 0xfbbf24 : (isSleeping ? 0x818cf8 : 0xe8b95b));
-    const beacon = makeBox(0.22, 0.22, 0.22, beaconColor, {
+    const beacon = makeBox(0.2, 0.2, 0.2, beaconColor, {
       emissive: beaconColor,
       emissiveIntensity: isSleeping ? 0.4 : 0.75
     });
-    beacon.position.set(1.45, 2.02, -1.55);
+    beacon.position.set(1.52, 1.56, 1.52);
     group.add(beacon);
 
     // Floating Pixel "Zzz" Sprites for sleeping workers (no active tasks)!
@@ -2286,8 +2479,8 @@
 
     cubicleVisuals.push({
       worker,
-      gx,
-      gz,
+      gx: worldX,
+      gz: worldZ,
       isWorking,
       hasPendingOnly,
       isSleeping,
@@ -2305,7 +2498,7 @@
       zzzSprites
     });
 
-    worldGroup.add(group);
+    worldGroup.add(pivot);
   }
 
   function initThreeOffice() {
@@ -2394,50 +2587,112 @@
     hideTooltip();
 
     const count = filtered.length;
-    if (count === 0) return;
+    if (count === 0) {
+      catVisual = null;
+      return;
+    }
 
-    const cols = count <= 4 ? Math.max(1, count) : (count <= 9 ? 3 : (count <= 16 ? 4 : 5));
-    const rows = Math.ceil(count / cols);
-    const cellGap = 4.65; // 3.7 cubicle + 0.95 walkway corridor
+    // Group into 4-person 2x2 quad clusters separated by a clear narrow walkway path
+    const numClusters = Math.ceil(count / 4);
+    const clusterCols = numClusters <= 1 ? 1 : (numClusters <= 4 ? 2 : (numClusters <= 9 ? 3 : 4));
+    const clusterRows = Math.ceil(numClusters / clusterCols);
+    const clusterSize = 7.4; // two 3.7 cubicles side-by-side sharing inner cross walls
+    const aisleGap = 1.8;    // clear small walkway path between clusters
+    const clusterPitch = clusterSize + aisleGap;
 
-    const floorW = cols * cellGap + 3.2;
-    const floorD = rows * cellGap + 3.2;
+    const floorW = clusterCols * clusterPitch + 1.8;
+    const floorD = clusterRows * clusterPitch + 1.8;
 
-    // Office main grid floor & perimeter curb
-    const subFloor = makeBox(floorW, 0.24, floorD, 0x071d2e);
+    // Office main floor & crisp rectangular border trim (no overhanging grid lines)
+    const subFloor = makeBox(floorW, 0.24, floorD, 0x071a29);
     subFloor.position.set(0, -0.14, 0);
     propsGroup.add(subFloor);
 
-    const gridHelper = new THREE.GridHelper(Math.max(floorW, floorD), Math.round(Math.max(floorW, floorD) / 1.5), 0x1d4b6e, 0x0d2b42);
-    gridHelper.position.y = -0.01;
-    propsGroup.add(gridHelper);
+    const trimMat = new THREE.MeshLambertMaterial({ color: 0x1e4c70 });
+    const borderTop = new THREE.Mesh(new THREE.BoxGeometry(floorW + 0.16, 0.08, 0.14), trimMat);
+    borderTop.position.set(0, -0.02, -floorD / 2);
+    propsGroup.add(borderTop);
+    const borderBot = borderTop.clone();
+    borderBot.position.set(0, -0.02, floorD / 2);
+    propsGroup.add(borderBot);
+    const borderL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, floorD + 0.16), trimMat);
+    borderL.position.set(-floorW / 2, -0.02, 0);
+    propsGroup.add(borderL);
+    const borderR = borderL.clone();
+    borderR.position.set(floorW / 2, -0.02, 0);
+    propsGroup.add(borderR);
 
-    const startX = -((cols - 1) * cellGap) / 2;
-    const startZ = -((rows - 1) * cellGap) / 2;
+    const startClusterX = -((clusterCols - 1) * clusterPitch) / 2;
+    const startClusterZ = -((clusterRows - 1) * clusterPitch) / 2;
 
-    filtered.forEach((worker, idx) => {
-      const col = idx % cols;
-      const row = Math.floor(idx / cols);
-      const gx = startX + col * cellGap;
-      const gz = startZ + row * cellGap;
-      buildCubicle(worker, gx, gz);
+    // Compute exact aisle corridor centerlines around and between every 2x2 cluster
+    aisleGraph.xs = [];
+    aisleGraph.zs = [];
+    for (let c = 0; c <= clusterCols; c++) {
+      aisleGraph.xs.push(startClusterX + (c - 0.5) * clusterPitch);
+    }
+    for (let r = 0; r <= clusterRows; r++) {
+      aisleGraph.zs.push(startClusterZ + (r - 0.5) * clusterPitch);
+    }
+
+    // Subtle inlaid pathway strips along all walkable corridors so cluster paths read clearly
+    const pathMat = new THREE.MeshLambertMaterial({ color: 0x102d44 });
+    aisleGraph.xs.forEach(ax => {
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.02, floorD - 1.2), pathMat);
+      strip.position.set(ax, 0.004, 0);
+      strip.receiveShadow = true;
+      propsGroup.add(strip);
+    });
+    aisleGraph.zs.forEach(az => {
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(floorW - 1.2, 0.02, 0.95), pathMat);
+      strip.position.set(0, 0.005, az);
+      strip.receiveShadow = true;
+      propsGroup.add(strip);
     });
 
-    // Cozy Retro Office Perimeter Props (Corner plants & Water Cooler!)
-    const halfW = floorW / 2 - 0.85;
-    const halfD = floorD / 2 - 0.85;
-    [[-halfW, -halfD], [halfW, halfD], [-halfW, halfD]].forEach(([px, pz], idx) => {
+    // Place cubicles in 4-pod pinwheel clusters (q = 0..3 sharing two inner walls)
+    filtered.forEach((worker, idx) => {
+      const clusterIdx = Math.floor(idx / 4);
+      const quadrantIdx = idx % 4;
+      const cc = clusterIdx % clusterCols;
+      const cr = Math.floor(clusterIdx / clusterCols);
+      const cx = startClusterX + cc * clusterPitch;
+      const cz = startClusterZ + cr * clusterPitch;
+      buildCubicle(worker, cx, cz, quadrantIdx);
+    });
+
+    // Cozy Retro Office Perimeter Props (tucked just outside outer aisle corners so cat paths stay unobstructed)
+    const propHalfW = floorW / 2 - 0.45;
+    const propHalfD = floorD / 2 - 0.45;
+    [[-propHalfW, -propHalfD], [propHalfW, propHalfD], [-propHalfW, propHalfD]].forEach(([px, pz], idx) => {
       const plant = buildPottedPlant(idx);
       plant.position.set(px, 0, pz);
       propsGroup.add(plant);
     });
     const cooler = buildWaterCooler();
-    cooler.position.set(halfW, 0, -halfD);
+    cooler.position.set(propHalfW, 0, -propHalfD);
     propsGroup.add(cooler);
 
-    // Adjust camera distance nicely to frame whole cubicle island + corners
+    // Spawn Mochi the Office Cat on the aisle grid!
+    catVisual = buildOfficeCat();
+    if (!catState.initialized || catState.ix >= aisleGraph.xs.length || catState.iz >= aisleGraph.zs.length) {
+      const midIx = Math.floor(aisleGraph.xs.length / 2);
+      const midIz = Math.floor(aisleGraph.zs.length / 2);
+      catState.ix = midIx;
+      catState.iz = midIz;
+      catState.targetIx = Math.min(aisleGraph.xs.length - 1, midIx + 1);
+      catState.targetIz = midIz;
+      catState.x = aisleGraph.xs[catState.ix];
+      catState.z = aisleGraph.zs[catState.iz];
+      catState.mode = 'walk';
+      catState.initialized = true;
+    }
+    catVisual.root.position.set(catState.x, 0, catState.z);
+    catVisual.root.rotation.y = catState.heading;
+
+    // Adjust camera distance nicely to frame whole cluster grid
     const span = Math.max(floorW, floorD);
-    camState.initialSpanDistance = Math.min(50, Math.max(20, span * 1.25));
+    camState.initialSpanDistance = Math.min(54, Math.max(22, span * 1.24));
     if (!worldGroup.datasetHasFramedOnce) {
       camState.goalDistance = camState.initialSpanDistance;
       camState.distance = camState.initialSpanDistance;
@@ -2531,6 +2786,23 @@
     }
   }
 
+  function triggerCatMeow() {
+    catState.hopTimer = 0.55;
+    catState.meowTimer = 2.6;
+  }
+
+  function focusOnCat() {
+    if (!catVisual) return;
+    catState.mode = 'pause';
+    catState.pauseLeft = 2.6;
+    camState.goalX = catState.x;
+    camState.goalZ = catState.z;
+    camState.goalDistance = 7.2;
+    camState.goalPolar = 0.94;
+    syncZoomSlider();
+    triggerCatMeow();
+  }
+
   function nudgeZoom(delta) {
     camState.goalDistance = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, camState.goalDistance + delta));
     syncZoomSlider();
@@ -2554,7 +2826,11 @@
     const titleEl = document.getElementById('tt-title');
     const subEl = document.getElementById('tt-sub');
 
-    if (hitData.hitType === 'folder' && hitData.task) {
+    if (hitData.hitType === 'cat') {
+      eyebrowEl.textContent = catState.mode === 'walk' ? 'OFFICE CAT · ON PATROL' : 'OFFICE CAT · TAKING A BREAK';
+      titleEl.textContent = 'Mochi (Chief Meow Officer)';
+      subEl.textContent = 'Wandering the cubicle cluster aisles · Click to pet!';
+    } else if (hitData.hitType === 'folder' && hitData.task) {
       const stageTxt = hitData.task.status === 'inprogress' ? 'In Progress' : (hitData.task.status === 'done' ? 'Done' : 'To Do');
       eyebrowEl.textContent = `${hitData.worker.name} · FOLDER (${stageTxt})`;
       titleEl.textContent = hitData.task.title || 'Untitled Task';
@@ -2716,6 +2992,10 @@
         const hits = raycaster.intersectObjects(interactables, false);
         if (hits.length > 0 && hits[0].object && hits[0].object.userData) {
           const ud = hits[0].object.userData;
+          if (ud.hitType === 'cat') {
+            triggerCatMeow();
+            return;
+          }
           if (ud.worker) {
             selectedPerson = ud.worker.name;
             selectedTaskId = (ud.hitType === 'folder' && ud.task) ? ud.task.id : null;
@@ -2765,6 +3045,108 @@
     }, { passive: false });
   }
 
+  function pickNextCatNode() {
+    const xs = aisleGraph.xs;
+    const zs = aisleGraph.zs;
+    if (xs.length === 0 || zs.length === 0) return;
+    const neighbors = [];
+    if (catState.ix > 0) neighbors.push([catState.ix - 1, catState.iz]);
+    if (catState.ix < xs.length - 1) neighbors.push([catState.ix + 1, catState.iz]);
+    if (catState.iz > 0) neighbors.push([catState.ix, catState.iz - 1]);
+    if (catState.iz < zs.length - 1) neighbors.push([catState.ix, catState.iz + 1]);
+    if (neighbors.length === 0) return;
+
+    const nonBacktrack = neighbors.filter(([nx, nz]) => !(nx === catState.prevIx && nz === catState.prevIz));
+    const pool = nonBacktrack.length > 0 ? nonBacktrack : neighbors;
+    const [tx, tz] = pool[Math.floor(Math.random() * pool.length)];
+    catState.prevIx = catState.ix;
+    catState.prevIz = catState.iz;
+    catState.targetIx = tx;
+    catState.targetIz = tz;
+    catState.mode = 'walk';
+  }
+
+  function updateOfficeCat(t, dt) {
+    if (!catVisual || aisleGraph.xs.length === 0 || aisleGraph.zs.length === 0) return;
+    const xs = aisleGraph.xs;
+    const zs = aisleGraph.zs;
+
+    if (catState.hopTimer > 0) catState.hopTimer = Math.max(0, catState.hopTimer - dt);
+    if (catState.meowTimer > 0) catState.meowTimer = Math.max(0, catState.meowTimer - dt);
+
+    if (catState.mode === 'pause') {
+      catState.pauseLeft -= dt;
+      // Cozy sitting/inspecting head & gentle tail sway
+      catVisual.rig.position.y = 0;
+      catVisual.legFL.rotation.x = 0;
+      catVisual.legFR.rotation.x = 0;
+      catVisual.legBL.rotation.x = 0;
+      catVisual.legBR.rotation.x = 0;
+      catVisual.head.rotation.y = Math.sin(t * 2.1) * 0.42;
+      catVisual.head.rotation.x = Math.sin(t * 1.4) * 0.08;
+      catVisual.tailPivot.rotation.z = Math.sin(t * 3.5) * 0.35;
+      catVisual.tailPivot.rotation.x = 0.08;
+
+      if (catState.pauseLeft <= 0) {
+        pickNextCatNode();
+      }
+    } else {
+      const tx = xs[Math.min(xs.length - 1, Math.max(0, catState.targetIx))];
+      const tz = zs[Math.min(zs.length - 1, Math.max(0, catState.targetIz))];
+      const dx = tx - catState.x;
+      const dz = tz - catState.z;
+      const dist = Math.hypot(dx, dz);
+      const step = catState.walkSpeed * dt;
+
+      if (dist <= step + 0.04) {
+        catState.x = tx;
+        catState.z = tz;
+        catState.ix = Math.min(xs.length - 1, Math.max(0, catState.targetIx));
+        catState.iz = Math.min(zs.length - 1, Math.max(0, catState.targetIz));
+        if (Math.random() < 0.42) {
+          catState.mode = 'pause';
+          catState.pauseLeft = 1.6 + Math.random() * 1.8;
+          if (Math.random() < 0.35) catState.meowTimer = Math.max(catState.meowTimer, 1.7);
+        } else {
+          pickNextCatNode();
+        }
+      } else {
+        const vx = (dx / dist) * step;
+        const vz = (dz / dist) * step;
+        catState.x += vx;
+        catState.z += vz;
+        const desiredHeading = Math.atan2(dx, dz);
+        const hDiff = Math.atan2(Math.sin(desiredHeading - catState.heading), Math.cos(desiredHeading - catState.heading));
+        catState.heading += hDiff * Math.min(1, dt * 12);
+      }
+
+      // Jaunty voxel cat trot!
+      const trot = t * 11;
+      const stride = Math.sin(trot) * 0.55;
+      catVisual.legFL.rotation.x = stride;
+      catVisual.legBR.rotation.x = stride;
+      catVisual.legFR.rotation.x = -stride;
+      catVisual.legBL.rotation.x = -stride;
+      catVisual.rig.position.y = Math.abs(Math.cos(trot)) * 0.045;
+      catVisual.head.rotation.y = Math.sin(t * 2.5) * 0.12;
+      catVisual.head.rotation.x = Math.sin(trot * 0.5) * 0.06;
+      catVisual.tailPivot.rotation.z = Math.sin(t * 6.5) * 0.42;
+      catVisual.tailPivot.rotation.x = -0.08 + Math.cos(trot) * 0.1;
+    }
+
+    const hopOffset = catState.hopTimer > 0 ? Math.sin((catState.hopTimer / 0.55) * Math.PI) * 0.48 : 0;
+    catVisual.root.position.set(catState.x, hopOffset, catState.z);
+    catVisual.root.rotation.y = catState.heading;
+
+    if (catState.meowTimer > 0) {
+      catVisual.meowSprite.visible = true;
+      catVisual.meowSprite.position.y = 1.04 + Math.sin(t * 5) * 0.05;
+      catVisual.meowSprite.material.opacity = Math.min(1, catState.meowTimer * 2);
+    } else {
+      catVisual.meowSprite.visible = false;
+    }
+  }
+
   let lastFrameMs = performance.now();
 
   function startAnimLoop() {
@@ -2776,6 +3158,8 @@
       const dt = Math.min(0.15, Math.max(0.001, (now - lastFrameMs) * 0.001));
       lastFrameMs = now;
       const camLerp = 1 - Math.exp(-10 * dt);
+
+      updateOfficeCat(t, dt);
 
       // Frame-rate independent smooth damped camera orbit, pan & zoom
       camState.azimuth += (camState.goalAzimuth - camState.azimuth) * camLerp;
