@@ -1595,6 +1595,14 @@
       color: #ffffff;
     }
 
+    .btn-card-expand.is-open {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      justify-content: center;
+      gap: 0;
+    }
+
     .col-inprogress .btn-card-expand:not(.is-open) {
       background: rgba(56, 189, 248, 0.14);
       border-color: rgba(125, 211, 252, 0.4);
@@ -7177,9 +7185,8 @@
               ${cornerMarkersHtml}
               <div class="card-expand-head">
                 <div class="task-title">${escapeHtml(t.title)}</div>
-                <button type="button" class="btn-card-expand is-open" onclick="toggleTaskExpand('${t.id}')" aria-expanded="true" title="Collapse task">
-                  <span>Collapse</span>
-                  <span>&blacktriangle;</span>
+                <button type="button" class="btn-card-expand is-open" onclick="toggleTaskExpand('${t.id}')" aria-expanded="true" title="Collapse task" aria-label="Collapse task">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
               </div>
 
