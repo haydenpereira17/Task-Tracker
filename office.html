@@ -1687,6 +1687,7 @@
   // Texture caches for crisp pixel-art nameplates, animated CRT screens & Zzz sprites
   const nameplateTextureCache = new Map();
   let carpetTileTexture = null;
+  let pantryTileTexture = null;
   let screenWorkingFrames = [];
   let screenPendingFrames = [];
   let screenQueuedTex = null;
@@ -1695,9 +1696,12 @@
   let meowSpriteTex = null;
   let purrSpriteTex = null;
   let catNapSpriteTex = null;
+  let pantryBubbleTextures = [];
+  let pantrySignTexture = null;
 
   let aisleGraph = { xs: [], zs: [] };
-  const officePlaces = { boss: null, sleepingSpots: [] };
+  const officePlaces = { boss: null, pantry: null, sleepingSpots: [] };
+  let pantryVisitors = [];
   let catVisual = null;
   const catState = {
     ix: 0,
@@ -1831,8 +1835,43 @@
       ctx.fillRect(6, 22, 20, 4);
     });
 
-    // Cute retro pixel speech bubbles for Mochi (MEOW / PURR / NAP Zzz)
-    const makeCatBubbleTex = (borderHex, badgeHex, label, drawHeart = false) =>
+    // Warm Retro Checkerboard Tile Texture for the Office Pantry
+    pantryTileTexture = makePixelCanvasTexture(64, 64, (ctx) => {
+      ctx.fillStyle = '#33241d';
+      ctx.fillRect(0, 0, 64, 64);
+      ctx.fillStyle = '#4a3529';
+      ctx.fillRect(0, 0, 32, 32);
+      ctx.fillRect(32, 32, 32, 32);
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.18)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(1, 1, 62, 62);
+    });
+    pantryTileTexture.wrapS = THREE.RepeatWrapping;
+    pantryTileTexture.wrapT = THREE.RepeatWrapping;
+    pantryTileTexture.repeat.set(4, 4);
+
+    pantrySignTexture = makePixelCanvasTexture(156, 34, (ctx, w, h) => {
+      ctx.fillStyle = '#1b140d';
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = '#34d399';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(2, 2, w - 4, h - 4);
+      // Tiny pixel coffee mug icon
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(8, 12, 10, 12);
+      ctx.fillStyle = '#1b140d';
+      ctx.fillRect(10, 14, 6, 3);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(10, 8, 2, 3);
+      ctx.fillRect(14, 7, 2, 4);
+      ctx.fillStyle = '#fef3c7';
+      ctx.font = 'bold 13px "JetBrains Mono", monospace';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('PANTRY · CAFE', 24, 18);
+    });
+
+    // Shared pixel speech bubble helper (used by Mochi & laughing Pantry teammates)
+    const makePixelBubbleTex = (borderHex, badgeKind, badgeHex, label, textHex = '#ffedd5') =>
       makePixelCanvasTexture(96, 36, (ctx, w, h) => {
         ctx.fillStyle = '#071b2c';
         ctx.fillRect(2, 2, w - 4, h - 8);
@@ -1841,28 +1880,47 @@
         ctx.strokeRect(3, 3, w - 6, h - 10);
         ctx.fillStyle = '#071b2c';
         ctx.fillRect(42, h - 8, 12, 6);
-        if (drawHeart) {
+        if (badgeKind === 'heart') {
           ctx.fillStyle = badgeHex;
           ctx.fillRect(11, 11, 4, 4);
           ctx.fillRect(17, 11, 4, 4);
           ctx.fillRect(10, 14, 12, 5);
           ctx.fillRect(13, 19, 6, 3);
-        } else {
-          // Cute pixel crescent moon for catnap bubble
+        } else if (badgeKind === 'moon') {
           ctx.fillStyle = badgeHex;
           ctx.fillRect(12, 10, 7, 12);
           ctx.fillStyle = '#071b2c';
           ctx.fillRect(16, 12, 5, 8);
+        } else if (badgeKind === 'laugh') {
+          ctx.fillStyle = badgeHex;
+          ctx.fillRect(10, 10, 12, 11);
+          ctx.fillStyle = '#071b2c';
+          ctx.fillRect(12, 12, 2, 2);
+          ctx.fillRect(18, 12, 2, 2);
+          ctx.fillRect(12, 16, 8, 3);
+        } else {
+          // Pixel coffee cup
+          ctx.fillStyle = badgeHex;
+          ctx.fillRect(11, 13, 10, 9);
+          ctx.fillStyle = '#fef3c7';
+          ctx.fillRect(13, 10, 2, 2);
+          ctx.fillRect(17, 9, 2, 3);
         }
-        ctx.fillStyle = '#ffedd5';
+        ctx.fillStyle = textHex;
         ctx.font = 'bold 13px "JetBrains Mono", monospace';
         ctx.textBaseline = 'middle';
         ctx.fillText(label, 27, 16);
       });
 
-    meowSpriteTex = makeCatBubbleTex('#fb923c', '#f43f5e', 'MEOW!', true);
-    purrSpriteTex = makeCatBubbleTex('#fbbf24', '#fb923c', 'PURR~', true);
-    catNapSpriteTex = makeCatBubbleTex('#818cf8', '#fde68a', 'Zzz..', false);
+    meowSpriteTex = makePixelBubbleTex('#fb923c', 'heart', '#f43f5e', 'MEOW!');
+    purrSpriteTex = makePixelBubbleTex('#fbbf24', 'heart', '#fb923c', 'PURR~');
+    catNapSpriteTex = makePixelBubbleTex('#818cf8', 'moon', '#fde68a', 'Zzz..');
+    pantryBubbleTextures = [
+      makePixelBubbleTex('#38bdf8', 'laugh', '#fbbf24', 'HAHA!', '#e0f2fe'),
+      makePixelBubbleTex('#f43f5e', 'laugh', '#34d399', 'LOL!!', '#ffe4e6'),
+      makePixelBubbleTex('#fbbf24', 'mug', '#f59e0b', 'CHAI?', '#fef3c7'),
+      makePixelBubbleTex('#34d399', 'mug', '#fb7185', 'SNACK!', '#d1fae5')
+    ];
   }
 
   function getNameplateTexture(name, isWorking, isBoss = false) {
@@ -2124,14 +2182,134 @@
     return { root, rig, head, legFL, legFR, legBL, legBR, tailPivot, meowSprite };
   }
 
-  function addDeskWorkstationContent(parentGroup, worker, opts = {}) {
+  function getWorkerAppearance(worker, isBoss = false) {
     const nameHash = hashNameNum(worker.name);
+    return {
+      nameHash,
+      shirtColor: isBoss ? 0xb9162e : SHIRT_COLORS[nameHash % SHIRT_COLORS.length],
+      skinColor: SKIN_COLORS[(nameHash >> 3) % SKIN_COLORS.length],
+      hairColor: HAIR_COLORS[(nameHash >> 5) % HAIR_COLORS.length],
+      hasGlasses: isBoss || (nameHash % 3 === 0),
+      hasHeadphones: !isBoss && (nameHash % 4 === 1)
+    };
+  }
+
+  function buildWorkerCharacterParts(worker, opts = {}) {
     const isBoss = Boolean(opts.isBoss);
-    const shirtColor = isBoss ? 0xb9162e : SHIRT_COLORS[nameHash % SHIRT_COLORS.length];
-    const skinColor = SKIN_COLORS[(nameHash >> 3) % SKIN_COLORS.length];
-    const hairColor = HAIR_COLORS[(nameHash >> 5) % HAIR_COLORS.length];
-    const hasGlasses = isBoss || (nameHash % 3 === 0);
-    const hasHeadphones = !isBoss && (nameHash % 4 === 1);
+    const seated = opts.seated !== false;
+    const hitType = opts.hitType || 'cubicle';
+    const { shirtColor, skinColor, hairColor, hasGlasses, hasHeadphones } = getWorkerAppearance(worker, isBoss);
+
+    const charRoot = new THREE.Group();
+    let legL;
+    let legR;
+    if (seated) {
+      charRoot.position.set(-0.22, 0.55, -0.1);
+      legL = makeBox(0.18, 0.18, 0.42, 0x1e293b);
+      legL.position.set(-0.14, 0.02, -0.18);
+      legR = makeBox(0.18, 0.18, 0.42, 0x1e293b);
+      legR.position.set(0.14, 0.02, -0.18);
+    } else {
+      charRoot.rotation.y = Math.PI; // Flip inner -Z rig 180° so standing character faces +Z in world heading
+      legL = new THREE.Group();
+      legL.position.set(-0.13, 0.42, 0);
+      const legLMesh = makeBox(0.18, 0.42, 0.18, 0x1e293b);
+      legLMesh.position.y = -0.21;
+      legL.add(legLMesh);
+      legR = new THREE.Group();
+      legR.position.set(0.13, 0.42, 0);
+      const legRMesh = makeBox(0.18, 0.42, 0.18, 0x1e293b);
+      legRMesh.position.y = -0.21;
+      legR.add(legRMesh);
+    }
+    charRoot.add(legL);
+    charRoot.add(legR);
+
+    const upperBody = new THREE.Group();
+    upperBody.position.y = seated ? 0.1 : 0.42;
+    charRoot.add(upperBody);
+
+    const torso = makeBox(0.52, 0.5, 0.32, shirtColor);
+    torso.position.y = 0.26;
+    upperBody.add(torso);
+
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 0.72, 0);
+    upperBody.add(headGroup);
+
+    const headBox = makeBox(0.46, 0.44, 0.44, skinColor);
+    headGroup.add(headBox);
+
+    const hairTop = makeBox(0.5, 0.14, 0.48, hairColor);
+    hairTop.position.set(0, 0.22, 0);
+    headGroup.add(hairTop);
+    const hairBack = makeBox(0.48, 0.34, 0.1, hairColor);
+    hairBack.position.set(0, 0.06, 0.2);
+    headGroup.add(hairBack);
+
+    const eyeL = makeBox(0.07, 0.07, 0.04, 0x0f172a);
+    eyeL.position.set(-0.1, 0.02, -0.22);
+    headGroup.add(eyeL);
+    const eyeR = makeBox(0.07, 0.07, 0.04, 0x0f172a);
+    eyeR.position.set(0.1, 0.02, -0.22);
+    headGroup.add(eyeR);
+
+    if (hasGlasses) {
+      const glassBar = makeBox(0.36, 0.05, 0.05, 0x0f172a);
+      glassBar.position.set(0, 0.04, -0.235);
+      headGroup.add(glassBar);
+    }
+    if (hasHeadphones) {
+      const hpBand = makeBox(0.54, 0.08, 0.12, 0x38bdf8);
+      hpBand.position.set(0, 0.3, 0);
+      headGroup.add(hpBand);
+      const hpL = makeBox(0.08, 0.18, 0.18, 0x38bdf8);
+      hpL.position.set(-0.27, 0.02, 0);
+      headGroup.add(hpL);
+      const hpR = makeBox(0.08, 0.18, 0.18, 0x38bdf8);
+      hpR.position.set(0.27, 0.02, 0);
+      headGroup.add(hpR);
+    }
+
+    const armLGroup = new THREE.Group();
+    armLGroup.position.set(-0.34, 0.44, -0.04);
+    const armLMesh = makeBox(0.15, 0.15, 0.42, shirtColor);
+    armLMesh.position.set(0, -0.04, -0.18);
+    const handL = makeBox(0.13, 0.12, 0.12, skinColor);
+    handL.position.set(0, -0.04, -0.4);
+    armLGroup.add(armLMesh);
+    armLGroup.add(handL);
+    upperBody.add(armLGroup);
+
+    const armRGroup = new THREE.Group();
+    armRGroup.position.set(0.34, 0.44, -0.04);
+    const armRMesh = makeBox(0.15, 0.15, 0.42, shirtColor);
+    armRMesh.position.set(0, -0.04, -0.18);
+    const handR = makeBox(0.13, 0.12, 0.12, skinColor);
+    handR.position.set(0, -0.04, -0.4);
+    armRGroup.add(armRMesh);
+    armRGroup.add(handR);
+    upperBody.add(armRGroup);
+
+    if (!seated) {
+      const breakMug = makeBox(0.13, 0.14, 0.13, opts.mugColor || 0xfbbf24);
+      breakMug.position.set(0, -0.01, -0.5);
+      armRGroup.add(breakMug);
+    }
+
+    charRoot.traverse(ch => {
+      if (ch.isMesh) {
+        ch.userData = { hitType, worker };
+        interactables.push(ch);
+      }
+    });
+
+    return { charRoot, legL, legR, upperBody, headGroup, armLGroup, armRGroup };
+  }
+
+  function addDeskWorkstationContent(parentGroup, worker, opts = {}) {
+    const isBoss = Boolean(opts.isBoss);
+    const { nameHash } = getWorkerAppearance(worker, isBoss);
     const isWorking = worker.inprogress.length > 0 && !worker.inprogress.every(t => Boolean(t.pendingFeedback));
     const hasPendingOnly = worker.inprogress.length > 0 && worker.inprogress.every(t => Boolean(t.pendingFeedback));
     const isSleeping = (worker.openCount === 0);
@@ -2287,88 +2465,10 @@
     }
     parentGroup.add(chairGroup);
 
-    // Blocky Person Character
-    const charRoot = new THREE.Group();
-    charRoot.position.set(-0.22, 0.55, -0.1);
-
-    const legL = makeBox(0.18, 0.18, 0.42, 0x1e293b);
-    legL.position.set(-0.14, 0.02, -0.18);
-    charRoot.add(legL);
-    const legR = makeBox(0.18, 0.18, 0.42, 0x1e293b);
-    legR.position.set(0.14, 0.02, -0.18);
-    charRoot.add(legR);
-
-    const upperBody = new THREE.Group();
-    upperBody.position.y = 0.1;
-    charRoot.add(upperBody);
-
-    const torso = makeBox(0.52, 0.5, 0.32, shirtColor);
-    torso.position.y = 0.26;
-    upperBody.add(torso);
-
-    const headGroup = new THREE.Group();
-    headGroup.position.set(0, 0.72, 0);
-    upperBody.add(headGroup);
-
-    const headBox = makeBox(0.46, 0.44, 0.44, skinColor);
-    headGroup.add(headBox);
-
-    const hairTop = makeBox(0.5, 0.14, 0.48, hairColor);
-    hairTop.position.set(0, 0.22, 0);
-    headGroup.add(hairTop);
-    const hairBack = makeBox(0.48, 0.34, 0.1, hairColor);
-    hairBack.position.set(0, 0.06, 0.2);
-    headGroup.add(hairBack);
-
-    const eyeL = makeBox(0.07, 0.07, 0.04, 0x0f172a);
-    eyeL.position.set(-0.1, 0.02, -0.22);
-    headGroup.add(eyeL);
-    const eyeR = makeBox(0.07, 0.07, 0.04, 0x0f172a);
-    eyeR.position.set(0.1, 0.02, -0.22);
-    headGroup.add(eyeR);
-
-    if (hasGlasses) {
-      const glassBar = makeBox(0.36, 0.05, 0.05, 0x0f172a);
-      glassBar.position.set(0, 0.04, -0.235);
-      headGroup.add(glassBar);
-    }
-    if (hasHeadphones) {
-      const hpBand = makeBox(0.54, 0.08, 0.12, 0x38bdf8);
-      hpBand.position.set(0, 0.3, 0);
-      headGroup.add(hpBand);
-      const hpL = makeBox(0.08, 0.18, 0.18, 0x38bdf8);
-      hpL.position.set(-0.27, 0.02, 0);
-      headGroup.add(hpL);
-      const hpR = makeBox(0.08, 0.18, 0.18, 0x38bdf8);
-      hpR.position.set(0.27, 0.02, 0);
-      headGroup.add(hpR);
-    }
-
-    const armLGroup = new THREE.Group();
-    armLGroup.position.set(-0.34, 0.44, -0.04);
-    const armLMesh = makeBox(0.15, 0.15, 0.42, shirtColor);
-    armLMesh.position.set(0, -0.04, -0.18);
-    const handL = makeBox(0.13, 0.12, 0.12, skinColor);
-    handL.position.set(0, -0.04, -0.4);
-    armLGroup.add(armLMesh);
-    armLGroup.add(handL);
-    upperBody.add(armLGroup);
-
-    const armRGroup = new THREE.Group();
-    armRGroup.position.set(0.34, 0.44, -0.04);
-    const armRMesh = makeBox(0.15, 0.15, 0.42, shirtColor);
-    armRMesh.position.set(0, -0.04, -0.18);
-    const handR = makeBox(0.13, 0.12, 0.12, skinColor);
-    handR.position.set(0, -0.04, -0.4);
-    armRGroup.add(armRMesh);
-    armRGroup.add(handR);
-    upperBody.add(armRGroup);
-
-    charRoot.traverse(ch => {
-      if (ch.isMesh) {
-        ch.userData = { hitType: 'cubicle', worker };
-        interactables.push(ch);
-      }
+    const { charRoot, upperBody, headGroup, armLGroup, armRGroup } = buildWorkerCharacterParts(worker, {
+      isBoss,
+      seated: true,
+      hitType: 'cubicle'
     });
     parentGroup.add(charRoot);
 
@@ -2402,6 +2502,7 @@
       hasPendingOnly,
       isSleeping,
       phaseOffset: (nameHash % 100) * 0.1,
+      charRoot,
       upperBody,
       headGroup,
       armLGroup,
@@ -2619,6 +2720,209 @@
     };
   }
 
+  function buildPantry(pantryX, pantryZ) {
+    // Open-top Retro Office Pantry & Snack Cafe (7.4 x 7.4) with wide doorway onto main walkway
+    const pantry = new THREE.Group();
+    pantry.position.set(pantryX, 0, pantryZ);
+
+    const tileMat = new THREE.MeshLambertMaterial({ map: pantryTileTexture });
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(7.4, 0.12, 7.4), tileMat);
+    floor.position.y = 0.06;
+    floor.receiveShadow = true;
+    floor.userData = { hitType: 'pantry' };
+    pantry.add(floor);
+    interactables.push(floor);
+
+    const rim = makeBox(7.52, 0.06, 7.52, 0xb45309);
+    rim.position.y = 0.025;
+    pantry.add(rim);
+
+    // Back solid cafe wall (-Z) & open-view half-glass perimeter with 2.4-unit left archway doorway
+    const wallHex = 0x164e63;
+    const trimHex = 0x34d399;
+    const glassMat = new THREE.MeshLambertMaterial({
+      color: 0xa7f3d0,
+      transparent: true,
+      opacity: 0.18,
+      depthWrite: false
+    });
+    const addCafeGlassWall = (w, h, d, x, z) => {
+      const base = makeBox(w, 0.28, d, wallHex);
+      base.position.set(x, 0.26, z);
+      pantry.add(base);
+      const glass = new THREE.Mesh(new THREE.BoxGeometry(w * 0.98, h, d * 0.55), glassMat);
+      glass.position.set(x, 0.4 + h / 2, z);
+      pantry.add(glass);
+      const rail = makeBox(w, 0.06, d, trimHex);
+      rail.position.set(x, 0.4 + h + 0.03, z);
+      pantry.add(rail);
+    };
+
+    const backWall = makeBox(7.4, 1.56, 0.18, wallHex);
+    backWall.position.set(0, 0.9, -3.61);
+    backWall.userData = { hitType: 'pantry' };
+    pantry.add(backWall);
+    interactables.push(backWall);
+    const backTrim = makeBox(7.44, 0.08, 0.2, trimHex);
+    backTrim.position.set(0, 1.7, -3.61);
+    pantry.add(backTrim);
+
+    // Left Aisle Wall (-X) leaving 2.4-unit open doorway centered at z = -0.05
+    addCafeGlassWall(0.16, 1.05, 2.35, -3.62, -2.42);
+    addCafeGlassWall(0.16, 1.05, 2.45, -3.62, 2.38);
+    const postTop = makeBox(0.2, 1.56, 0.2, 0xfbbf24);
+    postTop.position.set(-3.62, 0.9, -1.25);
+    pantry.add(postTop);
+    const postBot = makeBox(0.2, 1.56, 0.2, 0xfbbf24);
+    postBot.position.set(-3.62, 0.9, 1.15);
+    pantry.add(postBot);
+
+    // Front (+Z) & Right (+X) Low Glass Rails for Full Isometric View
+    addCafeGlassWall(7.32, 0.72, 0.14, 0, 3.63);
+    addCafeGlassWall(0.14, 0.72, 7.26, 3.63, 0);
+
+    // Cafe Doorway Sign Sprite
+    if (pantrySignTexture) {
+      const signSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: pantrySignTexture, transparent: true }));
+      signSprite.position.set(-3.62, 2.02, -0.05);
+      signSprite.scale.set(1.68, 0.38, 1);
+      signSprite.userData = { hitType: 'pantry' };
+      pantry.add(signSprite);
+      interactables.push(signSprite);
+    }
+
+    // Back Wall Cafe Chalkboard Menu
+    const menuBoard = makeBox(2.2, 0.86, 0.06, 0x0f172a);
+    menuBoard.position.set(-0.95, 1.24, -3.48);
+    pantry.add(menuBoard);
+    [[0xfbbf24, -1.55, 1.38, 0.7], [0x34d399, -0.85, 1.22, 0.85], [0xf472b6, -0.4, 1.34, 0.5]].forEach(([c, mx, my, mw]) => {
+      const line = makeBox(mw, 0.1, 0.04, c);
+      line.position.set(mx, my, -3.43);
+      pantry.add(line);
+    });
+
+    // Espresso & Snack Bar Counter (Back-Left)
+    const counterBase = makeBox(3.15, 0.76, 0.96, 0x5c321e);
+    counterBase.position.set(-1.15, 0.5, -2.75);
+    counterBase.userData = { hitType: 'pantry' };
+    pantry.add(counterBase);
+    interactables.push(counterBase);
+    const counterTop = makeBox(3.25, 0.08, 1.04, 0xfef3c7);
+    counterTop.position.set(-1.15, 0.92, -2.75);
+    pantry.add(counterTop);
+
+    // Retro Red Espresso Machine w/ Steam Puffs!
+    const espressoBody = makeBox(0.68, 0.58, 0.52, 0xe11d48);
+    espressoBody.position.set(-2.05, 1.25, -2.85);
+    pantry.add(espressoBody);
+    const espressoChrome = makeBox(0.56, 0.24, 0.16, 0xe2e8f0);
+    espressoChrome.position.set(-2.05, 1.28, -2.56);
+    pantry.add(espressoChrome);
+    const pSteam1 = makeBox(0.11, 0.11, 0.11, 0xf8fafc, { emissive: 0xffffff, emissiveIntensity: 0.4 });
+    pSteam1.position.set(-2.05, 1.62, -2.8);
+    pantry.add(pSteam1);
+    const pSteam2 = makeBox(0.08, 0.08, 0.08, 0xbae6fd, { emissive: 0xffffff, emissiveIntensity: 0.3 });
+    pSteam2.position.set(-1.95, 1.76, -2.76);
+    pantry.add(pSteam2);
+    envVisuals.push({ kind: 'pantry_steam', s1: pSteam1, s2: pSteam2 });
+
+    // Donut & Snack Tray on Counter
+    const snackTray = makeBox(0.95, 0.05, 0.56, 0x94a3b8);
+    snackTray.position.set(-0.85, 0.99, -2.68);
+    pantry.add(snackTray);
+    [[0xf472b6, -1.08, -2.68], [0xfbbf24, -0.82, -2.72], [0x34d399, -0.58, -2.64]].forEach(([dc, dx, dz]) => {
+      const snack = makeBox(0.2, 0.12, 0.2, dc);
+      snack.position.set(dx, 1.08, dz);
+      pantry.add(snack);
+    });
+    // Stacked mugs
+    [0, 1].forEach(mi => {
+      const mug = makeBox(0.16, 0.16, 0.16, mi === 0 ? 0x38bdf8 : 0xffffff);
+      mug.position.set(0.05 + mi * 0.22, 1.04, -2.72);
+      pantry.add(mug);
+    });
+
+    // Microwave Counter & Retro Mint Fridge (Back-Right)
+    const microCounter = makeBox(1.25, 0.76, 0.92, 0x475569);
+    microCounter.position.set(1.25, 0.5, -2.78);
+    pantry.add(microCounter);
+    const microwave = makeBox(0.76, 0.42, 0.52, 0xe2e8f0);
+    microwave.position.set(1.25, 1.09, -2.8);
+    pantry.add(microwave);
+    const microWin = makeBox(0.42, 0.26, 0.04, 0x0f172a, { emissive: 0xf59e0b, emissiveIntensity: 0.55 });
+    microWin.position.set(1.16, 1.09, -2.53);
+    pantry.add(microWin);
+
+    const fridge = makeBox(1.12, 1.82, 0.98, 0x2dd4bf);
+    fridge.position.set(2.65, 1.03, -2.75);
+    fridge.userData = { hitType: 'pantry' };
+    pantry.add(fridge);
+    interactables.push(fridge);
+    const fHandle1 = makeBox(0.06, 0.42, 0.06, 0xf8fafc);
+    fHandle1.position.set(2.26, 1.38, -2.23);
+    pantry.add(fHandle1);
+    const fHandle2 = makeBox(0.06, 0.34, 0.06, 0xf8fafc);
+    fHandle2.position.set(2.26, 0.72, -2.23);
+    pantry.add(fHandle2);
+    const magnet = makeBox(0.16, 0.16, 0.04, 0xf43f5e);
+    magnet.position.set(2.75, 1.48, -2.24);
+    pantry.add(magnet);
+
+    // Water Cooler & Snack Lounge Bench
+    const pantryCooler = buildWaterCooler();
+    pantryCooler.position.set(2.98, 0.12, -1.25);
+    pantry.add(pantryCooler);
+
+    const benchSeat = makeBox(2.2, 0.34, 0.85, 0x0f766e);
+    benchSeat.position.set(1.85, 0.29, 2.82);
+    pantry.add(benchSeat);
+    const benchBack = makeBox(2.2, 0.44, 0.18, 0x115e59);
+    benchBack.position.set(1.85, 0.62, 3.16);
+    pantry.add(benchBack);
+
+    // Central High-Top Bistro Table for Standing Coffee & Laugh Huddle
+    const pedBase = makeBox(0.55, 0.08, 0.55, 0x334155);
+    pedBase.position.set(0.15, 0.16, 0.35);
+    pantry.add(pedBase);
+    const pedStem = makeBox(0.16, 0.78, 0.16, 0x475569);
+    pedStem.position.set(0.15, 0.56, 0.35);
+    pantry.add(pedStem);
+    const bistroTop = makeBox(1.06, 0.09, 1.06, 0xd97706);
+    bistroTop.position.set(0.15, 0.96, 0.35);
+    bistroTop.userData = { hitType: 'pantry' };
+    pantry.add(bistroTop);
+    interactables.push(bistroTop);
+    const cookiePlate = makeBox(0.42, 0.04, 0.42, 0xffffff);
+    cookiePlate.position.set(0.05, 1.02, 0.32);
+    pantry.add(cookiePlate);
+    const cookie1 = makeBox(0.14, 0.08, 0.14, 0xfbbf24);
+    cookie1.position.set(0.02, 1.07, 0.28);
+    pantry.add(cookie1);
+    const cookie2 = makeBox(0.12, 0.08, 0.12, 0xf43f5e);
+    cookie2.position.set(0.14, 1.07, 0.4);
+    pantry.add(cookie2);
+    const tableMug = makeBox(0.14, 0.16, 0.14, 0x38bdf8);
+    tableMug.position.set(0.45, 1.08, 0.52);
+    pantry.add(tableMug);
+
+    worldGroup.add(pantry);
+
+    officePlaces.pantry = {
+      centerX: pantryX,
+      centerZ: pantryZ,
+      doorEntrance: { x: pantryX - 4.6, z: pantryZ - 0.05 },
+      doorThreshold: { x: pantryX - 3.62, z: pantryZ - 0.05, y: 0.12 },
+      foyer: { x: pantryX - 2.3, z: pantryZ - 0.05, y: 0.12 },
+      tableLook: { x: pantryX + 0.15, z: pantryZ + 0.35 },
+      slots: [
+        { x: pantryX - 1.35, z: pantryZ - 0.55, y: 0.12, lookX: pantryX + 0.15, lookZ: pantryZ + 0.35 },
+        { x: pantryX + 1.65, z: pantryZ + 0.15, y: 0.12, lookX: pantryX + 0.15, lookZ: pantryZ + 0.35 },
+        { x: pantryX + 0.25, z: pantryZ + 1.95, y: 0.12, lookX: pantryX + 0.15, lookZ: pantryZ + 0.35 },
+        { x: pantryX - 1.25, z: pantryZ + 1.55, y: 0.12, lookX: pantryX + 0.15, lookZ: pantryZ + 0.35 }
+      ]
+    };
+  }
+
   function addWorkerCharacterRigBaseData(worker) {
     const isWorking = worker.inprogress.length > 0 && !worker.inprogress.every(t => Boolean(t.pendingFeedback));
     return { isWorking };
@@ -2733,6 +3037,9 @@
     beacon.position.set(1.52, 1.56, 1.52);
     group.add(beacon);
 
+    const entryWorld = localToClusterWorld(clusterX, clusterZ, rotY, 0.70, 2.75);
+    const deskStandWorld = localToClusterWorld(clusterX, clusterZ, rotY, 0.70, 0.10);
+
     cubicleVisuals.push({
       worker,
       gx: worldX,
@@ -2741,7 +3048,9 @@
       isWorking: rig.isWorking,
       hasPendingOnly: rig.hasPendingOnly,
       isSleeping: rig.isSleeping,
+      atPantry: false,
       phaseOffset: rig.phaseOffset,
+      charRoot: rig.charRoot,
       upperBody: rig.upperBody,
       headGroup: rig.headGroup,
       armLGroup: rig.armLGroup,
@@ -2752,19 +3061,19 @@
       scrMat: rig.scrMat,
       beacon,
       ring,
-      zzzSprites: rig.zzzSprites
+      zzzSprites: rig.zzzSprites,
+      entryWorld,
+      deskStandWorld
     });
 
     if (rig.isSleeping) {
-      const entryWorld = localToClusterWorld(clusterX, clusterZ, rotY, 0.70, 2.75);
-      const napWorld = localToClusterWorld(clusterX, clusterZ, rotY, 0.70, 0.10);
       const lookWorld = localToClusterWorld(clusterX, clusterZ, rotY, -0.22, -0.10);
       officePlaces.sleepingSpots.push({
         name: worker.name,
         entryX: entryWorld.x,
         entryZ: entryWorld.z,
-        napX: napWorld.x,
-        napZ: napWorld.z,
+        napX: deskStandWorld.x,
+        napZ: deskStandWorld.z,
         y: 0.12,
         lookX: lookWorld.x,
         lookZ: lookWorld.z
@@ -2857,7 +3166,9 @@
     cubicleVisuals = [];
     envVisuals = [];
     officePlaces.boss = null;
+    officePlaces.pantry = null;
     officePlaces.sleepingSpots = [];
+    pantryVisitors = [];
     hoveredHit = null;
     hideTooltip();
 
@@ -2867,36 +3178,42 @@
       return;
     }
 
-    // Separate Karishma (Boss) into her own 4-cubicle-sized Executive Cabin on the right side wing!
+    // Separate Karishma (Boss) into Row 0 Right Wing and place the Office Pantry below on Row 1 Right Wing
     const bossWorker = filtered.find(isBossWorker) || null;
     const clusterWorkers = filtered.filter(w => !isBossWorker(w));
+    const showPantry = count > 0;
+    const rightWingRows = (bossWorker ? 1 : 0) + (showPantry ? 1 : 0);
 
     const clusterSize = 7.4; // two 3.7 cubicles side-by-side sharing inner cross walls
-    const aisleGap = 1.8;    // clear small walkway path between clusters & cabin
+    const aisleGap = 1.8;    // clear small walkway path between clusters, Boss Cabin & Pantry
     const clusterPitch = clusterSize + aisleGap;
 
     const numClusters = clusterWorkers.length > 0 ? Math.ceil(clusterWorkers.length / 4) : 0;
     const clusterCols = numClusters <= 1 ? numClusters : (numClusters <= 4 ? 2 : (numClusters <= 9 ? 3 : 4));
-    const clusterRows = numClusters > 0 ? Math.ceil(numClusters / clusterCols) : 1;
+    const clusterRows = numClusters > 0 ? Math.ceil(numClusters / clusterCols) : 0;
+    const effectiveRows = Math.max(clusterRows, rightWingRows, 1);
 
     const startClusterX = clusterCols > 0 ? -((clusterCols - 1) * clusterPitch) / 2 : 0;
-    const startClusterZ = clusterCols > 0 ? -((clusterRows - 1) * clusterPitch) / 2 : 0;
+    const startWingZ = -((effectiveRows - 1) * clusterPitch) / 2;
+    const startClusterZ = startWingZ;
 
-    // Place Karishma's 7.4x7.4 Boss Cabin neatly on the right side across a 1.8 aisle
+    // Right Wing sits across a clear 1.8 walkway next to cubicle clusters
     const hasClusters = clusterCols > 0;
-    const cabinX = hasClusters ? (startClusterX + clusterCols * clusterPitch) : 0;
-    const cabinZ = 0;
+    const hasRightWing = rightWingRows > 0;
+    const wingX = hasClusters ? (startClusterX + clusterCols * clusterPitch) : 0;
+    const cabinZ = startWingZ;
+    const pantryZ = startWingZ + (bossWorker ? clusterPitch : 0);
 
     const leftEdgeX = hasClusters
       ? (startClusterX - clusterSize / 2 - aisleGap)
-      : (cabinX - clusterSize / 2 - aisleGap);
-    const rightEdgeX = bossWorker
-      ? (cabinX + clusterSize / 2 + aisleGap)
+      : (wingX - clusterSize / 2 - aisleGap);
+    const rightEdgeX = hasRightWing
+      ? (wingX + clusterSize / 2 + aisleGap)
       : (startClusterX + (clusterCols - 1) * clusterPitch + clusterSize / 2 + aisleGap);
 
     const floorCenterX = (leftEdgeX + rightEdgeX) / 2;
     const floorW = rightEdgeX - leftEdgeX;
-    const floorD = Math.max(clusterRows, 1) * clusterPitch + 1.8;
+    const floorD = effectiveRows * clusterPitch + 1.8;
 
     // Office main floor & crisp rectangular border trim
     const subFloor = makeBox(floorW, 0.24, floorD, 0x071a29);
@@ -2917,16 +3234,16 @@
     borderR.position.set(rightEdgeX, -0.02, 0);
     propsGroup.add(borderR);
 
-    // Compute exact aisle corridor centerlines including outer edge & path between clusters and Boss Cabin
+    // Compute exact aisle corridor centerlines including outer edge & path between clusters, Boss Cabin & Pantry
     aisleGraph.xs = [];
     aisleGraph.zs = [];
-    const totalXCols = clusterCols + (bossWorker ? 1 : 0);
-    const baseStartX = hasClusters ? startClusterX : cabinX;
+    const totalXCols = clusterCols + (hasRightWing ? 1 : 0);
+    const baseStartX = hasClusters ? startClusterX : wingX;
     for (let c = 0; c <= totalXCols; c++) {
       aisleGraph.xs.push(baseStartX + (c - 0.5) * clusterPitch);
     }
-    for (let r = 0; r <= Math.max(1, clusterRows); r++) {
-      aisleGraph.zs.push(startClusterZ + (r - 0.5) * clusterPitch);
+    for (let r = 0; r <= effectiveRows; r++) {
+      aisleGraph.zs.push(startWingZ + (r - 0.5) * clusterPitch);
     }
 
     // Subtle inlaid pathway strips along all walkable corridors
@@ -2955,9 +3272,15 @@
       buildCubicle(worker, cx, cz, quadrantIdx);
     });
 
-    // Place Karishma's 4-Cubicle-Sized Open-Top Boss Cabin on the right side!
+    // Place Karishma's 4-Cubicle-Sized Open-Top Boss Cabin on Row 0 Right Wing
     if (bossWorker) {
-      buildBossCabin(bossWorker, cabinX, cabinZ);
+      buildBossCabin(bossWorker, wingX, cabinZ);
+    }
+
+    // Place the Open-Top Office Pantry on Row 1 Right Wing & invite sleeping workers over!
+    if (showPantry) {
+      buildPantry(wingX, pantryZ);
+      initPantryVisitors();
     }
 
     // Cozy Retro Office Perimeter Props
@@ -3202,6 +3525,17 @@
         titleEl.textContent = 'Mochi (Chief Meow Officer)';
         subEl.textContent = 'Wandering the cubicle cluster aisles · Click to pet!';
       }
+    } else if (hitData.hitType === 'pantry') {
+      const nPantry = pantryVisitors.length;
+      eyebrowEl.textContent = 'PANTRY · SNACKS & ESPRESSO';
+      titleEl.textContent = 'Office Breakroom Cafe';
+      subEl.textContent = nPantry > 0
+        ? `${nPantry} sleepy teammate${nPantry === 1 ? '' : 's'} sneaking snacks & sharing a laugh!`
+        : 'Espresso machine, fridge & donuts — open for breaks';
+    } else if (hitData.hitType === 'pantry_worker' && hitData.worker) {
+      eyebrowEl.textContent = 'COFFEE BREAK · AT PANTRY';
+      titleEl.textContent = hitData.worker.name;
+      subEl.textContent = 'Sharing a laugh over snacks instead of snoozing at desk · Click to giggle!';
     } else if (hitData.hitType === 'folder' && hitData.task) {
       const stageTxt = hitData.task.status === 'inprogress' ? 'In Progress' : (hitData.task.status === 'done' ? 'Done' : 'To Do');
       eyebrowEl.textContent = `${hitData.worker.name} · FOLDER (${stageTxt})`;
@@ -3214,13 +3548,18 @@
     } else if (hitData.worker) {
       const w = hitData.worker;
       const bossTag = isBossWorker(w) ? 'BOSS CABIN · ' : '';
-      eyebrowEl.textContent = bossTag + (w.openCount === 0
-        ? 'SLEEPING · ZZZ'
-        : (w.inprogress.length > 0 ? 'TYPING AWAY' : 'BACKLOG ON DESK'));
+      const awayPantry = pantryVisitors.some(v => v.worker && v.worker.name === w.name);
+      eyebrowEl.textContent = bossTag + (awayPantry
+        ? 'AWAY AT PANTRY · COFFEE BREAK'
+        : (w.openCount === 0
+          ? 'SLEEPING · ZZZ'
+          : (w.inprogress.length > 0 ? 'TYPING AWAY' : 'BACKLOG ON DESK')));
       titleEl.textContent = w.name;
-      subEl.textContent = w.openCount === 0
-        ? (w.done.length > 0 ? `Catching Zzzs · ${w.done.length} cleared` : 'No active folders — sleeping at desk')
-        : `${w.inprogress.length} active · ${w.todo.length} queued · ${w.done.length} done`;
+      subEl.textContent = awayPantry
+        ? 'Grabbed a mug and strolled to the Pantry for a laugh!'
+        : (w.openCount === 0
+          ? (w.done.length > 0 ? `Catching Zzzs · ${w.done.length} cleared` : 'No active folders — sleeping at desk')
+          : `${w.inprogress.length} active · ${w.todo.length} queued · ${w.done.length} done`);
     }
 
     tt.style.left = lx + 'px';
@@ -3369,6 +3708,13 @@
             triggerCatMeow();
             return;
           }
+          if (ud.hitType === 'pantry_worker' && ud.worker) {
+            const pv = pantryVisitors.find(v => v.worker && v.worker.name === ud.worker.name);
+            if (pv) {
+              pv.laughBurst = 2.8;
+              pv.laughTimer = 0;
+            }
+          }
           if (ud.worker) {
             selectedPerson = ud.worker.name;
             selectedTaskId = (ud.hitType === 'folder' && ud.task) ? ud.task.id : null;
@@ -3516,7 +3862,8 @@
   }
 
   function startCatNapVisit(workerName = null) {
-    const spots = officePlaces.sleepingSpots;
+    const deskSpots = (officePlaces.sleepingSpots || []).filter(s => !isWorkerAtPantry(s.name));
+    const spots = deskSpots.length > 0 ? deskSpots : officePlaces.sleepingSpots;
     const xs = aisleGraph.xs;
     const zs = aisleGraph.zs;
     if (!spots || spots.length === 0 || xs.length === 0 || zs.length === 0) return false;
@@ -3743,6 +4090,273 @@
     }
   }
 
+  function isWorkerAtPantry(name) {
+    return pantryVisitors.some(v => v.worker && v.worker.name === name);
+  }
+
+  function createPantryVisitorEntity(cv, slotIdx, startAtPantry) {
+    const pantry = officePlaces.pantry;
+    const slot = pantry.slots[slotIdx % pantry.slots.length];
+    const rigParts = buildWorkerCharacterParts(cv.worker, {
+      isBoss: false,
+      seated: false,
+      hitType: 'pantry_worker',
+      mugColor: [0xfbbf24, 0x38bdf8, 0xf43f5e, 0x34d399][slotIdx % 4]
+    });
+    const root = new THREE.Group();
+    root.add(rigParts.charRoot);
+
+    const bubTex = pantryBubbleTextures.length > 0
+      ? pantryBubbleTextures[slotIdx % pantryBubbleTextures.length]
+      : meowSpriteTex;
+    const bubbleMat = new THREE.SpriteMaterial({ map: bubTex, transparent: true, opacity: 0, depthWrite: false });
+    const bubbleSprite = new THREE.Sprite(bubbleMat);
+    bubbleSprite.position.set(0, 1.78, 0);
+    bubbleSprite.scale.set(0.95, 0.36, 1);
+    bubbleSprite.visible = false;
+    root.add(bubbleSprite);
+
+    propsGroup.add(root);
+
+    // Hide sleeping figure & Zzz sprites at their cubicle while on Pantry break
+    cv.atPantry = true;
+    if (cv.charRoot) cv.charRoot.visible = false;
+    if (cv.zzzSprites) cv.zzzSprites.forEach(s => { s.visible = false; });
+
+    const { ix: entryIx, iz: entryIz } = findCorridorNodeForEntry(cv.entryWorld.x, cv.entryWorld.z);
+    const { ix: pDoorIx, iz: pDoorIz } = findCorridorNodeForEntry(pantry.doorEntrance.x, pantry.doorEntrance.z);
+
+    const visitor = {
+      worker: cv.worker,
+      cv,
+      slotIdx,
+      root,
+      rig: rigParts.charRoot,
+      upperBody: rigParts.upperBody,
+      headGroup: rigParts.headGroup,
+      armLGroup: rigParts.armLGroup,
+      armRGroup: rigParts.armRGroup,
+      legL: rigParts.legL,
+      legR: rigParts.legR,
+      bubbleSprite,
+      bubbleMat,
+      mode: startAtPantry ? 'laugh' : 'to_pantry',
+      x: startAtPantry ? slot.x : cv.deskStandWorld.x,
+      y: 0.12,
+      targetY: startAtPantry ? slot.y : 0.12,
+      z: startAtPantry ? slot.z : cv.deskStandWorld.z,
+      heading: startAtPantry ? Math.atan2(slot.lookX - slot.x, slot.lookZ - slot.z) : 0,
+      goalHeading: Math.atan2(slot.lookX - slot.x, slot.lookZ - slot.z),
+      waypoints: [],
+      ix: startAtPantry ? pDoorIx : entryIx,
+      iz: startAtPantry ? pDoorIz : entryIz,
+      walkSpeed: 2.05,
+      laughTimer: startAtPantry ? (0.35 + slotIdx * 0.85) : 0.5,
+      laughBurst: startAtPantry ? 2.8 : 0,
+      breakLeft: 14 + slotIdx * 6 + Math.random() * 5,
+      phaseOffset: slotIdx * 1.45 + (hashNameNum(cv.worker.name) % 20) * 0.2
+    };
+
+    if (!startAtPantry) {
+      const manhattan = buildManhattanAisleWaypoints(entryIx, entryIz, pDoorIx, pDoorIz);
+      visitor.waypoints = [
+        { x: cv.entryWorld.x, z: cv.entryWorld.z, y: 0 },
+        { x: aisleGraph.xs[entryIx], z: aisleGraph.zs[entryIz], y: 0, ix: entryIx, iz: entryIz },
+        ...manhattan,
+        { x: pantry.doorEntrance.x, z: pantry.doorEntrance.z, y: 0 },
+        { x: pantry.doorThreshold.x, z: pantry.doorThreshold.z, y: 0.12 },
+        { x: pantry.foyer.x, z: pantry.foyer.z, y: 0.12 },
+        { x: slot.x, z: slot.z, y: slot.y, lookX: slot.lookX, lookZ: slot.lookZ }
+      ];
+    }
+
+    root.position.set(visitor.x, visitor.y, visitor.z);
+    root.rotation.y = visitor.heading;
+    pantryVisitors.push(visitor);
+    return visitor;
+  }
+
+  function initPantryVisitors() {
+    pantryVisitors = [];
+    const pantry = officePlaces.pantry;
+    if (!pantry || aisleGraph.xs.length === 0 || aisleGraph.zs.length === 0) return;
+
+    const sleepingCvs = cubicleVisuals.filter(c => c.isSleeping && !c.isBoss && c.entryWorld && c.deskStandWorld);
+    if (sleepingCvs.length === 0) return;
+
+    // Pick some sleeping workers (leave others snoring at their desks!)
+    const targetCount = Math.min(3, Math.max(1, Math.floor((sleepingCvs.length + 1) / 2)));
+    const sorted = sleepingCvs.slice().sort((a, b) => (hashNameNum(a.worker.name) % 97) - (hashNameNum(b.worker.name) % 97));
+    for (let i = 0; i < targetCount; i++) {
+      const startAtPantry = (i < Math.min(2, targetCount));
+      createPantryVisitorEntity(sorted[i], i, startAtPantry);
+    }
+  }
+
+  function sendPantryVisitorHome(v) {
+    const pantry = officePlaces.pantry;
+    const cv = v.cv;
+    if (!pantry || !cv || !cv.entryWorld || !cv.deskStandWorld || aisleGraph.xs.length === 0 || aisleGraph.zs.length === 0) {
+      return false;
+    }
+    const { ix: pDoorIx, iz: pDoorIz } = findCorridorNodeForEntry(pantry.doorEntrance.x, pantry.doorEntrance.z);
+    const { ix: entryIx, iz: entryIz } = findCorridorNodeForEntry(cv.entryWorld.x, cv.entryWorld.z);
+    const manhattan = buildManhattanAisleWaypoints(pDoorIx, pDoorIz, entryIx, entryIz);
+    v.waypoints = [
+      { x: pantry.foyer.x, z: pantry.foyer.z, y: 0.12 },
+      { x: pantry.doorThreshold.x, z: pantry.doorThreshold.z, y: 0.12 },
+      { x: pantry.doorEntrance.x, z: pantry.doorEntrance.z, y: 0 },
+      { x: aisleGraph.xs[pDoorIx], z: aisleGraph.zs[pDoorIz], y: 0, ix: pDoorIx, iz: pDoorIz },
+      ...manhattan,
+      { x: cv.entryWorld.x, z: cv.entryWorld.z, y: 0 },
+      { x: cv.deskStandWorld.x, z: cv.deskStandWorld.z, y: 0.12 }
+    ];
+    v.mode = 'to_desk';
+    v.laughBurst = 0;
+    v.bubbleSprite.visible = false;
+    return true;
+  }
+
+  function updatePantryVisitors(t, dt) {
+    if (!pantryVisitors || pantryVisitors.length === 0) return;
+    const finished = [];
+
+    for (let i = 0; i < pantryVisitors.length; i++) {
+      const v = pantryVisitors[i];
+      const ph = t + v.phaseOffset;
+
+      if (v.mode === 'to_pantry' || v.mode === 'to_desk') {
+        const wp = v.waypoints[0];
+        if (!wp) {
+          if (v.mode === 'to_pantry') {
+            v.mode = 'laugh';
+            v.laughBurst = 2.6;
+          } else {
+            finished.push(v);
+          }
+          continue;
+        }
+        v.targetY = wp.y || 0;
+        const dx = wp.x - v.x;
+        const dz = wp.z - v.z;
+        const dist = Math.hypot(dx, dz);
+        const step = v.walkSpeed * dt;
+
+        if (dist <= step + 0.05) {
+          v.x = wp.x;
+          v.z = wp.z;
+          v.y = v.targetY;
+          if (wp.ix != null) v.ix = wp.ix;
+          if (wp.iz != null) v.iz = wp.iz;
+          if (wp.lookX != null && wp.lookZ != null) {
+            v.goalHeading = Math.atan2(wp.lookX - v.x, wp.lookZ - v.z);
+          }
+          v.waypoints.shift();
+          if (v.waypoints.length === 0) {
+            if (v.mode === 'to_pantry') {
+              v.mode = 'laugh';
+              v.laughBurst = 2.6;
+              v.laughTimer = 3.2;
+              v.breakLeft = 14 + Math.random() * 8;
+            } else {
+              finished.push(v);
+              continue;
+            }
+          }
+        } else {
+          v.x += (dx / dist) * step;
+          v.z += (dz / dist) * step;
+          const desiredH = Math.atan2(dx, dz);
+          const hDiff = Math.atan2(Math.sin(desiredH - v.heading), Math.cos(desiredH - v.heading));
+          v.heading += hDiff * Math.min(1, dt * 11);
+        }
+
+        // Peppy stroll + swinging mug arm
+        const walkT = ph * 8.5;
+        const swing = Math.sin(walkT) * 0.52;
+        v.legL.rotation.x = swing;
+        v.legR.rotation.x = -swing;
+        v.armLGroup.rotation.x = -swing * 0.7;
+        v.armRGroup.rotation.x = 0.25 + swing * 0.25;
+        v.upperBody.rotation.x = 0;
+        v.headGroup.rotation.x = 0;
+        v.headGroup.rotation.z = 0;
+        v.headGroup.rotation.y = Math.sin(ph * 1.8) * 0.14;
+        v.rig.position.y = Math.abs(Math.sin(walkT)) * 0.045;
+        v.bubbleSprite.visible = false;
+      } else {
+        // Hanging out around the Pantry coffee bar & snack table sharing a laugh!
+        v.breakLeft -= dt;
+        v.laughTimer -= dt;
+        if (v.laughBurst > 0) v.laughBurst = Math.max(0, v.laughBurst - dt);
+
+        if (v.goalHeading != null) {
+          const hDiff = Math.atan2(Math.sin(v.goalHeading - v.heading), Math.cos(v.goalHeading - v.heading));
+          v.heading += hDiff * Math.min(1, dt * 7);
+        }
+
+        v.legL.rotation.x = 0;
+        v.legR.rotation.x = 0;
+
+        if (v.laughTimer <= 0) {
+          v.laughBurst = 2.0 + Math.random() * 1.5;
+          v.laughTimer = 3.4 + Math.random() * 2.4;
+          if (pantryBubbleTextures.length > 0 && v.bubbleMat) {
+            v.bubbleMat.map = pantryBubbleTextures[Math.floor(Math.random() * pantryBubbleTextures.length)];
+            v.bubbleMat.needsUpdate = true;
+          }
+        }
+
+        if (v.laughBurst > 0) {
+          // Belly laugh bounce: throwing head back & cheering coffee mug!
+          v.rig.position.y = Math.abs(Math.sin(ph * 10)) * 0.085;
+          v.upperBody.rotation.x = 0.14 + Math.abs(Math.sin(ph * 15)) * 0.12;
+          v.headGroup.rotation.x = 0.22 + Math.abs(Math.sin(ph * 14)) * 0.18;
+          v.headGroup.rotation.y = Math.sin(ph * 7) * 0.2;
+          v.headGroup.rotation.z = Math.sin(ph * 9) * 0.08;
+          v.armRGroup.rotation.x = 0.62 + Math.sin(ph * 12) * 0.24;
+          v.armLGroup.rotation.x = 0.35 + Math.cos(ph * 11) * 0.2;
+          v.bubbleSprite.visible = true;
+          v.bubbleSprite.position.y = 1.78 + Math.sin(t * 6 + i) * 0.05;
+          v.bubbleMat.opacity = Math.min(1, v.laughBurst * 2);
+        } else {
+          // Sipping coffee & chatting between laughs
+          v.rig.position.y = 0;
+          v.upperBody.rotation.x = 0.02;
+          v.headGroup.rotation.x = 0.04 + Math.sin(ph * 1.8) * 0.06;
+          v.headGroup.rotation.y = Math.sin(ph * 2.1) * 0.24;
+          v.headGroup.rotation.z = 0;
+          v.armRGroup.rotation.x = 0.3 + Math.sin(ph * 1.5) * 0.09;
+          v.armLGroup.rotation.x = 0.06;
+          v.bubbleSprite.visible = false;
+        }
+
+        if (v.breakLeft <= 0) {
+          sendPantryVisitorHome(v);
+        }
+      }
+
+      v.y += ((v.targetY || 0) - v.y) * Math.min(1, dt * 10);
+      v.root.position.set(v.x, v.y, v.z);
+      v.root.rotation.y = v.heading;
+    }
+
+    if (finished.length > 0) {
+      finished.forEach(doneV => {
+        if (doneV.root && doneV.root.parent) doneV.root.parent.remove(doneV.root);
+        if (doneV.cv) {
+          doneV.cv.atPantry = false;
+          if (doneV.cv.charRoot) doneV.cv.charRoot.visible = true;
+        }
+        pantryVisitors = pantryVisitors.filter(pv => pv !== doneV);
+        const replacement = cubicleVisuals.find(c => c.isSleeping && !c.isBoss && !c.atPantry && c !== doneV.cv);
+        if (replacement) {
+          createPantryVisitorEntity(replacement, doneV.slotIdx, false);
+        }
+      });
+    }
+  }
+
   let lastFrameMs = performance.now();
 
   function startAnimLoop() {
@@ -3756,6 +4370,7 @@
       const camLerp = 1 - Math.exp(-10 * dt);
 
       updateOfficeCat(t, dt);
+      updatePantryVisitors(t, dt);
 
       // Frame-rate independent smooth damped camera orbit, pan & zoom
       camState.azimuth += (camState.goalAzimuth - camState.azimuth) * camLerp;
@@ -3774,7 +4389,7 @@
         camera.lookAt(camState.targetX, 0.7, camState.targetZ);
       }
 
-      // Animate Environment Props (Swaying Plants & Bubbling Water Cooler!)
+      // Animate Environment Props (Swaying Plants, Water Cooler Bubbles & Pantry Espresso Steam!)
       for (let i = 0; i < envVisuals.length; i++) {
         const ev = envVisuals[i];
         if (ev.kind === 'plant') {
@@ -3787,6 +4402,13 @@
           ev.b1.scale.setScalar(0.6 + Math.sin(c1 * Math.PI) * 0.5);
           ev.b2.position.y = 1.12 + c2 * 0.42;
           ev.b2.scale.setScalar(0.6 + Math.sin(c2 * Math.PI) * 0.5);
+        } else if (ev.kind === 'pantry_steam') {
+          const ps1 = (t * 0.72) % 1;
+          const ps2 = (t * 0.72 + 0.5) % 1;
+          ev.s1.position.y = 1.62 + ps1 * 0.44;
+          ev.s1.scale.setScalar(Math.max(0.2, 1.1 - ps1 * 0.8));
+          ev.s2.position.y = 1.62 + ps2 * 0.44;
+          ev.s2.scale.setScalar(Math.max(0.2, 1.0 - ps2 * 0.8));
         }
       }
 
@@ -3836,24 +4458,32 @@
           cv.beacon.position.y = 2.02 + Math.sin(ph * 2.4) * 0.06;
           cv.beacon.rotation.y = ph * 0.8;
         } else if (cv.isSleeping) {
-          // Sleeping hunched onto desk with slow chest breath & floating Zzzs!
           const breath = Math.sin(ph * 1.45);
-          cv.upperBody.rotation.x = -0.78 + breath * 0.045;
-          cv.upperBody.position.y = 0.06 + breath * 0.015;
-          cv.headGroup.rotation.x = -0.36 + breath * 0.04;
-          cv.headGroup.rotation.z = 0.28;
           if (cv.scrMat.map !== screenSleepFrames[sleepFrameIdx]) {
             cv.scrMat.map = screenSleepFrames[sleepFrameIdx];
             cv.scrMat.needsUpdate = true;
           }
-          for (let z = 0; z < cv.zzzSprites.length; z++) {
-            const sp = cv.zzzSprites[z];
-            const zc = (ph * 0.48 + z * 0.333) % 1;
-            sp.position.y = 1.5 + zc * 1.25;
-            sp.position.x = -0.18 + Math.sin(ph * 2.2 + z) * 0.16;
-            sp.position.z = -0.52 + Math.cos(ph * 1.5 + z) * 0.08;
-            sp.scale.setScalar(0.24 + zc * 0.22);
-            sp.material.opacity = Math.sin(zc * Math.PI) * 0.98;
+          if (cv.atPantry) {
+            // Away at the Pantry: chair stays clear & Zzz paused
+            for (let z = 0; z < cv.zzzSprites.length; z++) {
+              cv.zzzSprites[z].visible = false;
+            }
+          } else {
+            // Sleeping hunched onto desk with slow chest breath & floating Zzzs!
+            cv.upperBody.rotation.x = -0.78 + breath * 0.045;
+            cv.upperBody.position.y = 0.06 + breath * 0.015;
+            cv.headGroup.rotation.x = -0.36 + breath * 0.04;
+            cv.headGroup.rotation.z = 0.28;
+            for (let z = 0; z < cv.zzzSprites.length; z++) {
+              const sp = cv.zzzSprites[z];
+              sp.visible = true;
+              const zc = (ph * 0.48 + z * 0.333) % 1;
+              sp.position.y = 1.5 + zc * 1.25;
+              sp.position.x = -0.18 + Math.sin(ph * 2.2 + z) * 0.16;
+              sp.position.z = -0.52 + Math.cos(ph * 1.5 + z) * 0.08;
+              sp.scale.setScalar(0.24 + zc * 0.22);
+              sp.material.opacity = Math.sin(zc * Math.PI) * 0.98;
+            }
           }
           cv.beacon.position.y = 1.98 + breath * 0.03;
           cv.beacon.rotation.y = ph * 0.25;
