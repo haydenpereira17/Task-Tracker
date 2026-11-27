@@ -501,6 +501,60 @@
       margin-top: 12px;
     }
 
+    .task-create-options {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .vp-check-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      background: rgba(185, 22, 46, 0.08);
+      border: 1px solid rgba(251, 113, 133, 0.28);
+      color: #fda4af;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s var(--ease);
+    }
+
+    .vp-check-pill:hover {
+      background: rgba(185, 22, 46, 0.16);
+      border-color: rgba(251, 113, 133, 0.52);
+      color: #ffffff;
+    }
+
+    .vp-check-pill:has(input:checked) {
+      background: rgba(185, 22, 46, 0.24);
+      border-color: rgba(255, 59, 92, 0.75);
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(255, 59, 92, 0.22);
+    }
+
+    .vp-check-pill input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: #ff3b5c;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .vp-dot-sample {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ff3b5c;
+      box-shadow: 0 0 8px rgba(255, 59, 92, 0.85);
+      flex-shrink: 0;
+    }
+
     textarea.task-desc-compact {
       min-height: 40px;
       height: 40px;
@@ -1031,6 +1085,51 @@
       max-width: 340px;
     }
 
+    .filter-vp-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      background: rgba(7, 38, 58, 0.56);
+      border: 1px solid var(--nx-border);
+      color: var(--pace-dim-on-dark);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+      white-space: nowrap;
+    }
+
+    .filter-vp-pill:hover {
+      background: rgba(185, 22, 46, 0.16);
+      border-color: rgba(251, 113, 133, 0.5);
+      color: #ffffff;
+    }
+
+    .filter-vp-pill.is-active {
+      background: rgba(185, 22, 46, 0.28);
+      border-color: rgba(255, 59, 92, 0.75);
+      color: #ffffff;
+      box-shadow: 0 2px 12px rgba(255, 59, 92, 0.24);
+    }
+
+    .filter-vp-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: var(--radius-pill);
+      background: rgba(255, 59, 92, 0.18);
+      color: #fda4af;
+    }
+
+    .filter-vp-pill.is-active .filter-vp-count {
+      background: rgba(255, 255, 255, 0.18);
+      color: #ffffff;
+    }
+
     /* ── Kanban Columns ── */
     .board-grid {
       display: grid;
@@ -1315,6 +1414,23 @@
     .task-card.is-collapsed {
       padding: 11px 14px;
       gap: 7px;
+    }
+
+    .vp-corner-dot {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff3b5c;
+      box-shadow: 0 0 0 2px rgba(9, 41, 61, 0.92), 0 0 10px rgba(255, 59, 92, 0.9);
+      z-index: 4;
+      pointer-events: auto;
+    }
+
+    .task-card.is-vp-followup .card-expand-head {
+      padding-right: 10px;
     }
 
     .card-expand-head {
@@ -2278,6 +2394,33 @@
       grid-template-columns: 96px minmax(0, 1fr);
       gap: 10px;
       margin-top: 10px;
+    }
+
+    .edit-vp-box {
+      background: rgba(185, 22, 46, 0.09);
+      border: 1px solid rgba(251, 113, 133, 0.28);
+      border-radius: var(--radius-md);
+      padding: 11px 14px;
+      margin-bottom: 16px;
+    }
+
+    .edit-vp-check-label {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #fda4af;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .edit-vp-check-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #ff3b5c;
+      cursor: pointer;
+      flex-shrink: 0;
     }
 
     .empty-state {
@@ -3489,6 +3632,14 @@
           <textarea id="task-desc" class="nx-input task-desc-compact" rows="1" placeholder="Optional: paste email trail, notes, or context…" oninput="this.classList.toggle('has-content', this.value.trim().length > 0)"></textarea>
         </div>
       </div>
+
+      <div class="task-create-options">
+        <label class="vp-check-pill" for="task-vp-followup" title="Mark this task for VP follow-up">
+          <input type="checkbox" id="task-vp-followup" />
+          <span class="vp-dot-sample" aria-hidden="true"></span>
+          <span>VP Follow-up</span>
+        </label>
+      </div>
     </section>
 
     <!-- Filter Shelf -->
@@ -3504,6 +3655,12 @@
           <option value="active_inprogress">Active In Progress Only</option>
           <option value="rolled">Auto-Moved (11 PM)</option>
         </select>
+
+        <button type="button" class="filter-vp-pill" id="filter-vp-btn" onclick="toggleVpFilter()" aria-pressed="false" title="Filter to VP follow-up tasks only">
+          <span class="vp-dot-sample" aria-hidden="true"></span>
+          <span>VP Follow-up</span>
+          <span class="filter-vp-count" id="filter-vp-count">0</span>
+        </button>
       </div>
 
       <div class="filter-search-box">
@@ -3609,6 +3766,14 @@
           <option value="inprogress">In Progress</option>
           <option value="done">Completed</option>
         </select>
+      </div>
+
+      <div class="edit-vp-box">
+        <label class="edit-vp-check-label" for="edit-vp-followup">
+          <input type="checkbox" id="edit-vp-followup" />
+          <span class="vp-dot-sample" aria-hidden="true"></span>
+          <span>VP Follow-up (show red corner marker)</span>
+        </label>
       </div>
 
       <div class="edit-pending-box hidden" id="edit-pending-feedback-group">
@@ -4164,6 +4329,8 @@
       detachFirebaseListeners();
       allTasks = [];
       allRecurring = [];
+      filterVpOnly = false;
+      syncVpFilterUi();
       openFollowupDescDrawers.clear();
       editingFollowupDesc.clear();
       fupDescDrafts.clear();
@@ -5010,6 +5177,8 @@
       const date = document.getElementById('task-date').value;
       const descEl = document.getElementById('task-desc');
       const description = descEl.value.trim();
+      const vpFollowupEl = document.getElementById('task-vp-followup');
+      const vpFollowup = Boolean(vpFollowupEl && vpFollowupEl.checked);
 
       tasksRef.push({
         title,
@@ -5019,6 +5188,7 @@
         description,
         followup: '',
         followupDescription: '',
+        vpFollowup,
         status: 'todo',
         createdAt: new Date().toISOString()
       });
@@ -5028,12 +5198,13 @@
       setPersonFieldValue('task-secondary-person', 'task-secondary-person-other', '');
       descEl.value = '';
       descEl.classList.remove('has-content');
+      if (vpFollowupEl) vpFollowupEl.checked = false;
       clearTaskValidation('create-form-error', titleEl, personEl, otherPersonEl);
       setDefaultDueDate();
       titleEl.focus();
     }
 
-    document.querySelectorAll('.nex-card input').forEach(input => {
+    document.querySelectorAll('.nex-card input:not([type="checkbox"])').forEach(input => {
       input.addEventListener('keydown', e => {
         if (e.key === 'Enter') addTask();
       });
@@ -5171,6 +5342,7 @@
       document.getElementById('edit-date').value = task.date || '';
       document.getElementById('edit-followup').value = task.followup || '';
       document.getElementById('edit-followup-desc').value = task.followupDescription || '';
+      document.getElementById('edit-vp-followup').checked = Boolean(task.vpFollowup);
       document.getElementById('edit-status').value = task.status || 'todo';
       document.getElementById('edit-pending-feedback').checked = isTaskPendingFeedback(task);
       document.getElementById('edit-pending-version').value = getNextVersionLabel(task);
@@ -5214,6 +5386,7 @@
         date: document.getElementById('edit-date').value,
         followup: document.getElementById('edit-followup').value,
         followupDescription: document.getElementById('edit-followup-desc').value.trim(),
+        vpFollowup: document.getElementById('edit-vp-followup').checked,
         status: nextStatus,
         pendingFeedback: isPendingChecked
       };
@@ -5861,12 +6034,33 @@
     // ══════════════════════════════════════
     // ── Render Board Engine ──
     // ══════════════════════════════════════
+    let filterVpOnly = false;
+
+    function syncVpFilterUi(vpCount = null) {
+      const btn = document.getElementById('filter-vp-btn');
+      if (btn) {
+        btn.classList.toggle('is-active', filterVpOnly);
+        btn.setAttribute('aria-pressed', filterVpOnly ? 'true' : 'false');
+      }
+      if (vpCount !== null) {
+        const countEl = document.getElementById('filter-vp-count');
+        if (countEl) countEl.textContent = String(vpCount);
+      }
+    }
+
+    function toggleVpFilter() {
+      filterVpOnly = !filterVpOnly;
+      syncVpFilterUi();
+      renderBoard();
+    }
+
     function renderBoard() {
       const tasks = allTasks;
       syncFilterPersonOptions(tasks);
       const filterPerson = document.getElementById('filter-person').value;
       const filterOverdue = document.getElementById('filter-overdue').value;
       const searchTerm = document.getElementById('filter-search').value.toLowerCase();
+      syncVpFilterUi(tasks.filter(t => Boolean(t.vpFollowup)).length);
 
       // Render Heatmap and Open Tasks by Person strip
       renderHeatmap(tasks);
@@ -5876,6 +6070,7 @@
       const filtered = tasks.filter(t => {
         if (selectedHeatmapDate && t.date !== selectedHeatmapDate) return false;
         if (filterPerson && !getTaskAssignees(t).includes(filterPerson)) return false;
+        if (filterVpOnly && !t.vpFollowup) return false;
         if (filterOverdue === 'overdue' && !isOverdue(t.date, t.status)) return false;
         if (filterOverdue === 'pending_feedback' && !isTaskPendingFeedback(t)) return false;
         if (filterOverdue === 'active_inprogress' && (t.status !== 'inprogress' || isTaskPendingFeedback(t))) return false;
@@ -5885,7 +6080,8 @@
           const matchPerson = getTaskAssignees(t).some(n => n.toLowerCase().includes(searchTerm));
           const matchDesc = (t.description || '').toLowerCase().includes(searchTerm);
           const matchPending = (t.pendingFeedbackFrom || '').toLowerCase().includes(searchTerm) || (t.pendingFeedbackVersion || '').toLowerCase().includes(searchTerm);
-          if (!matchTitle && !matchPerson && !matchDesc && !matchPending) return false;
+          const matchVp = Boolean(t.vpFollowup) && ('vp followup'.includes(searchTerm) || 'vp follow-up'.includes(searchTerm));
+          if (!matchTitle && !matchPerson && !matchDesc && !matchPending && !matchVp) return false;
         }
         return true;
       });
@@ -5944,6 +6140,8 @@
           const isDone = (t.status === 'done');
           const overdue = isOverdue(t.date, t.status);
           const pendingFb = isTaskPendingFeedback(t);
+          const isVp = Boolean(t.vpFollowup);
+          const vpCornerDotHtml = isVp ? '<span class="vp-corner-dot" title="VP Follow-up" aria-label="VP Follow-up"></span>' : '';
           const isCardExpanded = expandedTasks.has(t.id);
           const completionMeta = isDone ? getCompletionDateMeta(t) : null;
           const vLabel = pendingFb ? getNextVersionLabel(t) : '';
@@ -5961,7 +6159,8 @@
                   : `<span class="nx-badge badge-date">No due date</span>`);
 
             return `
-              <article class="task-card is-collapsed ${overdue ? 'is-overdue' : ''} ${pendingFb ? 'is-pending-feedback' : ''}" data-task-id="${t.id}">
+              <article class="task-card is-collapsed ${overdue ? 'is-overdue' : ''} ${pendingFb ? 'is-pending-feedback' : ''} ${isVp ? 'is-vp-followup' : ''}" data-task-id="${t.id}">
+                ${vpCornerDotHtml}
                 <div class="card-expand-head">
                   <div class="task-title">${escapeHtml(t.title)}</div>
                   <button type="button" class="btn-card-expand" onclick="toggleTaskExpand('${t.id}')" aria-expanded="false" title="Expand task details">
@@ -6329,7 +6528,8 @@
               `);
 
           return `
-            <article class="task-card ${overdue ? 'is-overdue' : ''} ${pendingFb ? 'is-pending-feedback' : ''}" data-task-id="${t.id}">
+            <article class="task-card ${overdue ? 'is-overdue' : ''} ${pendingFb ? 'is-pending-feedback' : ''} ${isVp ? 'is-vp-followup' : ''}" data-task-id="${t.id}">
+              ${vpCornerDotHtml}
               <div class="card-expand-head">
                 <div class="task-title">${escapeHtml(t.title)}</div>
                 <button type="button" class="btn-card-expand is-open" onclick="toggleTaskExpand('${t.id}')" aria-expanded="true" title="Collapse task">
