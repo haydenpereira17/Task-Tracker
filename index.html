@@ -4210,13 +4210,31 @@
     let rolloverTimeoutId = null;
     let rolloverIntervalId = null;
 
-    function getAutoRolloverTargetDateStr(now = new Date()) {
-      const target = new Date(now);
-      target.setHours(0, 0, 0, 0);
-      if (now.getHours() >= 23) {
-        target.setDate(target.getDate() + 1);
+    function advanceToWorkingDay(date) {
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+      while (d.getDay() === 6 || d.getDay() === 0) {
+        d.setDate(d.getDate() + 1);
       }
-      return formatLocalDateStr(target);
+      return d;
+    }
+
+    function getAutoRolloverCutoffDateStr(now = new Date()) {
+      const cutoff = new Date(now);
+      cutoff.setHours(0, 0, 0, 0);
+      if (now.getHours() >= 23) {
+        cutoff.setDate(cutoff.getDate() + 1);
+      }
+      return formatLocalDateStr(cutoff);
+    }
+
+    function getAutoRolloverTargetDateStr(now = new Date()) {
+      const base = new Date(now);
+      base.setHours(0, 0, 0, 0);
+      if (now.getHours() >= 23) {
+        base.setDate(base.getDate() + 1);
+      }
+      return formatLocalDateStr(advanceToWorkingDay(base));
     }
 
     async function rollOverMissedDeadlines(now = new Date()) {
@@ -4224,12 +4242,13 @@
       isRollingOver = true;
 
       try {
+        const cutoffDateStr = getAutoRolloverCutoffDateStr(now);
         const targetDateStr = getAutoRolloverTargetDateStr(now);
         const updates = [];
 
         for (const t of allTasks) {
           if (!t.date || t.status === 'done') continue;
-          if (t.date < targetDateStr) {
+          if (t.date < cutoffDateStr && t.date !== targetDateStr) {
             updates.push(
               tasksRef.child(t.id).update({
                 date: targetDateStr,
