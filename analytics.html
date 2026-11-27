@@ -967,6 +967,236 @@
       color: var(--nx-muted);
     }
 
+    /* ── Deleted Tasks Section ── */
+    .deleted-section {
+      margin-top: 28px;
+    }
+
+    .deleted-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .deleted-icon-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--nx-rose-bg);
+      border: 1px solid var(--nx-rose-border);
+      color: var(--nx-rose);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .deleted-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .deleted-search-input {
+      background: rgba(7, 38, 58, 0.78);
+      border: 1px solid var(--nx-border);
+      color: var(--nx-text);
+      border-radius: var(--radius-pill);
+      padding: 6px 13px;
+      font-family: inherit;
+      font-size: 0.73rem;
+      outline: none;
+      width: 175px;
+      transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+    }
+
+    .deleted-search-input::placeholder { color: var(--nx-faint); }
+
+    .deleted-search-input:focus {
+      border-color: var(--nx-border-strong);
+      background: rgba(10, 50, 76, 0.9);
+    }
+
+    .deleted-summary-strip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 12px 24px;
+      border-bottom: 1px solid rgba(137, 170, 230, 0.12);
+      background: rgba(4, 18, 29, 0.42);
+    }
+
+    .del-stat-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.71rem;
+      color: var(--nx-muted);
+      background: rgba(137, 170, 230, 0.08);
+      border: 1px solid rgba(137, 170, 230, 0.16);
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+    }
+
+    .del-stat-chip strong {
+      font-family: 'JetBrains Mono', monospace;
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .del-stat-chip.is-rose strong { color: var(--nx-rose); }
+
+    .deleted-task-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .deleted-task-title-line {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .deleted-task-title {
+      font-weight: 600;
+      color: var(--nx-text);
+      word-break: break-word;
+    }
+
+    .deleted-flag-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: var(--radius-pill);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .deleted-flag-pill.vp {
+      background: rgba(255, 59, 92, 0.16);
+      border: 1px solid rgba(255, 59, 92, 0.45);
+      color: #ff9eb0;
+    }
+
+    .deleted-flag-pill.hd {
+      background: rgba(245, 158, 11, 0.18);
+      border: 1px solid rgba(251, 191, 36, 0.45);
+      color: #fde68a;
+    }
+
+    .deleted-flag-pill.rec {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #bae6fd;
+    }
+
+    .deleted-task-desc {
+      font-size: 0.72rem;
+      color: var(--nx-faint);
+      line-height: 1.4;
+      word-break: break-word;
+      max-width: 460px;
+    }
+
+    .deleted-mobile-meta {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+      font-size: 0.68rem;
+      color: var(--nx-muted);
+    }
+
+    .stage-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 9px;
+      border-radius: var(--radius-pill);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.66rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .stage-todo {
+      background: rgba(137, 170, 230, 0.14);
+      border: 1px solid rgba(137, 170, 230, 0.32);
+      color: var(--pace-periwinkle);
+    }
+
+    .stage-inprogress {
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.36);
+      color: #7dd3fc;
+    }
+
+    .stage-done {
+      background: var(--nx-emerald-bg);
+      border: 1px solid var(--nx-emerald-border);
+      color: var(--nx-emerald);
+    }
+
+    .deleted-when-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.71rem;
+      color: var(--nx-muted);
+      white-space: nowrap;
+    }
+
+    .deleted-by-note {
+      font-size: 0.65rem;
+      color: var(--nx-faint);
+    }
+
+    .deleted-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .btn-del-action {
+      border-radius: var(--radius-pill);
+      padding: 4px 10px;
+      font-family: inherit;
+      font-size: 0.68rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--nx-border);
+      background: rgba(137, 170, 230, 0.1);
+      color: var(--pace-periwinkle);
+      transition: all 0.16s var(--ease);
+      white-space: nowrap;
+    }
+
+    .btn-del-action:hover {
+      background: rgba(52, 211, 153, 0.18);
+      border-color: var(--nx-emerald-border);
+      color: var(--nx-emerald);
+    }
+
+    .btn-del-action.is-purge {
+      background: rgba(185, 22, 46, 0.14);
+      border-color: rgba(185, 22, 46, 0.38);
+      color: #ffb3bd;
+    }
+
+    .btn-del-action.is-purge:hover {
+      background: var(--pace-red);
+      border-color: var(--pace-red-hover);
+      color: #ffffff;
+    }
+
     /* ── Loading / Empty States ── */
     .loading-state {
       text-align: center;
@@ -1051,7 +1281,11 @@
       td { padding: 11px 10px; font-size: 0.76rem; }
       thead th { padding: 10px 10px; font-size: 0.62rem; }
       .person-avatar { width: 26px; height: 26px; font-size: 0.58rem; }
-      .col-bar, .col-range { display: none; }
+      .col-bar, .col-range, .col-del-owner, .col-del-stage, .col-del-when { display: none; }
+      .deleted-mobile-meta { display: flex; }
+      .deleted-summary-strip { padding: 10px 14px; gap: 6px; }
+      .deleted-search-input { width: 100%; }
+      .deleted-controls { width: 100%; }
       .detail-box { padding: 4px 0 6px 10px; }
     }
   </style>
@@ -1265,6 +1499,47 @@
         </div>
       </div>
 
+      <!-- Deleted Tasks Archive Section -->
+      <section id="deleted-tasks" class="deleted-section" aria-labelledby="deleted-section-title">
+        <div class="table-card">
+          <div class="table-header">
+            <div class="deleted-title-row">
+              <span class="deleted-icon-badge" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              </span>
+              <div class="table-title-wrap">
+                <h2 class="table-title" id="deleted-section-title">Deleted Tasks</h2>
+                <span class="table-hint" id="deleted-hint">Tasks deleted from the board are archived here going forward</span>
+              </div>
+            </div>
+            <div class="deleted-controls">
+              <input
+                type="search"
+                id="deleted-search"
+                class="deleted-search-input"
+                placeholder="Search deleted tasks…"
+                aria-label="Search deleted tasks"
+                oninput="renderDeletedTasks()"
+              />
+              <select id="deleted-stage-filter" class="control-select" aria-label="Filter deleted tasks by stage" onchange="renderDeletedTasks()">
+                <option value="all">All Stages</option>
+                <option value="todo">To Do</option>
+                <option value="inprogress">In Progress</option>
+                <option value="done">Done</option>
+              </select>
+              <span class="table-count" id="deleted-count-pill">0 deleted</span>
+            </div>
+          </div>
+          <div id="deleted-summary-strip" class="deleted-summary-strip hidden"></div>
+          <div id="deleted-table-body">
+            <div class="loading-state">
+              <div class="loading-spinner"></div>
+              <div>Loading deleted tasks…</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <footer class="app-footer">
         <span class="app-footer-love">Made With Meow Energy</span>
         <span class="app-version-pill">v1.49.2</span>
@@ -1326,8 +1601,11 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
   const tasksRef = db.ref('tasks');
+  const deletedTasksRef = db.ref('deletedTasks');
 
   let rawTasks = [];
+  let rawDeletedTasks = [];
+  let deletedTasksLoaded = false;
   let includeSecondary = true;
   const expandedPeople = new Set();
   let listenersAttached = false;
@@ -1576,6 +1854,235 @@
     `;
   }
 
+  function formatDeletedTimestamp(val) {
+    const ms = parseTimestampMs(val);
+    if (isNaN(ms)) return 'Unknown date';
+    const d = new Date(ms);
+    const datePart = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const timePart = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return `${datePart} · ${timePart}`;
+  }
+
+  function getStageMeta(status) {
+    if (status === 'inprogress') return { label: 'In Progress', cls: 'stage-inprogress' };
+    if (status === 'done') return { label: 'Done', cls: 'stage-done' };
+    return { label: 'To Do', cls: 'stage-todo' };
+  }
+
+  function sanitizeRestoredPayload(val) {
+    if (val === undefined) return undefined;
+    if (Array.isArray(val)) {
+      return val.map(sanitizeRestoredPayload).filter(v => v !== undefined);
+    }
+    if (val && typeof val === 'object') {
+      const out = {};
+      Object.keys(val).forEach(k => {
+        const cleaned = sanitizeRestoredPayload(val[k]);
+        if (cleaned !== undefined) out[k] = cleaned;
+      });
+      return out;
+    }
+    return val;
+  }
+
+  function restoreDeletedTask(archiveId) {
+    const entry = rawDeletedTasks.find(item => item.id === archiveId);
+    if (!entry) return;
+    if (!confirm(`Restore "${entry.title || 'this task'}" back to the board?`)) return;
+
+    const restored = sanitizeRestoredPayload({ ...entry });
+    delete restored.id;
+    delete restored.originalId;
+    delete restored.deletedAt;
+    delete restored.deletedBy;
+    if (!restored.status) restored.status = 'todo';
+
+    const targetKey = (entry.originalId && !rawTasks.some(t => t.id === entry.originalId))
+      ? entry.originalId
+      : tasksRef.push().key;
+
+    db.ref().update({
+      ['tasks/' + targetKey]: restored,
+      ['deletedTasks/' + archiveId]: null
+    });
+  }
+
+  function purgeDeletedTask(archiveId) {
+    const entry = rawDeletedTasks.find(item => item.id === archiveId);
+    if (!entry) return;
+    if (!confirm(`Permanently remove "${entry.title || 'this deleted task'}" from the deleted log? This cannot be undone.`)) return;
+    deletedTasksRef.child(archiveId).remove();
+  }
+
+  function renderDeletedTasks() {
+    const bodyEl = document.getElementById('deleted-table-body');
+    const stripEl = document.getElementById('deleted-summary-strip');
+    const countEl = document.getElementById('deleted-count-pill');
+    const hintEl = document.getElementById('deleted-hint');
+    if (!bodyEl) return;
+
+    const searchInput = document.getElementById('deleted-search');
+    const stageSelect = document.getElementById('deleted-stage-filter');
+    const q = searchInput ? String(searchInput.value || '').trim().toLowerCase() : '';
+    const stageFilter = stageSelect ? stageSelect.value : 'all';
+
+    const sortedAll = [...rawDeletedTasks].sort((a, b) => {
+      const bMs = parseTimestampMs(b.deletedAt);
+      const aMs = parseTimestampMs(a.deletedAt);
+      return (isNaN(bMs) ? 0 : bMs) - (isNaN(aMs) ? 0 : aMs);
+    });
+
+    const filtered = sortedAll.filter(item => {
+      const stage = item.status || 'todo';
+      if (stageFilter !== 'all' && stage !== stageFilter) return false;
+      if (!q) return true;
+      const haystack = [
+        item.title,
+        item.person,
+        item.secondaryPerson,
+        item.description,
+        item.deletedBy
+      ].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+
+    const totalCount = sortedAll.length;
+    if (countEl) {
+      countEl.textContent = (q || stageFilter !== 'all')
+        ? `${filtered.length} of ${totalCount} deleted`
+        : `${totalCount} deleted`;
+    }
+    if (hintEl) {
+      hintEl.textContent = totalCount > 0
+        ? `${totalCount} archived deletion${totalCount === 1 ? '' : 's'} · restore any item to return it to the board`
+        : 'Tasks deleted from the board are archived here going forward';
+    }
+
+    if (stripEl) {
+      if (totalCount === 0) {
+        stripEl.classList.add('hidden');
+        stripEl.innerHTML = '';
+      } else {
+        const weekAgoMs = Date.now() - (7 * 86400000);
+        let recentCount = 0;
+        let todoCount = 0;
+        let ipCount = 0;
+        let doneCount = 0;
+        sortedAll.forEach(item => {
+          const dMs = parseTimestampMs(item.deletedAt);
+          if (!isNaN(dMs) && dMs >= weekAgoMs) recentCount++;
+          if (item.status === 'inprogress') ipCount++;
+          else if (item.status === 'done') doneCount++;
+          else todoCount++;
+        });
+        stripEl.classList.remove('hidden');
+        stripEl.innerHTML = `
+          <span class="del-stat-chip is-rose">Total Deleted: <strong>${totalCount}</strong></span>
+          <span class="del-stat-chip">Last 7 Days: <strong>${recentCount}</strong></span>
+          <span class="del-stat-chip">To Do: <strong>${todoCount}</strong></span>
+          <span class="del-stat-chip">In Progress: <strong>${ipCount}</strong></span>
+          <span class="del-stat-chip">Done: <strong>${doneCount}</strong></span>
+        `;
+      }
+    }
+
+    if (!deletedTasksLoaded && totalCount === 0) {
+      bodyEl.innerHTML = `
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <div>Loading deleted tasks…</div>
+        </div>
+      `;
+      return;
+    }
+
+    if (totalCount === 0) {
+      bodyEl.innerHTML = '<div class="empty-state">No deleted tasks recorded yet. Tasks deleted from the board from this update onward will appear here automatically.</div>';
+      return;
+    }
+
+    if (filtered.length === 0) {
+      bodyEl.innerHTML = '<div class="empty-state">No deleted tasks match your current search or stage filter.</div>';
+      return;
+    }
+
+    const rowsHtml = filtered.map(item => {
+      const primary = (item.person || '').trim() || 'Unassigned';
+      const secondary = (item.secondaryPerson || '').trim();
+      const stageMeta = getStageMeta(item.status);
+      const whenLabel = formatDeletedTimestamp(item.deletedAt);
+      const byLabel = (item.deletedBy || '').trim();
+      const flagsHtml = [
+        item.vpFollowup ? '<span class="deleted-flag-pill vp">VP</span>' : '',
+        item.hardDeadline ? '<span class="deleted-flag-pill hd">HD</span>' : '',
+        item.recurringId ? '<span class="deleted-flag-pill rec">Recurring</span>' : ''
+      ].join('');
+      const descText = (item.description || '').trim();
+      const descPreview = descText.length > 140 ? descText.slice(0, 140) + '…' : descText;
+
+      return `
+        <tr data-deleted-id="${escapeAttr(item.id)}">
+          <td>
+            <div class="deleted-task-cell">
+              <div class="deleted-task-title-line">
+                <span class="deleted-task-title">${escapeHtml(item.title || 'Untitled Task')}</span>
+                ${flagsHtml}
+              </div>
+              ${descPreview ? `<div class="deleted-task-desc">${escapeHtml(descPreview)}</div>` : ''}
+              <div class="deleted-mobile-meta">
+                <span>${escapeHtml(primary)}${secondary ? ` &middot; 2nd: ${escapeHtml(secondary)}` : ''}</span>
+                <span class="stage-pill ${stageMeta.cls}">${stageMeta.label}</span>
+                <span>${escapeHtml(whenLabel)}</span>
+              </div>
+            </div>
+          </td>
+          <td class="col-del-owner">
+            <div class="person-cell">
+              <div class="person-avatar">${escapeHtml(getInitials(primary))}</div>
+              <div>
+                <div class="person-name">${escapeHtml(primary)}</div>
+                ${secondary ? `<div class="deleted-by-note">2nd: ${escapeHtml(secondary)}</div>` : ''}
+              </div>
+            </div>
+          </td>
+          <td class="center col-del-stage">
+            <span class="stage-pill ${stageMeta.cls}">${stageMeta.label}</span>
+            ${item.date ? `<div class="deleted-by-note" style="margin-top:4px;">Due ${escapeHtml(item.date)}</div>` : ''}
+          </td>
+          <td class="col-del-when">
+            <div class="deleted-when-wrap">
+              <span>${escapeHtml(whenLabel)}</span>
+              ${byLabel ? `<span class="deleted-by-note">by ${escapeHtml(byLabel)}</span>` : ''}
+            </div>
+          </td>
+          <td class="right">
+            <div class="deleted-actions">
+              <button type="button" class="btn-del-action" onclick="restoreDeletedTask('${escapeAttr(item.id)}')" title="Restore task to board">Restore</button>
+              <button type="button" class="btn-del-action is-purge" onclick="purgeDeletedTask('${escapeAttr(item.id)}')" title="Remove permanently from log">&times;</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    bodyEl.innerHTML = `
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th class="col-del-owner">Owner</th>
+              <th class="center col-del-stage">Last Stage</th>
+              <th class="col-del-when">Deleted</th>
+              <th class="right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
   const TAB_SESSION_STORAGE_KEY = 'workpulse_tab_id';
   let presenceConnRef = null;
   let presenceConnectedRef = null;
@@ -1712,6 +2219,15 @@
         rawTasks.push({ id: child.key, ...child.val() });
       });
       renderAnalytics();
+    });
+
+    deletedTasksRef.on('value', snapshot => {
+      rawDeletedTasks = [];
+      snapshot.forEach(child => {
+        rawDeletedTasks.push({ id: child.key, ...child.val() });
+      });
+      deletedTasksLoaded = true;
+      renderDeletedTasks();
     });
   }
 
