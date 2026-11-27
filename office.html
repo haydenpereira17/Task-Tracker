@@ -748,25 +748,6 @@
       border-color: var(--pace-periwinkle);
     }
 
-    .cam-zoom-wrap {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 0 4px;
-      border-left: 1px solid rgba(137, 170, 230, 0.22);
-      margin-left: 2px;
-    }
-
-    .cam-zoom-slider {
-      width: 78px;
-      accent-color: #38bdf8;
-      cursor: pointer;
-    }
-
-    @media (max-width: 640px) {
-      .cam-zoom-slider { width: 58px; }
-    }
-
     .hud-hint-bottom-right {
       position: absolute;
       top: 12px;
@@ -1213,17 +1194,7 @@
           </div>
 
           <div class="hud-camera-bar" role="group" aria-label="Camera controls">
-            <button type="button" class="cam-btn" onclick="setCameraPreset('iso')" title="Reset isometric overview">Iso Grid</button>
-            <button type="button" class="cam-btn" onclick="setCameraPreset('top')">Top-Down</button>
-            <button type="button" class="cam-btn" onclick="setCameraPreset('front')">Front Row</button>
-            <button type="button" class="cam-btn" onclick="focusSelectedCubicle()" title="Zoom in on selected cubicle">Focus Desk</button>
-            <button type="button" class="cam-btn" onclick="focusBossCabin()" title="Zoom in on Karishma's Boss Cabin" style="color:#fde047;">Boss Cabin</button>
             <button type="button" class="cam-btn" onclick="focusOnCat()" title="Jump camera to Mochi the Office Cat" style="color:#fdba74;">Find Cat</button>
-            <div class="cam-zoom-wrap">
-              <button type="button" class="cam-btn" onclick="nudgeZoom(3.5)" aria-label="Zoom out" title="Zoom out">&minus;</button>
-              <input type="range" id="zoom-slider" class="cam-zoom-slider" min="0" max="100" value="48" aria-label="Zoom level" oninput="setZoomPercent(this.value)" />
-              <button type="button" class="cam-btn" onclick="nudgeZoom(-3.5)" aria-label="Zoom in" title="Zoom in">+</button>
-            </div>
           </div>
 
           <div class="hud-hint-bottom-right">Touch: 1-finger pan · 2-finger rotate/pivot/zoom</div>
