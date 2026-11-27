@@ -1730,6 +1730,8 @@
 
   // Texture & geometry/material caches for crisp pixel-art sprites and fast WebGL rendering
   const nameplateTextureCache = new Map();
+  const crispTextEntries = [];
+  let fontsReadyHooked = false;
   const boxGeoCache = new Map();
   const planeGeoCache = new Map();
   const lambertMatCache = new Map();
@@ -1981,6 +1983,38 @@
     return tex;
   }
 
+  function makeCrispTextTexture(width, height, drawFn) {
+    const c = document.createElement('canvas');
+    c.width = width;
+    c.height = height;
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    drawFn(ctx, width, height);
+    const tex = new THREE.CanvasTexture(c);
+    tex.generateMipmaps = true;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    if (renderer && renderer.capabilities && typeof renderer.capabilities.getMaxAnisotropy === 'function') {
+      tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy() || 1);
+    }
+    sharedGlResources.add(tex);
+    if (!fontsReadyHooked && document.fonts && document.fonts.ready) {
+      fontsReadyHooked = true;
+      document.fonts.ready.then(() => {
+        for (let i = 0; i < crispTextEntries.length; i++) {
+          const item = crispTextEntries[i];
+          item.ctx.clearRect(0, 0, item.w, item.h);
+          item.drawFn(item.ctx, item.w, item.h);
+          item.tex.needsUpdate = true;
+        }
+        crispTextEntries.length = 0;
+      }).catch(() => {});
+    }
+    crispTextEntries.push({ ctx, w: width, h: height, tex, drawFn });
+    return tex;
+  }
+
   function initSharedPixelTextures() {
     if (carpetTileTexture) return;
     carpetTileTexture = makePixelCanvasTexture(64, 64, (ctx, w, h) => {
@@ -2088,66 +2122,77 @@
     pantryTileTexture.wrapT = THREE.RepeatWrapping;
     pantryTileTexture.repeat.set(4, 4);
 
-    pantrySignTexture = makePixelCanvasTexture(156, 34, (ctx, w, h) => {
-      ctx.fillStyle = '#1b140d';
+    pantrySignTexture = makeCrispTextTexture(512, 128, (ctx, w, h) => {
+      ctx.fillStyle = '#18110b';
       ctx.fillRect(0, 0, w, h);
       ctx.strokeStyle = '#34d399';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(2, 2, w - 4, h - 4);
-      // Tiny pixel coffee mug icon
+      ctx.lineWidth = 8;
+      ctx.strokeRect(4, 4, w - 8, h - 8);
+      // Crisp pixel coffee mug icon
       ctx.fillStyle = '#fbbf24';
-      ctx.fillRect(8, 12, 10, 12);
-      ctx.fillStyle = '#1b140d';
-      ctx.fillRect(10, 14, 6, 3);
+      ctx.fillRect(24, 44, 34, 44);
+      ctx.fillStyle = '#18110b';
+      ctx.fillRect(30, 52, 22, 12);
       ctx.fillStyle = '#e2e8f0';
-      ctx.fillRect(10, 8, 2, 3);
-      ctx.fillRect(14, 7, 2, 4);
-      ctx.fillStyle = '#fef3c7';
-      ctx.font = 'bold 13px "JetBrains Mono", monospace';
+      ctx.fillRect(30, 28, 7, 11);
+      ctx.fillRect(45, 24, 7, 15);
+      const label = 'PANTRY · CAFE';
+      ctx.font = '700 46px "JetBrains Mono", "Cascadia Mono", Consolas, "Segoe UI", monospace';
       ctx.textBaseline = 'middle';
-      ctx.fillText('PANTRY · CAFE', 24, 18);
+      ctx.lineWidth = 7;
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#090603';
+      ctx.strokeText(label, 76, 66, w - 96);
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillText(label, 76, 66, w - 96);
     });
 
-    // Shared pixel speech bubble helper (used by Mochi & laughing Pantry teammates)
+    // Crisp HiDPI speech bubble helper (used by Mochi, cleaners & laughing Pantry teammates)
     const makePixelBubbleTex = (borderHex, badgeKind, badgeHex, label, textHex = '#ffedd5') =>
-      makePixelCanvasTexture(96, 36, (ctx, w, h) => {
+      makeCrispTextTexture(256, 128, (ctx, w, h) => {
+        ctx.clearRect(0, 0, w, h);
         ctx.fillStyle = '#071b2c';
-        ctx.fillRect(2, 2, w - 4, h - 8);
+        ctx.fillRect(6, 10, w - 12, 92);
         ctx.strokeStyle = borderHex;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(3, 3, w - 6, h - 10);
+        ctx.lineWidth = 7;
+        ctx.strokeRect(9, 13, w - 18, 86);
+        ctx.fillStyle = borderHex;
+        ctx.fillRect(114, 98, 28, 18);
         ctx.fillStyle = '#071b2c';
-        ctx.fillRect(42, h - 8, 12, 6);
+        ctx.fillRect(118, 94, 20, 16);
         if (badgeKind === 'heart') {
           ctx.fillStyle = badgeHex;
-          ctx.fillRect(11, 11, 4, 4);
-          ctx.fillRect(17, 11, 4, 4);
-          ctx.fillRect(10, 14, 12, 5);
-          ctx.fillRect(13, 19, 6, 3);
+          ctx.fillRect(28, 40, 11, 11);
+          ctx.fillRect(45, 40, 11, 11);
+          ctx.fillRect(25, 48, 34, 14);
+          ctx.fillRect(34, 62, 16, 8);
         } else if (badgeKind === 'moon') {
           ctx.fillStyle = badgeHex;
-          ctx.fillRect(12, 10, 7, 12);
+          ctx.fillRect(30, 34, 22, 42);
           ctx.fillStyle = '#071b2c';
-          ctx.fillRect(16, 12, 5, 8);
+          ctx.fillRect(42, 40, 16, 28);
         } else if (badgeKind === 'laugh') {
           ctx.fillStyle = badgeHex;
-          ctx.fillRect(10, 10, 12, 11);
+          ctx.fillRect(24, 34, 34, 38);
           ctx.fillStyle = '#071b2c';
-          ctx.fillRect(12, 12, 2, 2);
-          ctx.fillRect(18, 12, 2, 2);
-          ctx.fillRect(12, 16, 8, 3);
+          ctx.fillRect(30, 42, 6, 8);
+          ctx.fillRect(46, 42, 6, 8);
+          ctx.fillRect(30, 56, 22, 10);
         } else {
-          // Pixel coffee cup
           ctx.fillStyle = badgeHex;
-          ctx.fillRect(11, 13, 10, 9);
+          ctx.fillRect(26, 44, 30, 28);
           ctx.fillStyle = '#fef3c7';
-          ctx.fillRect(13, 10, 2, 2);
-          ctx.fillRect(17, 9, 2, 3);
+          ctx.fillRect(32, 32, 6, 8);
+          ctx.fillRect(44, 28, 6, 12);
         }
-        ctx.fillStyle = textHex;
-        ctx.font = 'bold 13px "JetBrains Mono", monospace';
+        ctx.font = '700 36px "JetBrains Mono", "Cascadia Mono", Consolas, "Segoe UI", monospace';
         ctx.textBaseline = 'middle';
-        ctx.fillText(label, 27, 16);
+        ctx.lineWidth = 6;
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#030d16';
+        ctx.strokeText(label, 72, 57, w - 88);
+        ctx.fillStyle = textHex;
+        ctx.fillText(label, 72, 57, w - 88);
       });
 
     // After-hours dark monitor standby screen with tiny amber power indicator LED
@@ -2182,19 +2227,24 @@
     const labelStr = customLabel || String(name || '').split(' ')[0].toUpperCase();
     const key = labelStr + '|' + (isWorking ? '1' : '0') + '|' + (isBoss ? 'B' : 'W');
     if (nameplateTextureCache.has(key)) return nameplateTextureCache.get(key);
-    const shortName = isBoss ? ('BOSS · ' + labelStr.slice(0, 8)) : labelStr.slice(0, 11);
-    const tex = makePixelCanvasTexture(isBoss ? 156 : 128, 32, (ctx, w, h) => {
-      ctx.fillStyle = isBoss ? '#1c1208' : '#081e30';
+    const shortName = isBoss ? ('BOSS · ' + labelStr.slice(0, 9)) : labelStr.slice(0, 14);
+    const fontSize = shortName.length > 11 ? 44 : (shortName.length > 8 ? 50 : 56);
+    const tex = makeCrispTextTexture(512, 128, (ctx, w, h) => {
+      ctx.fillStyle = isBoss ? '#1c1208' : '#061929';
       ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = isBoss ? '#fbbf24' : (isWorking ? '#38bdf8' : '#587aa8');
-      ctx.lineWidth = 3;
-      ctx.strokeRect(2, 2, w - 4, h - 4);
+      ctx.strokeStyle = isBoss ? '#fbbf24' : (isWorking ? '#38bdf8' : '#6590c8');
+      ctx.lineWidth = 8;
+      ctx.strokeRect(4, 4, w - 8, h - 8);
       ctx.fillStyle = isBoss ? '#f59e0b' : (isWorking ? '#38bdf8' : '#34d399');
-      ctx.fillRect(8, 11, 8, 10);
-      ctx.fillStyle = isBoss ? '#fef08a' : '#ffffff';
-      ctx.font = 'bold 13px "JetBrains Mono", monospace';
+      ctx.fillRect(24, 46, 22, 36);
+      ctx.font = `700 ${fontSize}px "JetBrains Mono", "Cascadia Mono", Consolas, "Segoe UI", monospace`;
       ctx.textBaseline = 'middle';
-      ctx.fillText(shortName, 22, 17);
+      ctx.lineWidth = 7;
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#030c14';
+      ctx.strokeText(shortName, 66, 66, w - 88);
+      ctx.fillStyle = isBoss ? '#fef08a' : '#ffffff';
+      ctx.fillText(shortName, 66, 66, w - 88);
     });
     nameplateTextureCache.set(key, tex);
     return tex;
@@ -2497,7 +2547,7 @@
     });
     const meowSprite = new THREE.Sprite(meowMat);
     meowSprite.position.set(0, 1.05, 0.1);
-    meowSprite.scale.set(0.98, 0.38, 1);
+    meowSprite.scale.set(0.96, 0.48, 1);
     meowSprite.visible = false;
     root.add(meowSprite);
 
@@ -2868,7 +2918,7 @@
         });
         wakeBubbleSprite = new THREE.Sprite(wMat);
         wakeBubbleSprite.position.set(-0.22, 2.04, -0.1);
-        wakeBubbleSprite.scale.set(0.95, 0.36, 1);
+        wakeBubbleSprite.scale.set(0.96, 0.48, 1);
         wakeBubbleSprite.visible = false;
         parentGroup.add(wakeBubbleSprite);
       }
@@ -2983,9 +3033,9 @@
 
     // 3. Boss Door Signpost & Beacon
     const plateTex = getNameplateTexture(worker.name, rigState.isWorking, true);
-    const plateSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: plateTex, transparent: true }));
-    plateSprite.position.set(-3.62, 2.08, -0.1);
-    plateSprite.scale.set(1.68, 0.38, 1);
+    const plateSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: plateTex, transparent: false }));
+    plateSprite.position.set(-3.62, 2.10, -0.1);
+    plateSprite.scale.set(1.88, 0.47, 1);
     plateSprite.userData = { hitType: 'cubicle', worker };
     cabin.add(plateSprite);
     interactables.push(plateSprite);
@@ -3166,9 +3216,9 @@
 
     // Cafe Doorway Sign Sprite
     if (pantrySignTexture) {
-      const signSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: pantrySignTexture, transparent: true }));
-      signSprite.position.set(-3.62, 2.02, -0.05);
-      signSprite.scale.set(1.68, 0.38, 1);
+      const signSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: pantrySignTexture, transparent: false }));
+      signSprite.position.set(-3.62, 2.04, -0.05);
+      signSprite.scale.set(1.88, 0.47, 1);
       signSprite.userData = { hitType: 'pantry' };
       pantry.add(signSprite);
       interactables.push(signSprite);
@@ -3401,10 +3451,10 @@
     group.add(post);
 
     const plateTex = getNameplateTexture(worker.name, rigInfo.isWorking, false);
-    const plateSpriteMat = new THREE.SpriteMaterial({ map: plateTex, transparent: true });
+    const plateSpriteMat = new THREE.SpriteMaterial({ map: plateTex, transparent: false });
     const plateSprite = new THREE.Sprite(plateSpriteMat);
-    plateSprite.position.set(1.78, 1.74, 1.78);
-    plateSprite.scale.set(1.36, 0.34, 1);
+    plateSprite.position.set(1.78, 1.76, 1.78);
+    plateSprite.scale.set(1.52, 0.38, 1);
     plateSprite.userData = { hitType: 'cubicle', worker };
     group.add(plateSprite);
     interactables.push(plateSprite);
@@ -3465,7 +3515,6 @@
     }
     const canvas = document.getElementById('office-canvas');
     const wrap = document.getElementById('viewport-card');
-    initSharedPixelTextures();
 
     scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x061826, 0.011);
@@ -3479,6 +3528,7 @@
     renderer.setSize(w, h, false);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    initSharedPixelTextures();
 
     // Warm cozy retro studio lighting (modulated continuously by local time of day)
     hemiLight = new THREE.HemisphereLight(0xa5d8ff, 0x091c2c, 0.95);
@@ -4696,16 +4746,16 @@
     const bubbleMat = new THREE.SpriteMaterial({ map: bubTex, transparent: true, opacity: 0, depthWrite: false });
     const bubbleSprite = new THREE.Sprite(bubbleMat);
     bubbleSprite.position.set(0, 2.04, 0);
-    bubbleSprite.scale.set(0.95, 0.36, 1);
+    bubbleSprite.scale.set(0.96, 0.48, 1);
     bubbleSprite.visible = false;
     root.add(bubbleSprite);
 
-    // Overhead pixel nameplate visible when zoomed in on moving/Pantry workers
+    // Overhead HiDPI nameplate visible when zoomed in on moving/Pantry workers
     const nameTex = getNameplateTexture(cv.worker.name, false, false, formatOverheadWorkerLabel(cv.worker.name));
     const nameMat = new THREE.SpriteMaterial({ map: nameTex, transparent: true, opacity: 0, depthWrite: false });
     const nameSprite = new THREE.Sprite(nameMat);
     nameSprite.position.set(0, 1.66, 0);
-    nameSprite.scale.set(1.22, 0.30, 1);
+    nameSprite.scale.set(1.40, 0.35, 1);
     nameSprite.visible = false;
     nameSprite.userData = { hitType: 'pantry_worker', worker: cv.worker };
     root.add(nameSprite);
@@ -5133,7 +5183,7 @@
       const bubbleMat = new THREE.SpriteMaterial({ map: bubTex, transparent: true, opacity: 0, depthWrite: false });
       const bubbleSprite = new THREE.Sprite(bubbleMat);
       bubbleSprite.position.set(0, 2.04, 0);
-      bubbleSprite.scale.set(0.95, 0.36, 1);
+      bubbleSprite.scale.set(0.96, 0.48, 1);
       bubbleSprite.visible = false;
       root.add(bubbleSprite);
 
@@ -5141,7 +5191,7 @@
       const nameMat = new THREE.SpriteMaterial({ map: nameTex, transparent: true, opacity: 0, depthWrite: false });
       const nameSprite = new THREE.Sprite(nameMat);
       nameSprite.position.set(0, 1.66, 0);
-      nameSprite.scale.set(1.36, 0.32, 1);
+      nameSprite.scale.set(1.52, 0.38, 1);
       nameSprite.visible = false;
       root.add(nameSprite);
       interactables.push(nameSprite);
