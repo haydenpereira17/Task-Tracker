@@ -2929,9 +2929,9 @@
             const midDx = curMidX - prevMidX;
             const midDy = curMidY - prevMidY;
 
-            // Rotate horizontally via twist or horizontal slide; pivot polar tilt via vertical slide
-            camState.goalAzimuth -= (midDx * 0.0085) + (angleDelta * 1.1);
-            camState.goalPolar = Math.max(0.22, Math.min(1.42, camState.goalPolar - midDy * 0.0075));
+            // Reversed rotation direction: rotate horizontally via twist/slide & pivot polar tilt via vertical slide
+            camState.goalAzimuth += (midDx * 0.0085) + (angleDelta * 1.1);
+            camState.goalPolar = Math.max(0.22, Math.min(1.42, camState.goalPolar + midDy * 0.0075));
           }
 
           prevPinchDist = curDist;
@@ -2952,8 +2952,8 @@
         if (dragMode === 'pan' || e.pointerType === 'touch') {
           panCameraBy(dx, dy);
         } else {
-          camState.goalAzimuth -= dx * 0.008;
-          camState.goalPolar = Math.max(0.22, Math.min(1.42, camState.goalPolar - dy * 0.007));
+          camState.goalAzimuth += dx * 0.008;
+          camState.goalPolar = Math.max(0.22, Math.min(1.42, camState.goalPolar + dy * 0.007));
         }
         hideTooltip();
         return;
@@ -3038,7 +3038,7 @@
         nudgeZoom(e.deltaY * 0.14);
       } else {
         if (Math.abs(e.deltaX) > Math.abs(e.deltaY) * 1.1) {
-          camState.goalAzimuth -= e.deltaX * 0.004;
+          camState.goalAzimuth += e.deltaX * 0.004;
         }
         nudgeZoom(e.deltaY * 0.022);
       }
