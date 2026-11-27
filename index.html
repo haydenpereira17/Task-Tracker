@@ -2259,11 +2259,15 @@
       background: transparent;
       border: none;
       color: var(--nx-muted);
-      padding: 4px 6px;
-      border-radius: 4px;
+      padding: 5px 6px;
+      border-radius: 6px;
       cursor: pointer;
       font-size: 0.75rem;
       font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
       transition: all 0.2s var(--ease);
     }
 
@@ -7227,8 +7231,12 @@
                     ${statusButtons}
                   </div>
                   <div class="card-tools">
-                    <button class="btn-tool" onclick="openEditModal('${t.id}')" title="Edit task details">Edit</button>
-                    <button class="btn-tool delete" onclick="deleteTask('${t.id}')" title="Delete task">&times;</button>
+                    <button type="button" class="btn-tool" onclick="openEditModal('${t.id}')" title="Edit task details" aria-label="Edit task details">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                      </svg>
+                    </button>
+                    <button type="button" class="btn-tool delete" onclick="deleteTask('${t.id}')" title="Delete task" aria-label="Delete task">&times;</button>
                   </div>
                 </footer>
               `}
