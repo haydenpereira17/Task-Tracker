@@ -1693,6 +1693,13 @@
 
   const ZOOM_MIN = 5.5;
   const ZOOM_MAX = 58;
+  const PAN_MIN = -26;
+  const PAN_MAX = 26;
+  let zoomProbeCam = null;
+  let zoomRaycaster = null;
+  let zoomFocusPlane = null;
+  let zoomHitPt = null;
+  let zoomNdc = null;
 
   // Spherical Orbit Camera State
   const camState = {
@@ -1723,7 +1730,6 @@
   const lambertMatCache = new Map();
   const sharedGlResources = new WeakSet();
   let sharedInvisibleHitMat = null;
-  let canvasRectCache = null;
   const hoverProbe = { pending: false, clientX: 0, clientY: 0 };
   let lastLightingBucketKey = '';
   let lastLightingLampBase = 0;
@@ -3451,24 +3457,15 @@
 
     setupPointerControls(canvas);
     window.addEventListener('resize', handleResize);
-    window.addEventListener('scroll', updateCanvasRectCache, { passive: true });
     document.addEventListener('visibilitychange', handleVisibilityChange);
     rebuildOfficeScene();
     startAnimLoop();
     setTimeout(handleResize, 50);
   }
 
-  function updateCanvasRectCache() {
-    const canvas = renderer ? renderer.domElement : document.getElementById('office-canvas');
-    if (canvas) canvasRectCache = canvas.getBoundingClientRect();
-    return canvasRectCache;
-  }
-
   function getCanvasRect() {
-    if (!canvasRectCache || canvasRectCache.width <= 0 || canvasRectCache.height <= 0) {
-      return updateCanvasRectCache();
-    }
-    return canvasRectCache;
+    const canvas = renderer ? renderer.domElement : document.getElementById('office-canvas');
+    return canvas ? canvas.getBoundingClientRect() : null;
   }
 
   function handleVisibilityChange() {
@@ -3486,7 +3483,6 @@
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h, false);
-    updateCanvasRectCache();
   }
 
   function rebuildOfficeScene() {
@@ -3871,8 +3867,52 @@
     triggerCatMeow();
   }
 
-  function nudgeZoom(delta) {
-    camState.goalDistance = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, camState.goalDistance + delta));
+  function nudgeZoom(delta, clientX = null, clientY = null) {
+    const oldDist = camState.goalDistance;
+    const nextDist = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, oldDist + delta));
+    if (nextDist === oldDist) return;
+
+    if (clientX != null && clientY != null && camera && typeof THREE !== 'undefined') {
+      const rect = getCanvasRect();
+      if (rect && rect.width > 0 && rect.height > 0) {
+        if (!zoomRaycaster) {
+          zoomRaycaster = new THREE.Raycaster();
+          zoomFocusPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.7);
+          zoomHitPt = new THREE.Vector3();
+          zoomNdc = new THREE.Vector2();
+          zoomProbeCam = new THREE.PerspectiveCamera(camera.fov, camera.aspect, camera.near, camera.far);
+        } else if (zoomProbeCam.aspect !== camera.aspect || zoomProbeCam.fov !== camera.fov) {
+          zoomProbeCam.fov = camera.fov;
+          zoomProbeCam.aspect = camera.aspect;
+          zoomProbeCam.updateProjectionMatrix();
+        }
+        const sinP = Math.sin(camState.goalPolar);
+        zoomProbeCam.position.set(
+          camState.goalX + oldDist * sinP * Math.sin(camState.goalAzimuth),
+          0.7 + oldDist * Math.cos(camState.goalPolar),
+          camState.goalZ + oldDist * sinP * Math.cos(camState.goalAzimuth)
+        );
+        zoomProbeCam.lookAt(camState.goalX, 0.7, camState.goalZ);
+        zoomProbeCam.updateMatrixWorld(true);
+
+        zoomNdc.set(
+          ((clientX - rect.left) / rect.width) * 2 - 1,
+          -((clientY - rect.top) / rect.height) * 2 + 1
+        );
+        zoomRaycaster.setFromCamera(zoomNdc, zoomProbeCam);
+        if (zoomRaycaster.ray.intersectPlane(zoomFocusPlane, zoomHitPt)) {
+          const dx = zoomHitPt.x - camState.goalX;
+          const dz = zoomHitPt.z - camState.goalZ;
+          if (dx * dx + dz * dz < 25600) {
+            const scale = 1 - (nextDist / oldDist);
+            camState.goalX = Math.max(PAN_MIN, Math.min(PAN_MAX, camState.goalX + dx * scale));
+            camState.goalZ = Math.max(PAN_MIN, Math.min(PAN_MAX, camState.goalZ + dz * scale));
+          }
+        }
+      }
+    }
+
+    camState.goalDistance = nextDist;
     syncZoomSlider();
   }
 
@@ -3972,8 +4012,8 @@
     const sinA = Math.sin(camState.azimuth);
     const cosA = Math.cos(camState.azimuth);
     const panSpeed = camState.distance * 0.0016;
-    camState.goalX = Math.max(-24, Math.min(24, camState.goalX - (dx * cosA + dy * sinA) * panSpeed));
-    camState.goalZ = Math.max(-24, Math.min(24, camState.goalZ + (dx * sinA - dy * cosA) * panSpeed));
+    camState.goalX = Math.max(PAN_MIN, Math.min(PAN_MAX, camState.goalX - (dx * cosA + dy * sinA) * panSpeed));
+    camState.goalZ = Math.max(PAN_MIN, Math.min(PAN_MAX, camState.goalZ + (dx * sinA - dy * cosA) * panSpeed));
   }
 
   function processPendingHover() {
@@ -4078,7 +4118,7 @@
 
           if (prevPinchDist > 0) {
             const deltaPinch = prevPinchDist - curDist;
-            nudgeZoom(deltaPinch * 0.085);
+            nudgeZoom(deltaPinch * 0.085, curMidX, curMidY);
 
             const angleDelta = Math.atan2(
               Math.sin(curAngle - prevPinchAngle),
@@ -4214,12 +4254,12 @@
     canvas.addEventListener('wheel', e => {
       e.preventDefault();
       if (e.ctrlKey) {
-        nudgeZoom(e.deltaY * 0.14);
+        nudgeZoom(e.deltaY * 0.14, e.clientX, e.clientY);
       } else {
         if (Math.abs(e.deltaX) > Math.abs(e.deltaY) * 1.1) {
           camState.goalAzimuth += e.deltaX * 0.004;
         }
-        nudgeZoom(e.deltaY * 0.022);
+        nudgeZoom(e.deltaY * 0.022, e.clientX, e.clientY);
       }
     }, { passive: false });
   }
@@ -5266,7 +5306,7 @@
         const sinP = Math.sin(camState.polar);
         camera.position.set(
           camState.targetX + camState.distance * sinP * Math.sin(camState.azimuth),
-          camState.distance * Math.cos(camState.polar),
+          0.7 + camState.distance * Math.cos(camState.polar),
           camState.targetZ + camState.distance * sinP * Math.cos(camState.azimuth)
         );
         camera.lookAt(camState.targetX, 0.7, camState.targetZ);
