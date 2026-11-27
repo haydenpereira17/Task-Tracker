@@ -1709,8 +1709,11 @@
   let screenSleepFrames = [];
   let zzzSpriteTex = null;
   let meowSpriteTex = null;
+  let purrSpriteTex = null;
+  let catNapSpriteTex = null;
 
   let aisleGraph = { xs: [], zs: [] };
+  const officePlaces = { boss: null, sleepingSpots: [] };
   let catVisual = null;
   const catState = {
     ix: 0,
@@ -1720,6 +1723,8 @@
     targetIx: 0,
     targetIz: 0,
     x: 0,
+    y: 0,
+    targetY: 0,
     z: 0,
     heading: 0,
     mode: 'pause',
@@ -1727,6 +1732,13 @@
     walkSpeed: 1.75,
     hopTimer: 0,
     meowTimer: 0,
+    bubbleKind: 'meow',
+    waypoints: [],
+    visitKind: null,
+    visitWorkerName: null,
+    visitGoalHeading: null,
+    patrolStepsUntilSpecial: 2,
+    lastVisitKind: 'nap',
     initialized: false
   };
 
@@ -1835,25 +1847,38 @@
       ctx.fillRect(6, 22, 20, 4);
     });
 
-    // Cute retro "<3 MEOW" speech bubble sprite for office cat
-    meowSpriteTex = makePixelCanvasTexture(96, 36, (ctx, w, h) => {
-      ctx.fillStyle = '#071b2c';
-      ctx.fillRect(2, 2, w - 4, h - 8);
-      ctx.strokeStyle = '#fb923c';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(3, 3, w - 6, h - 10);
-      ctx.fillStyle = '#071b2c';
-      ctx.fillRect(42, h - 8, 12, 6);
-      ctx.fillStyle = '#f43f5e';
-      ctx.fillRect(11, 11, 4, 4);
-      ctx.fillRect(17, 11, 4, 4);
-      ctx.fillRect(10, 14, 12, 5);
-      ctx.fillRect(13, 19, 6, 3);
-      ctx.fillStyle = '#ffedd5';
-      ctx.font = 'bold 14px "JetBrains Mono", monospace';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('MEOW!', 28, 16);
-    });
+    // Cute retro pixel speech bubbles for Mochi (MEOW / PURR / NAP Zzz)
+    const makeCatBubbleTex = (borderHex, badgeHex, label, drawHeart = false) =>
+      makePixelCanvasTexture(96, 36, (ctx, w, h) => {
+        ctx.fillStyle = '#071b2c';
+        ctx.fillRect(2, 2, w - 4, h - 8);
+        ctx.strokeStyle = borderHex;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(3, 3, w - 6, h - 10);
+        ctx.fillStyle = '#071b2c';
+        ctx.fillRect(42, h - 8, 12, 6);
+        if (drawHeart) {
+          ctx.fillStyle = badgeHex;
+          ctx.fillRect(11, 11, 4, 4);
+          ctx.fillRect(17, 11, 4, 4);
+          ctx.fillRect(10, 14, 12, 5);
+          ctx.fillRect(13, 19, 6, 3);
+        } else {
+          // Cute pixel crescent moon for catnap bubble
+          ctx.fillStyle = badgeHex;
+          ctx.fillRect(12, 10, 7, 12);
+          ctx.fillStyle = '#071b2c';
+          ctx.fillRect(16, 12, 5, 8);
+        }
+        ctx.fillStyle = '#ffedd5';
+        ctx.font = 'bold 13px "JetBrains Mono", monospace';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, 27, 16);
+      });
+
+    meowSpriteTex = makeCatBubbleTex('#fb923c', '#f43f5e', 'MEOW!', true);
+    purrSpriteTex = makeCatBubbleTex('#fbbf24', '#fb923c', 'PURR~', true);
+    catNapSpriteTex = makeCatBubbleTex('#818cf8', '#fde68a', 'Zzz..', false);
   }
 
   function getNameplateTexture(name, isWorking, isBoss = false) {
@@ -2590,6 +2615,24 @@
     });
 
     worldGroup.add(cabin);
+
+    officePlaces.boss = {
+      name: worker.name,
+      doorEntrance: { x: cabinX - 4.6, z: cabinZ - 0.1 },
+      doorThreshold: { x: cabinX - 3.62, z: cabinZ - 0.1, y: 0.14 },
+      foyer: { x: cabinX - 2.1, z: cabinZ + 0.35, y: 0.14 },
+      rugSpot: { x: cabinX - 1.35, z: cabinZ + 0.65, y: 0.17 },
+      lookTarget: { x: cabinX - 0.2, z: cabinZ - 1.65 }
+    };
+  }
+
+  function localToClusterWorld(clusterX, clusterZ, rotY, lx, lz) {
+    const dx = 1.85 + lx;
+    const dz = 1.85 + lz;
+    return {
+      x: clusterX + dx * Math.cos(rotY) + dz * Math.sin(rotY),
+      z: clusterZ - dx * Math.sin(rotY) + dz * Math.cos(rotY)
+    };
   }
 
   function addWorkerCharacterRigBaseData(worker) {
@@ -2728,6 +2771,22 @@
       zzzSprites: rig.zzzSprites
     });
 
+    if (rig.isSleeping) {
+      const entryWorld = localToClusterWorld(clusterX, clusterZ, rotY, 0.70, 2.75);
+      const napWorld = localToClusterWorld(clusterX, clusterZ, rotY, 0.70, 0.10);
+      const lookWorld = localToClusterWorld(clusterX, clusterZ, rotY, -0.22, -0.10);
+      officePlaces.sleepingSpots.push({
+        name: worker.name,
+        entryX: entryWorld.x,
+        entryZ: entryWorld.z,
+        napX: napWorld.x,
+        napZ: napWorld.z,
+        y: 0.12,
+        lookX: lookWorld.x,
+        lookZ: lookWorld.z
+      });
+    }
+
     worldGroup.add(pivot);
   }
 
@@ -2813,6 +2872,8 @@
     interactables = [];
     cubicleVisuals = [];
     envVisuals = [];
+    officePlaces.boss = null;
+    officePlaces.sleepingSpots = [];
     hoveredHit = null;
     hideTooltip();
 
@@ -2930,7 +2991,15 @@
 
     // Spawn Mochi the Office Cat on the aisle grid!
     catVisual = buildOfficeCat();
-    if (!catState.initialized || catState.ix >= aisleGraph.xs.length || catState.iz >= aisleGraph.zs.length) {
+    const needsCatReset = !catState.initialized
+      || catState.ix >= aisleGraph.xs.length
+      || catState.iz >= aisleGraph.zs.length
+      || (catState.waypoints && catState.waypoints.length > 0)
+      || (catState.returnWaypoints && catState.returnWaypoints.length > 0)
+      || catState.mode === 'visit_boss'
+      || catState.mode === 'nap'
+      || Math.abs(catState.y || 0) > 0.01;
+    if (needsCatReset) {
       const midIx = Math.max(0, aisleGraph.xs.length - 2); // spawns right along the Boss Cabin / cluster main aisle!
       const midIz = Math.floor(aisleGraph.zs.length / 2);
       catState.ix = midIx;
@@ -2938,11 +3007,18 @@
       catState.targetIx = Math.max(0, midIx - 1);
       catState.targetIz = midIz;
       catState.x = aisleGraph.xs[catState.ix];
+      catState.y = 0;
+      catState.targetY = 0;
       catState.z = aisleGraph.zs[catState.iz];
       catState.mode = 'walk';
+      catState.waypoints = [];
+      catState.returnWaypoints = [];
+      catState.visitKind = null;
+      catState.visitWorkerName = null;
+      catState.visitGoalHeading = null;
       catState.initialized = true;
     }
-    catVisual.root.position.set(catState.x, 0, catState.z);
+    catVisual.root.position.set(catState.x, catState.y || 0, catState.z);
     catVisual.root.rotation.y = catState.heading;
 
     // Frame whole office grid + Boss Cabin nicely
@@ -3069,15 +3145,34 @@
     focusCubicleByName(bossCv.worker.name, 13.5);
   }
 
+  function setCatBubble(kind = 'meow') {
+    catState.bubbleKind = kind;
+    if (!catVisual || !catVisual.meowSprite || !catVisual.meowSprite.material) return;
+    const nextTex = kind === 'purr'
+      ? (purrSpriteTex || meowSpriteTex)
+      : (kind === 'nap' ? (catNapSpriteTex || meowSpriteTex) : meowSpriteTex);
+    if (nextTex && catVisual.meowSprite.material.map !== nextTex) {
+      catVisual.meowSprite.material.map = nextTex;
+      catVisual.meowSprite.material.needsUpdate = true;
+    }
+  }
+
   function triggerCatMeow() {
+    setCatBubble('meow');
     catState.hopTimer = 0.55;
     catState.meowTimer = 2.6;
+    if (catState.mode === 'nap' || catState.mode === 'visit_boss') {
+      catState.mode = 'pause';
+      catState.pauseLeft = 2.6;
+    }
   }
 
   function focusOnCat() {
     if (!catVisual) return;
-    catState.mode = 'pause';
-    catState.pauseLeft = 2.6;
+    if (catState.mode === 'walk' && (!catState.waypoints || catState.waypoints.length === 0)) {
+      catState.mode = 'pause';
+      catState.pauseLeft = 2.6;
+    }
     camState.goalX = catState.x;
     camState.goalZ = catState.z;
     camState.goalDistance = 7.2;
@@ -3110,9 +3205,19 @@
     const subEl = document.getElementById('tt-sub');
 
     if (hitData.hitType === 'cat') {
-      eyebrowEl.textContent = catState.mode === 'walk' ? 'OFFICE CAT · ON PATROL' : 'OFFICE CAT · TAKING A BREAK';
-      titleEl.textContent = 'Mochi (Chief Meow Officer)';
-      subEl.textContent = 'Wandering the cubicle cluster aisles · Click to pet!';
+      if (catState.mode === 'visit_boss') {
+        eyebrowEl.textContent = 'OFFICE CAT · VISITING BOSS CABIN';
+        titleEl.textContent = 'Mochi (Chief Meow Officer)';
+        subEl.textContent = "Lounging on Karishma's executive rug · Click to pet!";
+      } else if (catState.mode === 'nap') {
+        eyebrowEl.textContent = 'OFFICE CAT · CATNAP TIME';
+        titleEl.textContent = 'Mochi (Snoozing Zzz)';
+        subEl.textContent = `Curling up beside ${catState.visitWorkerName || 'a sleeping worker'} · Click to pet!`;
+      } else {
+        eyebrowEl.textContent = catState.mode === 'walk' ? 'OFFICE CAT · ON PATROL' : 'OFFICE CAT · TAKING A BREAK';
+        titleEl.textContent = 'Mochi (Chief Meow Officer)';
+        subEl.textContent = 'Wandering the cubicle cluster aisles · Click to pet!';
+      }
     } else if (hitData.hitType === 'folder' && hitData.task) {
       const stageTxt = hitData.task.status === 'inprogress' ? 'In Progress' : (hitData.task.status === 'done' ? 'Done' : 'To Do');
       eyebrowEl.textContent = `${hitData.worker.name} · FOLDER (${stageTxt})`;
@@ -3334,6 +3439,150 @@
     }, { passive: false });
   }
 
+  function findClosestAisleCoordIdx(arr, val) {
+    let bestIdx = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < arr.length; i++) {
+      const d = Math.abs(arr[i] - val);
+      if (d < bestDist) { bestDist = d; bestIdx = i; }
+    }
+    return bestIdx;
+  }
+
+  function buildManhattanAisleWaypoints(fromIx, fromIz, toIx, toIz) {
+    const xs = aisleGraph.xs;
+    const zs = aisleGraph.zs;
+    const wps = [];
+    let cx = Math.min(xs.length - 1, Math.max(0, fromIx));
+    let cz = Math.min(zs.length - 1, Math.max(0, fromIz));
+    while (cx !== toIx) {
+      cx += (toIx > cx ? 1 : -1);
+      wps.push({ x: xs[cx], z: zs[cz], y: 0, ix: cx, iz: cz });
+    }
+    while (cz !== toIz) {
+      cz += (toIz > cz ? 1 : -1);
+      wps.push({ x: xs[cx], z: zs[cz], y: 0, ix: cx, iz: cz });
+    }
+    return wps;
+  }
+
+  function findCorridorNodeForEntry(entryX, entryZ) {
+    const xs = aisleGraph.xs;
+    const zs = aisleGraph.zs;
+    let best = null;
+    let bestDist = Infinity;
+    for (let ix = 0; ix < xs.length; ix++) {
+      for (let iz = 0; iz < zs.length; iz++) {
+        if (Math.abs(xs[ix] - entryX) < 0.38 || Math.abs(zs[iz] - entryZ) < 0.38) {
+          const d = Math.hypot(xs[ix] - entryX, zs[iz] - entryZ);
+          if (d < bestDist) {
+            bestDist = d;
+            best = { ix, iz };
+          }
+        }
+      }
+    }
+    return best || {
+      ix: findClosestAisleCoordIdx(xs, entryX),
+      iz: findClosestAisleCoordIdx(zs, entryZ)
+    };
+  }
+
+  function startCatBossVisit() {
+    const boss = officePlaces.boss;
+    const xs = aisleGraph.xs;
+    const zs = aisleGraph.zs;
+    if (!boss || xs.length === 0 || zs.length === 0) return false;
+
+    const doorIx = findClosestAisleCoordIdx(xs, boss.doorEntrance.x);
+    const doorIz = findClosestAisleCoordIdx(zs, boss.doorEntrance.z);
+    const wps = buildManhattanAisleWaypoints(catState.ix, catState.iz, doorIx, doorIz);
+    wps.push({ x: boss.doorEntrance.x, z: boss.doorEntrance.z, y: 0 });
+    wps.push({ x: boss.doorThreshold.x, z: boss.doorThreshold.z, y: boss.doorThreshold.y });
+    wps.push({ x: boss.foyer.x, z: boss.foyer.z, y: boss.foyer.y });
+    wps.push({
+      x: boss.rugSpot.x,
+      z: boss.rugSpot.z,
+      y: boss.rugSpot.y,
+      onArrive: {
+        mode: 'visit_boss',
+        pause: 4.8,
+        bubble: 'purr',
+        bubbleTimer: 4.5,
+        lookX: boss.lookTarget.x,
+        lookZ: boss.lookTarget.z
+      }
+    });
+
+    catState.waypoints = wps;
+    catState.returnWaypoints = [
+      { x: boss.foyer.x, z: boss.foyer.z, y: boss.foyer.y },
+      { x: boss.doorThreshold.x, z: boss.doorThreshold.z, y: boss.doorThreshold.y },
+      { x: boss.doorEntrance.x, z: boss.doorEntrance.z, y: 0 },
+      { x: xs[doorIx], z: zs[doorIz], y: 0, ix: doorIx, iz: doorIz }
+    ];
+    catState.mode = 'walk';
+    catState.visitKind = null;
+    catState.visitWorkerName = null;
+    catState.visitGoalHeading = null;
+    catState.lastVisitKind = 'boss';
+    catState.patrolStepsUntilSpecial = 3 + Math.floor(Math.random() * 4);
+    setCatBubble('meow');
+    return true;
+  }
+
+  function startCatNapVisit(workerName = null) {
+    const spots = officePlaces.sleepingSpots;
+    const xs = aisleGraph.xs;
+    const zs = aisleGraph.zs;
+    if (!spots || spots.length === 0 || xs.length === 0 || zs.length === 0) return false;
+
+    const spot = workerName
+      ? (spots.find(s => s.name === workerName) || spots[0])
+      : spots[Math.floor(Math.random() * spots.length)];
+    const { ix: entryIx, iz: entryIz } = findCorridorNodeForEntry(spot.entryX, spot.entryZ);
+    const wps = buildManhattanAisleWaypoints(catState.ix, catState.iz, entryIx, entryIz);
+    wps.push({ x: spot.entryX, z: spot.entryZ, y: 0 });
+    wps.push({
+      x: spot.napX,
+      z: spot.napZ,
+      y: spot.y,
+      onArrive: {
+        mode: 'nap',
+        visitWorkerName: spot.name,
+        pause: 5.8,
+        bubble: 'nap',
+        bubbleTimer: 5.5,
+        lookX: spot.lookX,
+        lookZ: spot.lookZ
+      }
+    });
+
+    catState.waypoints = wps;
+    catState.returnWaypoints = [
+      { x: spot.entryX, z: spot.entryZ, y: 0 },
+      { x: xs[entryIx], z: zs[entryIz], y: 0, ix: entryIx, iz: entryIz }
+    ];
+    catState.mode = 'walk';
+    catState.visitKind = null;
+    catState.visitWorkerName = null;
+    catState.visitGoalHeading = null;
+    catState.lastVisitKind = 'nap';
+    catState.patrolStepsUntilSpecial = 3 + Math.floor(Math.random() * 4);
+    setCatBubble('meow');
+    return true;
+  }
+
+  function maybeStartSpecialCatVisit() {
+    const hasBoss = Boolean(officePlaces.boss);
+    const hasSleep = officePlaces.sleepingSpots.length > 0;
+    if (!hasBoss && !hasSleep) return false;
+    if (hasBoss && hasSleep) {
+      return catState.lastVisitKind === 'nap' ? startCatBossVisit() : startCatNapVisit();
+    }
+    return hasBoss ? startCatBossVisit() : startCatNapVisit();
+  }
+
   function pickNextCatNode() {
     const xs = aisleGraph.xs;
     const zs = aisleGraph.zs;
@@ -3352,6 +3601,7 @@
     catState.prevIz = catState.iz;
     catState.targetIx = tx;
     catState.targetIz = tz;
+    catState.targetY = 0;
     catState.mode = 'walk';
   }
 
@@ -3363,25 +3613,69 @@
     if (catState.hopTimer > 0) catState.hopTimer = Math.max(0, catState.hopTimer - dt);
     if (catState.meowTimer > 0) catState.meowTimer = Math.max(0, catState.meowTimer - dt);
 
-    if (catState.mode === 'pause') {
+    if (catState.mode === 'pause' || catState.mode === 'visit_boss' || catState.mode === 'nap') {
       catState.pauseLeft -= dt;
-      // Cozy sitting/inspecting head & gentle tail sway
-      catVisual.rig.position.y = 0;
-      catVisual.legFL.rotation.x = 0;
-      catVisual.legFR.rotation.x = 0;
-      catVisual.legBL.rotation.x = 0;
-      catVisual.legBR.rotation.x = 0;
-      catVisual.head.rotation.y = Math.sin(t * 2.1) * 0.42;
-      catVisual.head.rotation.x = Math.sin(t * 1.4) * 0.08;
-      catVisual.tailPivot.rotation.z = Math.sin(t * 3.5) * 0.35;
-      catVisual.tailPivot.rotation.x = 0.08;
+
+      if (catState.visitGoalHeading !== null && catState.visitGoalHeading !== undefined) {
+        const hDiff = Math.atan2(
+          Math.sin(catState.visitGoalHeading - catState.heading),
+          Math.cos(catState.visitGoalHeading - catState.heading)
+        );
+        catState.heading += hDiff * Math.min(1, dt * 8);
+      }
+
+      if (catState.mode === 'nap') {
+        // Curled up catnap beside sleeping worker
+        const breath = Math.sin(t * 2.0);
+        catVisual.rig.position.y = -0.09 + breath * 0.012;
+        catVisual.legFL.rotation.x = -1.35;
+        catVisual.legFR.rotation.x = -1.35;
+        catVisual.legBL.rotation.x = 1.35;
+        catVisual.legBR.rotation.x = 1.35;
+        catVisual.head.rotation.x = 0.16 + breath * 0.03;
+        catVisual.head.rotation.y = Math.sin(t * 0.85) * 0.08;
+        catVisual.head.rotation.z = 0.2;
+        catVisual.tailPivot.rotation.x = -0.35;
+        catVisual.tailPivot.rotation.y = 0.7;
+        catVisual.tailPivot.rotation.z = Math.sin(t * 1.4) * 0.14;
+      } else {
+        // Alert sit / purring pose (Boss Cabin rug visit or regular corridor pause)
+        catVisual.rig.position.y = 0;
+        catVisual.legFL.rotation.x = 0;
+        catVisual.legFR.rotation.x = 0;
+        catVisual.legBL.rotation.x = 0;
+        catVisual.legBR.rotation.x = 0;
+        catVisual.head.rotation.y = Math.sin(t * 2.1) * (catState.mode === 'visit_boss' ? 0.24 : 0.42);
+        catVisual.head.rotation.x = Math.sin(t * 1.4) * 0.08;
+        catVisual.head.rotation.z = 0;
+        catVisual.tailPivot.rotation.y = 0;
+        catVisual.tailPivot.rotation.z = Math.sin(t * (catState.mode === 'visit_boss' ? 5.2 : 3.5)) * 0.38;
+        catVisual.tailPivot.rotation.x = 0.08;
+      }
 
       if (catState.pauseLeft <= 0) {
-        pickNextCatNode();
+        if (catState.returnWaypoints && catState.returnWaypoints.length > 0) {
+          catState.waypoints = catState.returnWaypoints.slice();
+          catState.returnWaypoints = [];
+          catState.visitKind = null;
+          catState.visitWorkerName = null;
+          catState.visitGoalHeading = null;
+          catState.mode = 'walk';
+          setCatBubble('meow');
+        } else {
+          catState.visitKind = null;
+          catState.visitWorkerName = null;
+          catState.visitGoalHeading = null;
+          pickNextCatNode();
+        }
       }
     } else {
-      const tx = xs[Math.min(xs.length - 1, Math.max(0, catState.targetIx))];
-      const tz = zs[Math.min(zs.length - 1, Math.max(0, catState.targetIz))];
+      const hasQueue = catState.waypoints && catState.waypoints.length > 0;
+      const wp = hasQueue ? catState.waypoints[0] : null;
+      const tx = wp ? wp.x : xs[Math.min(xs.length - 1, Math.max(0, catState.targetIx))];
+      const tz = wp ? wp.z : zs[Math.min(zs.length - 1, Math.max(0, catState.targetIz))];
+      catState.targetY = wp ? (wp.y || 0) : 0;
+
       const dx = tx - catState.x;
       const dz = tz - catState.z;
       const dist = Math.hypot(dx, dz);
@@ -3390,14 +3684,39 @@
       if (dist <= step + 0.04) {
         catState.x = tx;
         catState.z = tz;
-        catState.ix = Math.min(xs.length - 1, Math.max(0, catState.targetIx));
-        catState.iz = Math.min(zs.length - 1, Math.max(0, catState.targetIz));
-        if (Math.random() < 0.42) {
-          catState.mode = 'pause';
-          catState.pauseLeft = 1.6 + Math.random() * 1.8;
-          if (Math.random() < 0.35) catState.meowTimer = Math.max(catState.meowTimer, 1.7);
+        catState.y = catState.targetY;
+        if (hasQueue) {
+          if (wp.ix != null) catState.ix = Math.min(xs.length - 1, Math.max(0, wp.ix));
+          if (wp.iz != null) catState.iz = Math.min(zs.length - 1, Math.max(0, wp.iz));
+          catState.waypoints.shift();
+          if (wp.onArrive) {
+            catState.mode = wp.onArrive.mode;
+            catState.pauseLeft = wp.onArrive.pause;
+            catState.visitKind = wp.onArrive.mode;
+            catState.visitWorkerName = wp.onArrive.visitWorkerName || null;
+            catState.visitGoalHeading = Math.atan2(wp.onArrive.lookX - wp.x, wp.onArrive.lookZ - wp.z);
+            setCatBubble(wp.onArrive.bubble || 'meow');
+            catState.meowTimer = wp.onArrive.bubbleTimer || 3.5;
+          } else if (catState.waypoints.length === 0) {
+            catState.mode = 'pause';
+            catState.pauseLeft = 0.8 + Math.random() * 1.2;
+          }
         } else {
-          pickNextCatNode();
+          catState.ix = Math.min(xs.length - 1, Math.max(0, catState.targetIx));
+          catState.iz = Math.min(zs.length - 1, Math.max(0, catState.targetIz));
+          catState.patrolStepsUntilSpecial = (catState.patrolStepsUntilSpecial || 0) - 1;
+          if (catState.patrolStepsUntilSpecial <= 0 && maybeStartSpecialCatVisit()) {
+            // Waypoints now queued to stroll into Boss Cabin or curl up by a sleeping worker
+          } else if (Math.random() < 0.42) {
+            catState.mode = 'pause';
+            catState.pauseLeft = 1.6 + Math.random() * 1.8;
+            if (Math.random() < 0.35) {
+              setCatBubble('meow');
+              catState.meowTimer = Math.max(catState.meowTimer, 1.7);
+            }
+          } else {
+            pickNextCatNode();
+          }
         }
       } else {
         const vx = (dx / dist) * step;
@@ -3419,17 +3738,21 @@
       catVisual.rig.position.y = Math.abs(Math.cos(trot)) * 0.045;
       catVisual.head.rotation.y = Math.sin(t * 2.5) * 0.12;
       catVisual.head.rotation.x = Math.sin(trot * 0.5) * 0.06;
+      catVisual.head.rotation.z = 0;
+      catVisual.tailPivot.rotation.y = 0;
       catVisual.tailPivot.rotation.z = Math.sin(t * 6.5) * 0.42;
       catVisual.tailPivot.rotation.x = -0.08 + Math.cos(trot) * 0.1;
     }
 
+    catState.y += ((catState.targetY || 0) - (catState.y || 0)) * Math.min(1, dt * 10);
     const hopOffset = catState.hopTimer > 0 ? Math.sin((catState.hopTimer / 0.55) * Math.PI) * 0.48 : 0;
-    catVisual.root.position.set(catState.x, hopOffset, catState.z);
+    catVisual.root.position.set(catState.x, (catState.y || 0) + hopOffset, catState.z);
     catVisual.root.rotation.y = catState.heading;
 
     if (catState.meowTimer > 0) {
       catVisual.meowSprite.visible = true;
-      catVisual.meowSprite.position.y = 1.04 + Math.sin(t * 5) * 0.05;
+      const baseBubbleY = catState.mode === 'nap' ? 1.02 : 1.04;
+      catVisual.meowSprite.position.y = baseBubbleY + Math.sin(t * 5) * 0.05;
       catVisual.meowSprite.material.opacity = Math.min(1, catState.meowTimer * 2);
     } else {
       catVisual.meowSprite.visible = false;
