@@ -4383,6 +4383,7 @@
     const db = firebase.database();
     const tasksRef = db.ref('tasks');
     const recurringRef = db.ref('recurringTasks');
+    const deletedTasksRef = db.ref('deletedTasks');
 
     const syncStatusEl = document.getElementById('sync-status');
     const syncPillEl = document.getElementById('sync-pill');
@@ -5915,10 +5916,61 @@
       });
     }
 
+    function sanitizeForFirebase(val) {
+      if (val === undefined) return undefined;
+      if (Array.isArray(val)) {
+        return val.map(sanitizeForFirebase).filter(v => v !== undefined);
+      }
+      if (val && typeof val === 'object') {
+        const out = {};
+        Object.keys(val).forEach(k => {
+          const cleaned = sanitizeForFirebase(val[k]);
+          if (cleaned !== undefined) out[k] = cleaned;
+        });
+        return out;
+      }
+      return val;
+    }
+
+    function commitTaskArchiveAndDelete(id, taskData) {
+      let deletedBy = '';
+      try { deletedBy = sessionStorage.getItem('workpulse_user_id') || ''; } catch (e) {}
+      const payload = sanitizeForFirebase({
+        ...(taskData || {}),
+        originalId: id,
+        deletedAt: new Date().toISOString(),
+        deletedBy: deletedBy || 'hayd'
+      });
+      delete payload.id;
+      const archiveKey = deletedTasksRef.push().key;
+      expandedTasks.delete(id);
+      openHistoryDrawers.delete(id);
+      openFeedbackHistoryDrawers.delete(id);
+      v1EditorOpen.delete(id);
+      v1Drafts.delete(id);
+      db.ref().update({
+        ['deletedTasks/' + archiveKey]: payload,
+        ['tasks/' + id]: null
+      });
+    }
+
     function deleteTask(id) {
       if (isViewOnly) return;
       if (!confirm('Are you sure you want to delete this task?')) return;
-      tasksRef.child(id).remove();
+      const existing = allTasks.find(t => t.id === id);
+      if (existing) {
+        commitTaskArchiveAndDelete(id, existing);
+        return;
+      }
+      tasksRef.child(id).once('value').then(snap => {
+        if (!snap.exists()) {
+          tasksRef.child(id).remove();
+          return;
+        }
+        commitTaskArchiveAndDelete(id, snap.val());
+      }).catch(() => {
+        tasksRef.child(id).remove();
+      });
     }
 
     // ══════════════════════════════════════
