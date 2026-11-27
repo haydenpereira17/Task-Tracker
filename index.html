@@ -3815,7 +3815,7 @@
       </div>
 
       <div class="filter-search-box">
-        <input type="text" id="filter-search" class="nx-input" placeholder="Search tasks or owners…" oninput="renderBoard()" />
+        <input type="text" id="filter-search" class="nx-input" placeholder="Search tasks or owners…" oninput="scheduleBoardRender()" />
       </div>
     </section>
 
@@ -4775,8 +4775,21 @@
       return formatLocalDateStr(d);
     }
 
+    let cachedTodayIso = '';
+    let cachedTodayIsoAt = 0;
+    function getTodayIsoCached() {
+      const now = Date.now();
+      if (cachedTodayIso && now - cachedTodayIsoAt < 30000) return cachedTodayIso;
+      cachedTodayIso = formatLocalDateStr(new Date(now));
+      cachedTodayIsoAt = now;
+      return cachedTodayIso;
+    }
+
     function isOverdue(dateStr, status) {
       if (status === 'done' || !dateStr) return false;
+      if (dateStr.length === 10 && dateStr[4] === '-' && dateStr[7] === '-') {
+        return dateStr < getTodayIsoCached();
+      }
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const due = parseLocalDate(dateStr);
@@ -7062,14 +7075,22 @@
       `;
     }
 
+    let boardRenderTimer = null;
+    function scheduleBoardRender() {
+      if (boardRenderTimer) clearTimeout(boardRenderTimer);
+      boardRenderTimer = setTimeout(() => {
+        boardRenderTimer = null;
+        renderBoard();
+      }, 110);
+    }
+
+    const HTML_ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
     function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
+      return str == null ? '' : String(str).replace(/[&<>"']/g, ch => HTML_ESCAPE_MAP[ch]);
     }
 
     function escapeAttr(str) {
-      return escapeHtml(String(str || '')).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      return escapeHtml(str == null ? '' : String(str));
     }
 
     function closeHeaderMenu() {
