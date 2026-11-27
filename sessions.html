@@ -220,59 +220,11 @@
 
     .auth-submit:hover { filter: brightness(1.1); transform: translateY(-1px); }
 
-    .auth-user-pill-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 10px;
-      padding: 6px 11px;
-      border-radius: 10px;
-      background: rgba(4, 113, 166, 0.16);
-      border: 1px solid rgba(137, 170, 230, 0.28);
-      font-size: 0.74rem;
-      color: var(--nx-muted);
-    }
-
-    .auth-user-pill-row strong {
-      font-family: 'JetBrains Mono', monospace;
-      color: #ffffff;
-    }
-
-    .btn-auth-switch-user {
-      background: transparent;
-      border: none;
-      color: var(--pace-periwinkle);
-      font-family: inherit;
-      font-size: 0.72rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .btn-auth-switch-user:hover { color: #ffffff; }
-
-    .alpha-keypad {
-      display: none;
-      flex-direction: column;
-      gap: 5px;
-      margin: 0 0 12px;
-    }
-
-    .alpha-keypad.is-desk-open { display: flex; }
-
-    .alpha-row {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .alpha-row-mid { padding: 0 10px; }
-
     .keypad-btn {
       font-family: inherit;
-      font-size: 0.82rem;
+      font-size: 0.88rem;
       font-weight: 600;
-      height: 36px;
+      height: 38px;
       flex: 1 1 0;
       min-width: 0;
       padding: 0;
@@ -290,8 +242,7 @@
     .keypad-btn:hover { background: rgba(4, 113, 166, 0.3); }
 
     .alpha-key-wide {
-      flex: 1.45 1 0;
-      font-size: 0.7rem;
+      font-size: 0.72rem;
       color: var(--nx-muted);
     }
 
@@ -331,7 +282,6 @@
     .btn-pad-toggle:hover { color: #ffffff; background: rgba(137, 170, 230, 0.14); }
 
     @media (pointer: coarse), (max-width: 640px) {
-      .alpha-keypad { display: flex; }
       .mobile-keypad { display: grid; }
       .btn-pad-toggle { display: none; }
     }
@@ -1005,71 +955,33 @@
       <div class="auth-eyebrow">Work Pulse</div>
       <div class="auth-byline">Product of Hayd's AI Maxing</div>
       <h1 class="auth-title" id="sessions-auth-title">Active Sessions</h1>
-      <p class="auth-subtitle" id="sessions-auth-subtitle">Enter full-access User ID to continue</p>
-      <form onsubmit="handleSessionsAuthSubmit(event)" novalidate>
-        <div id="sessions-step-userid">
-          <div class="auth-input-inline">
-            <input
-              type="text"
-              id="sessions-userid"
-              class="auth-input"
-              style="letter-spacing:0.1em; text-transform:lowercase;"
-              inputmode="text"
-              pattern="[A-Za-z]*"
-              autocapitalize="none"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="User ID"
-              aria-label="User ID"
-              autofocus
-            />
-            <button type="button" class="btn-pad-toggle" onclick="document.getElementById('sessions-alpha-keypad').classList.toggle('is-desk-open')" title="Toggle alpha keyboard" aria-label="Toggle alpha keyboard">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/></svg>
-            </button>
-          </div>
-          <div class="alpha-keypad" id="sessions-alpha-keypad" role="group" aria-label="Alpha-only onscreen keyboard">
-            <div class="alpha-row">
-              <button type="button" class="keypad-btn" onclick="sesAlphaAppend('q')">Q</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('w')">W</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('e')">E</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('r')">R</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('t')">T</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('y')">Y</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('u')">U</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('i')">I</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('o')">O</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('p')">P</button>
-            </div>
-            <div class="alpha-row alpha-row-mid">
-              <button type="button" class="keypad-btn" onclick="sesAlphaAppend('a')">A</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('s')">S</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('d')">D</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('f')">F</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('g')">G</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('h')">H</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('j')">J</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('k')">K</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('l')">L</button>
-            </div>
-            <div class="alpha-row">
-              <button type="button" class="keypad-btn alpha-key-wide" onclick="sesAlphaClear()">Clr</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('z')">Z</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('x')">X</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('c')">C</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('v')">V</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('b')">B</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('n')">N</button><button type="button" class="keypad-btn" onclick="sesAlphaAppend('m')">M</button><button type="button" class="keypad-btn alpha-key-wide" onclick="sesAlphaBackspace()">&larr;</button>
-            </div>
-          </div>
+      <p class="auth-subtitle" id="sessions-auth-subtitle">Enter full-access passcode to monitor live connections</p>
+      <form onsubmit="verifySessionsPasscode(event)" novalidate>
+        <div class="auth-input-inline">
+          <input
+            type="password"
+            id="sessions-passcode"
+            class="auth-input"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            autocomplete="off"
+            placeholder="••••"
+            aria-label="Workspace passcode"
+            autofocus
+          />
+          <button type="button" class="btn-pad-toggle" onclick="document.getElementById('sessions-num-keypad').classList.toggle('is-desk-open')" title="Toggle numeric keypad" aria-label="Toggle numeric keypad">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/></svg>
+          </button>
+        </div>
+        <div class="mobile-keypad" id="sessions-num-keypad" role="group" aria-label="Numeric keypad">
+          <button type="button" class="keypad-btn" onclick="sesNumAppend('1')">1</button><button type="button" class="keypad-btn" onclick="sesNumAppend('2')">2</button><button type="button" class="keypad-btn" onclick="sesNumAppend('3')">3</button>
+          <button type="button" class="keypad-btn" onclick="sesNumAppend('4')">4</button><button type="button" class="keypad-btn" onclick="sesNumAppend('5')">5</button><button type="button" class="keypad-btn" onclick="sesNumAppend('6')">6</button>
+          <button type="button" class="keypad-btn" onclick="sesNumAppend('7')">7</button><button type="button" class="keypad-btn" onclick="sesNumAppend('8')">8</button><button type="button" class="keypad-btn" onclick="sesNumAppend('9')">9</button>
+          <button type="button" class="keypad-btn alpha-key-wide" onclick="sesNumClear()">Clear</button><button type="button" class="keypad-btn" onclick="sesNumAppend('0')">0</button><button type="button" class="keypad-btn alpha-key-wide" onclick="sesNumBackspace()">&larr;</button>
         </div>
 
-        <div id="sessions-step-passcode" class="hidden">
-          <div class="auth-user-pill-row">
-            <span>User: <strong id="sessions-active-user">hayd</strong></span>
-            <button type="button" class="btn-auth-switch-user" onclick="backToSesUserId()">&larr; Change</button>
-          </div>
-          <div class="auth-input-inline">
-            <input
-              type="password"
-              id="sessions-passcode"
-              class="auth-input"
-              inputmode="numeric"
-              pattern="[0-9]*"
-              autocomplete="off"
-              placeholder="••••"
-              aria-label="Workspace passcode"
-            />
-            <button type="button" class="btn-pad-toggle" onclick="document.getElementById('sessions-num-keypad').classList.toggle('is-desk-open')" title="Toggle numeric keypad" aria-label="Toggle numeric keypad">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/></svg>
-            </button>
-          </div>
-          <div class="mobile-keypad" id="sessions-num-keypad" role="group" aria-label="Numeric keypad">
-            <button type="button" class="keypad-btn" onclick="sesNumAppend('1')">1</button><button type="button" class="keypad-btn" onclick="sesNumAppend('2')">2</button><button type="button" class="keypad-btn" onclick="sesNumAppend('3')">3</button>
-            <button type="button" class="keypad-btn" onclick="sesNumAppend('4')">4</button><button type="button" class="keypad-btn" onclick="sesNumAppend('5')">5</button><button type="button" class="keypad-btn" onclick="sesNumAppend('6')">6</button>
-            <button type="button" class="keypad-btn" onclick="sesNumAppend('7')">7</button><button type="button" class="keypad-btn" onclick="sesNumAppend('8')">8</button><button type="button" class="keypad-btn" onclick="sesNumAppend('9')">9</button>
-            <button type="button" class="keypad-btn alpha-key-wide" onclick="sesNumClear()">Clear</button><button type="button" class="keypad-btn" onclick="sesNumAppend('0')">0</button><button type="button" class="keypad-btn alpha-key-wide" onclick="sesNumBackspace()">&larr;</button>
-          </div>
-        </div>
-
-        <div class="auth-error" id="sessions-auth-error" role="alert">Incorrect credentials. Please try again.</div>
-        <button type="submit" class="auth-submit">Continue</button>
+        <div class="auth-error" id="sessions-auth-error" role="alert">Incorrect passcode. Please try again.</div>
+        <button type="submit" class="auth-submit">Unlock</button>
       </form>
       <a href="index.html" class="auth-back-link">&larr; Back to Board</a>
     </div>
@@ -1565,28 +1477,7 @@
     refreshTimerId = setInterval(renderSessions, 10000);
   }
 
-  const USER_HAYD_HASH = 'c6df031f';
-  const USER_VISITOR_HASH = 'e9505321';
-  const USER_SESSION_KEY = 'workpulse_user_id';
-  let authStep = 'userid';
-  let pendingAuthRole = null;
-  let pendingAuthUser = '';
-
-  function getUserRoleFromId(userId) {
-    const clean = String(userId || '').trim().toLowerCase();
-    const h = hashPassword(clean);
-    if (h === USER_HAYD_HASH) return 'full';
-    if (h === USER_VISITOR_HASH) return 'view';
-    return null;
-  }
-
-  function verifyRoleAndPasscode(expectedRole, code) {
-    const r = getPasscodeRole(code);
-    if (expectedRole && r !== expectedRole) return null;
-    return r;
-  }
-
-  function showSessionsAuthError(message, step = authStep) {
+  function showSessionsAuthError(message) {
     const errEl = document.getElementById('sessions-auth-error');
     const card = document.getElementById('sessions-auth-card');
     if (errEl) {
@@ -1598,72 +1489,20 @@
       void card.offsetWidth;
       card.classList.add('shake');
     }
-    const target = document.getElementById(step === 'userid' ? 'sessions-userid' : 'sessions-passcode');
+    const target = document.getElementById('sessions-passcode');
     if (target) {
       target.value = '';
       target.focus();
     }
   }
 
-  function goToSesPasscode(userLabel) {
-    authStep = 'passcode';
-    pendingAuthRole = 'full';
-    pendingAuthUser = userLabel;
-    document.getElementById('sessions-active-user').textContent = userLabel;
-    document.getElementById('sessions-auth-subtitle').textContent = 'Enter full-access passcode to monitor live connections';
-    document.getElementById('sessions-step-userid').classList.add('hidden');
-    document.getElementById('sessions-step-passcode').classList.remove('hidden');
-    document.getElementById('sessions-auth-error').classList.remove('visible');
-    const p = document.getElementById('sessions-passcode');
-    p.value = '';
-    p.focus();
-  }
-
-  function backToSesUserId() {
-    authStep = 'userid';
-    pendingAuthRole = null;
-    pendingAuthUser = '';
-    document.getElementById('sessions-auth-subtitle').textContent = 'Enter full-access User ID to continue';
-    document.getElementById('sessions-step-passcode').classList.add('hidden');
-    document.getElementById('sessions-step-userid').classList.remove('hidden');
-    document.getElementById('sessions-auth-error').classList.remove('visible');
-    document.getElementById('sessions-passcode').value = '';
-    const u = document.getElementById('sessions-userid');
-    u.value = '';
-    u.focus();
-  }
-
-  function checkSesUserId(val) {
-    const clean = String(val || '').replace(/[^a-zA-Z]/g, '').toLowerCase();
-    const role = getUserRoleFromId(clean);
-    if (role === 'full') goToSesPasscode(clean);
-    else if (role === 'view') showSessionsAuthError('Active Sessions is not available for View-Only (visitor).', 'userid');
-  }
-
-  function sesAlphaAppend(ch) {
-    const letter = String(ch || '').replace(/[^a-zA-Z]/g, '').toLowerCase();
-    const u = document.getElementById('sessions-userid');
-    document.getElementById('sessions-auth-error').classList.remove('visible');
-    u.value = String(u.value || '').replace(/[^a-zA-Z]/g, '').toLowerCase() + letter;
-    checkSesUserId(u.value);
-  }
-  function sesAlphaBackspace() {
-    const u = document.getElementById('sessions-userid');
-    document.getElementById('sessions-auth-error').classList.remove('visible');
-    u.value = String(u.value || '').slice(0, -1);
-  }
-  function sesAlphaClear() {
-    document.getElementById('sessions-auth-error').classList.remove('visible');
-    document.getElementById('sessions-userid').value = '';
-  }
-
   function sesNumAppend(d) {
     const p = document.getElementById('sessions-passcode');
     document.getElementById('sessions-auth-error').classList.remove('visible');
     p.value = String(p.value || '') + String(d);
-    const role = verifyRoleAndPasscode('full', p.value);
-    if (role === 'full') { saveUnlockedSession('full'); try { sessionStorage.setItem(USER_SESSION_KEY, pendingAuthUser || 'hayd'); } catch (e) {} startSessionsApp('full'); }
-    else if (getPasscodeRole(p.value) === 'view') { showSessionsAuthError('Active Sessions is not available with View-Only (0000) access.', 'passcode'); }
+    const role = getPasscodeRole(p.value);
+    if (role === 'full') { saveUnlockedSession('full'); startSessionsApp('full'); }
+    else if (role === 'view') { showSessionsAuthError('Active Sessions is not available with View-Only (0000) access.'); }
   }
   function sesNumBackspace() {
     const p = document.getElementById('sessions-passcode');
@@ -1675,58 +1514,33 @@
     document.getElementById('sessions-passcode').value = '';
   }
 
-  function handleSessionsAuthSubmit(event) {
-    if (event) event.preventDefault();
-    if (authStep === 'userid') {
-      const clean = String(document.getElementById('sessions-userid').value || '').trim().toLowerCase();
-      const role = getUserRoleFromId(clean);
-      if (role === 'full') goToSesPasscode(clean);
-      else if (role === 'view') showSessionsAuthError('Active Sessions is not available for View-Only (visitor).', 'userid');
-      else showSessionsAuthError('Unknown User ID. Please try again.', 'userid');
-      return;
-    }
-    verifySessionsPasscode(event);
-  }
-
   function verifySessionsPasscode(event) {
     if (event) event.preventDefault();
     const input = document.getElementById('sessions-passcode');
     const errEl = document.getElementById('sessions-auth-error');
-    const role = verifyRoleAndPasscode(pendingAuthRole || 'full', input.value);
+    const role = getPasscodeRole(input.value);
 
     if (role === 'full') {
       errEl.classList.remove('visible');
       saveUnlockedSession('full');
-      try { sessionStorage.setItem(USER_SESSION_KEY, pendingAuthUser || 'hayd'); } catch (e) {}
       startSessionsApp('full');
-    } else if (getPasscodeRole(input.value) === 'view') {
-      showSessionsAuthError('Active Sessions is not available with View-Only (0000) access.', 'passcode');
+    } else if (role === 'view') {
+      showSessionsAuthError('Active Sessions is not available with View-Only (0000) access.');
     } else {
-      showSessionsAuthError('Incorrect passcode. Please try again.', 'passcode');
+      showSessionsAuthError('Incorrect passcode. Please try again.');
     }
-  }
-
-  const sesUserInputEl = document.getElementById('sessions-userid');
-  if (sesUserInputEl) {
-    sesUserInputEl.addEventListener('input', () => {
-      const clean = String(sesUserInputEl.value || '').replace(/[^a-zA-Z]/g, '').toLowerCase();
-      if (sesUserInputEl.value !== clean) sesUserInputEl.value = clean;
-      document.getElementById('sessions-auth-error').classList.remove('visible');
-      checkSesUserId(clean);
-    });
   }
 
   const passInputEl = document.getElementById('sessions-passcode');
   if (passInputEl) {
     passInputEl.addEventListener('input', () => {
       document.getElementById('sessions-auth-error').classList.remove('visible');
-      const role = verifyRoleAndPasscode(pendingAuthRole || 'full', passInputEl.value);
+      const role = getPasscodeRole(passInputEl.value);
       if (role === 'full') {
         saveUnlockedSession('full');
-        try { sessionStorage.setItem(USER_SESSION_KEY, pendingAuthUser || 'hayd'); } catch (e) {}
         startSessionsApp('full');
-      } else if (getPasscodeRole(passInputEl.value) === 'view') {
-        showSessionsAuthError('Active Sessions is not available with View-Only (0000) access.', 'passcode');
+      } else if (role === 'view') {
+        showSessionsAuthError('Active Sessions is not available with View-Only (0000) access.');
       }
     });
   }
@@ -1764,7 +1578,7 @@
     if (initialRole === 'view') {
       const subEl = document.getElementById('sessions-auth-subtitle');
       if (subEl) {
-        subEl.textContent = 'View-Only (visitor / 0000) sessions cannot open Active Sessions. Sign in as hayd.';
+        subEl.textContent = 'View-Only (0000) sessions cannot open Active Sessions. Enter full-access passcode.';
       }
     }
   }
