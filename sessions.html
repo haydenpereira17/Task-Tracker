@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Work Pulse — Active Sessions</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --pace-navy: #061826;
+      --pace-panel: #07263a;
+      --pace-ocean: #0471a6;
+      --pace-blue: #3685b5;
+      --pace-periwinkle: #89aae6;
+      --pace-red: #b9162e;
+      --pace-red-hover: #d41c37;
+      --pace-red-glow: rgba(185, 22, 46, 0.36);
+      --pace-white: #ffffff;
+      --pace-dim-on-dark: #cbd9ef;
+
+      --nx-bg: #061826;
+      --nx-card: rgba(7, 38, 58, 0.56);
+      --nx-card-hover: rgba(10, 50, 76, 0.74);
+      --nx-card-elevated: #08273b;
+
+      --nx-border: rgba(137, 170, 230, 0.22);
+      --nx-border-strong: rgba(137, 170, 230, 0.42);
+
+      --nx-text: #ffffff;
+      --nx-muted: #bacde4;
+      --nx-faint: rgba(203, 217, 239, 0.48);
+
+      --nx-emerald: #34d399;
+      --nx-emerald-bg: rgba(16, 185, 129, 0.14);
+      --nx-emerald-border: rgba(52, 211, 153, 0.32);
+
+      --nx-amber: #fbbf24;
+      --nx-amber-bg: rgba(245, 158, 11, 0.14);
+      --nx-amber-border: rgba(251, 191, 36, 0.34);
+
+      --nx-rose: #ff94a1;
+      --nx-rose-bg: rgba(185, 22, 46, 0.22);
+      --nx-rose-border: rgba(185, 22, 46, 0.52);
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --radius-pill: 9999px;
+
+      --shadow-card: 0 6px 24px -2px rgba(2, 10, 18, 0.45);
+      --shadow-modal: 0 24px 64px -8px rgba(1, 6, 12, 0.85);
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    html {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--nx-bg);
+      color: var(--nx-text);
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    body {
+      background-color: var(--nx-bg);
+      color: var(--nx-text);
+      min-height: 100vh;
+      line-height: 1.5;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .ambient-glow {
+      position: fixed;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(820px, 100%);
+      height: 420px;
+      background: radial-gradient(circle, rgba(4, 113, 166, 0.24) 0%, rgba(185, 22, 46, 0.11) 42%, rgba(137, 170, 230, 0.06) 65%, transparent 78%);
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .dot-grid {
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(rgba(137, 170, 230, 0.09) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: radial-gradient(ellipse 65% 55% at 50% 20%, #000 25%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse 65% 55% at 50% 20%, #000 25%, transparent 75%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hidden { display: none !important; }
+
+    /* ── Auth Gate ── */
+    .auth-gate {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: radial-gradient(ellipse 75% 65% at 50% 35%, rgba(4, 113, 166, 0.2), rgba(6, 24, 38, 0.96) 72%);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 390px;
+      background: linear-gradient(180deg, rgba(10, 44, 68, 0.92), rgba(6, 26, 42, 0.96));
+      border: 1px solid var(--nx-border-strong);
+      border-radius: var(--radius-xl);
+      padding: 30px 26px 26px;
+      box-shadow: var(--shadow-modal);
+      text-align: center;
+    }
+
+    .auth-card.shake {
+      animation: shake-x 0.36s var(--ease);
+    }
+
+    @keyframes shake-x {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+
+    .auth-eyebrow {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--pace-periwinkle);
+      margin-bottom: 6px;
+    }
+
+    .auth-byline {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--pace-periwinkle);
+      margin-bottom: 10px;
+    }
+
+    .auth-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .auth-subtitle {
+      font-size: 0.8rem;
+      color: var(--nx-muted);
+      margin-bottom: 20px;
+      line-height: 1.45;
+    }
+
+    .auth-input {
+      width: 100%;
+      padding: 12px 14px;
+      background: rgba(6, 24, 38, 0.75);
+      border: 1px solid var(--nx-border-strong);
+      border-radius: var(--radius-md);
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      letter-spacing: 0.25em;
+      text-align: center;
+      outline: none;
+      margin-bottom: 12px;
+      transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+    }
+
+    .auth-input:focus {
+      border-color: var(--pace-periwinkle);
+      box-shadow: 0 0 0 3px rgba(137, 170, 230, 0.22);
+    }
+
+    .auth-error {
+      font-size: 0.75rem;
+      color: var(--nx-rose);
+      min-height: 18px;
+      margin-bottom: 12px;
+      visibility: hidden;
+    }
+
+    .auth-error.visible { visibility: visible; }
+
+    .auth-submit {
+      width: 100%;
+      padding: 11px 16px;
+      background: linear-gradient(135deg, var(--pace-ocean), var(--pace-blue));
+      border: 1px solid rgba(137, 170, 230, 0.45);
+      border-radius: var(--radius-md);
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s var(--ease), filter 0.2s var(--ease);
+    }
+
+    .auth-submit:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+    .auth-back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 16px;
+      font-size: 0.76rem;
+      color: var(--nx-muted);
+      text-decoration: none;
+    }
+
+    .auth-back-link:hover { color: #ffffff; }
+
+    /* ── Header ── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(6, 24, 38, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--nx-border);
+    }
+
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px 12px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 10;
+    }
+
+    .brand-container {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      margin-right: auto;
+      order: 1;
+    }
+
+    .brand-logo-text {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+    }
+
+    .brand-subline {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--pace-periwinkle);
+      letter-spacing: 0.04em;
+      opacity: 0.8;
+      margin-top: 1px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      order: 2;
+    }
+
+    .sync-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      background: var(--nx-emerald-bg);
+      border: 1px solid var(--nx-emerald-border);
+      color: var(--nx-emerald);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+    }
+
+    .sync-pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 6px currentColor;
+      animation: pulse-ring 2s infinite;
+    }
+
+    @keyframes pulse-ring {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    .sync-status-pill.disconnected {
+      background: var(--nx-rose-bg);
+      border-color: var(--nx-rose-border);
+      color: var(--nx-rose);
+    }
+
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(137, 170, 230, 0.14);
+      border: 1px solid rgba(137, 170, 230, 0.32);
+      border-radius: var(--radius-pill);
+      color: var(--pace-periwinkle);
+      font-family: inherit;
+      font-size: 0.74rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s var(--ease);
+      cursor: pointer;
+    }
+
+    .nav-back:hover {
+      background: rgba(4, 113, 166, 0.35);
+      border-color: var(--pace-periwinkle);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    /* ── 2-Bar Header Menu ── */
+    .nav-menu-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+      order: 3;
+      z-index: 120;
+    }
+
+    .nav-menu-btn {
+      width: 34px;
+      height: 32px;
+      padding: 0;
+      border-radius: var(--radius-pill);
+      background: rgba(7, 38, 58, 0.65);
+      border: 1px solid var(--nx-border);
+      color: var(--pace-periwinkle);
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+    }
+
+    .nav-menu-btn:hover,
+    .nav-menu-btn[aria-expanded="true"] {
+      background: rgba(4, 113, 166, 0.35);
+      border-color: var(--pace-periwinkle);
+      color: #ffffff;
+      box-shadow: 0 0 16px rgba(137, 170, 230, 0.2);
+    }
+
+    .nav-menu-bar {
+      display: block;
+      width: 15px;
+      height: 1.8px;
+      border-radius: 999px;
+      background: currentColor;
+      transition: transform 0.22s var(--ease);
+      transform-origin: center;
+    }
+
+    .nav-menu-btn[aria-expanded="true"] .nav-menu-bar:first-child {
+      transform: translateY(3.4px) rotate(45deg);
+    }
+
+    .nav-menu-btn[aria-expanded="true"] .nav-menu-bar:last-child {
+      transform: translateY(-3.4px) rotate(-45deg);
+    }
+
+    .nav-menu-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      min-width: 230px;
+      padding: 8px;
+      background: rgba(6, 26, 42, 0.96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--nx-border-strong);
+      border-radius: 14px;
+      box-shadow: 0 20px 44px rgba(0, 0, 0, 0.55), 0 0 24px rgba(4, 113, 166, 0.16);
+      z-index: 120;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-6px) scale(0.98);
+      transform-origin: top right;
+      transition: opacity 0.18s var(--ease), transform 0.18s var(--ease), visibility 0.18s;
+      pointer-events: none;
+    }
+
+    .nav-menu-wrap.is-open .nav-menu-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .nav-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      text-decoration: none;
+      color: var(--nx-text);
+      transition: all 0.16s var(--ease);
+    }
+
+    .nav-menu-item:hover {
+      background: rgba(137, 170, 230, 0.12);
+      border-color: rgba(137, 170, 230, 0.25);
+      color: #ffffff;
+    }
+
+    .nav-menu-item.is-current {
+      background: rgba(4, 113, 166, 0.24);
+      border-color: rgba(137, 170, 230, 0.35);
+    }
+
+    .nav-menu-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: rgba(137, 170, 230, 0.12);
+      border: 1px solid rgba(137, 170, 230, 0.24);
+      color: var(--pace-periwinkle);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .nav-menu-meta {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .nav-menu-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.25;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-menu-sub {
+      font-size: 0.68rem;
+      color: var(--nx-muted);
+      line-height: 1.3;
+      margin-top: 1px;
+    }
+
+    .nav-menu-current-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.56rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 1px 6px;
+      border-radius: var(--radius-pill);
+      background: rgba(16, 185, 129, 0.16);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #10b981;
+    }
+
+    /* ── Main ── */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .page-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 26px;
+    }
+
+    .page-title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .page-title-row svg {
+      width: 26px;
+      height: 26px;
+      color: var(--pace-periwinkle);
+      flex-shrink: 0;
+    }
+
+    .page-title {
+      font-size: 1.55rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .page-subtitle {
+      font-size: 0.82rem;
+      color: var(--nx-muted);
+      line-height: 1.55;
+      max-width: 680px;
+    }
+
+    .controls-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .role-filter-btn {
+      background: rgba(7, 38, 58, 0.72);
+      border: 1px solid var(--nx-border);
+      color: var(--nx-muted);
+      border-radius: var(--radius-pill);
+      padding: 6px 13px;
+      font-family: inherit;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+    }
+
+    .role-filter-btn:hover {
+      border-color: var(--nx-border-strong);
+      color: #ffffff;
+    }
+
+    .role-filter-btn.is-active {
+      background: rgba(4, 113, 166, 0.36);
+      border-color: var(--pace-periwinkle);
+      color: #ffffff;
+    }
+
+    /* ── Summary Cards ── */
+    .summary-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 26px;
+    }
+
+    .summary-card {
+      background: var(--nx-card);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      text-align: center;
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .summary-card.highlight-view {
+      border-color: rgba(137, 170, 230, 0.42);
+      background: linear-gradient(160deg, rgba(4, 113, 166, 0.24), rgba(7, 38, 58, 0.66));
+    }
+
+    .summary-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--nx-muted);
+      margin-bottom: 8px;
+    }
+
+    .summary-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--pace-periwinkle);
+      line-height: 1.15;
+    }
+
+    .summary-value.emerald { color: var(--nx-emerald); }
+    .summary-value.amber { color: var(--nx-amber); }
+
+    .summary-unit {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--nx-faint);
+      margin-top: 4px;
+    }
+
+    /* ── Table Card ── */
+    .table-card {
+      background: var(--nx-card);
+      border: 1px solid var(--nx-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .table-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--nx-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .table-title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .table-title {
+      font-size: 0.94rem;
+      font-weight: 700;
+    }
+
+    .table-hint {
+      font-size: 0.72rem;
+      color: var(--nx-faint);
+    }
+
+    .passcode-chips-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .passcode-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--nx-border);
+      background: rgba(6, 24, 38, 0.55);
+      color: var(--pace-dim-on-dark);
+    }
+
+    .passcode-chip.is-view {
+      border-color: rgba(137, 170, 230, 0.36);
+      color: var(--pace-periwinkle);
+    }
+
+    .passcode-chip.is-full {
+      border-color: var(--nx-emerald-border);
+      color: var(--nx-emerald);
+      background: var(--nx-emerald-bg);
+    }
+
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      text-align: left;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--nx-muted);
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--nx-border);
+      background: rgba(7, 38, 58, 0.65);
+      white-space: nowrap;
+    }
+
+    thead th.center { text-align: center; }
+    thead th.right { text-align: right; }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(137, 170, 230, 0.08);
+      transition: background 0.15s var(--ease);
+    }
+
+    tbody tr:hover {
+      background: rgba(137, 170, 230, 0.06);
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+
+    td {
+      padding: 14px 20px;
+      font-size: 0.82rem;
+      vertical-align: middle;
+    }
+
+    td.center { text-align: center; }
+    td.right { text-align: right; }
+
+    .session-role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .session-role-badge.role-view {
+      background: rgba(137, 170, 230, 0.14);
+      border: 1px solid rgba(137, 170, 230, 0.4);
+      color: var(--pace-periwinkle);
+    }
+
+    .session-role-badge.role-full {
+      background: var(--nx-emerald-bg);
+      border: 1px solid var(--nx-emerald-border);
+      color: var(--nx-emerald);
+    }
+
+    .this-tab-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: var(--radius-pill);
+      background: rgba(4, 113, 166, 0.35);
+      border: 1px solid rgba(137, 170, 230, 0.45);
+      color: #ffffff;
+      margin-left: 6px;
+      white-space: nowrap;
+    }
+
+    .screen-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: var(--radius-pill);
+      background: rgba(6, 24, 38, 0.55);
+      border: 1px solid var(--nx-border);
+      color: var(--nx-muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .pulse-live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--nx-emerald);
+      white-space: nowrap;
+    }
+
+    .pulse-live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--nx-emerald);
+      box-shadow: 0 0 8px var(--nx-emerald);
+      flex-shrink: 0;
+    }
+
+    .mono-muted {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.74rem;
+      color: var(--nx-muted);
+    }
+
+    .empty-state {
+      padding: 46px 24px;
+      text-align: center;
+      color: var(--nx-muted);
+      font-size: 0.85rem;
+    }
+
+    /* ── Footer ── */
+    .app-footer {
+      margin-top: 36px;
+      padding-top: 18px;
+      border-top: 1px dashed var(--nx-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-align: center;
+      font-size: 0.76rem;
+      color: var(--nx-muted);
+      letter-spacing: 0.01em;
+    }
+
+    .app-version-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--pace-periwinkle);
+      background: rgba(137, 170, 230, 0.1);
+      border: 1px solid var(--nx-border);
+      padding: 2px 9px;
+      border-radius: var(--radius-pill);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .summary-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 680px) {
+      .nav-menu-wrap { order: 2; }
+      .header-actions { order: 3; width: 100%; }
+    }
+
+    @media (max-width: 640px) {
+      .header-inner { padding: 12px 14px; }
+      main { padding: 20px 14px 48px; }
+      .page-title { font-size: 1.25rem; }
+      .summary-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      .summary-card { padding: 14px; }
+      .summary-value { font-size: 1.5rem; }
+      .table-header { padding: 14px; }
+      td { padding: 11px 10px; font-size: 0.75rem; }
+      thead th { padding: 10px 10px; font-size: 0.62rem; }
+      .col-started { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="ambient-glow" aria-hidden="true"></div>
+  <div class="dot-grid" aria-hidden="true"></div>
+
+  <!-- Passcode Gate -->
+  <div id="sessions-auth-gate" class="auth-gate hidden" role="dialog" aria-modal="true" aria-labelledby="sessions-auth-title">
+    <div class="auth-card" id="sessions-auth-card">
+      <div class="auth-eyebrow">Work Pulse</div>
+      <div class="auth-byline">Product of Hayd's AI Maxing</div>
+      <h1 class="auth-title" id="sessions-auth-title">Active Sessions</h1>
+      <p class="auth-subtitle" id="sessions-auth-subtitle">Enter full-access passcode to monitor live connections</p>
+      <form onsubmit="verifySessionsPasscode(event)" novalidate>
+        <input
+          type="password"
+          id="sessions-passcode"
+          class="auth-input"
+          inputmode="numeric"
+          autocomplete="off"
+          placeholder="••••"
+          aria-label="Workspace passcode"
+          autofocus
+        />
+        <div class="auth-error" id="sessions-auth-error" role="alert">Incorrect passcode. Please try again.</div>
+        <button type="submit" class="auth-submit">Continue</button>
+      </form>
+      <a href="index.html" class="auth-back-link">&larr; Back to Board</a>
+    </div>
+  </div>
+
+  <div id="sessions-shell" class="hidden">
+    <header>
+      <div class="header-inner">
+        <div class="brand-container">
+          <div>
+            <div class="brand-logo-text">Work Pulse</div>
+            <div class="brand-subline">Active Sessions</div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <div class="sync-status-pill" id="sync-pill" title="Firebase Realtime Presence">
+            <span class="sync-pulse-dot"></span>
+            <span id="sync-status">Connecting…</span>
+          </div>
+          <a href="index.html" class="nav-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Back to Board</span>
+          </a>
+        </div>
+        <div class="nav-menu-wrap" id="header-nav-menu">
+          <button type="button" class="nav-menu-btn" id="header-nav-menu-btn" onclick="toggleHeaderMenu(event)" aria-label="Open menu" aria-expanded="false" aria-controls="header-nav-dropdown" title="Navigation menu">
+            <span class="nav-menu-bar"></span>
+            <span class="nav-menu-bar"></span>
+          </button>
+          <div class="nav-menu-dropdown" id="header-nav-dropdown" role="menu">
+            <a href="features.html" class="nav-menu-item" role="menuitem">
+              <span class="nav-menu-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </span>
+              <span class="nav-menu-meta">
+                <span class="nav-menu-title">Features</span>
+                <span class="nav-menu-sub">Capabilities &amp; workflow guide</span>
+              </span>
+            </a>
+            <a href="analytics.html" class="nav-menu-item" role="menuitem">
+              <span class="nav-menu-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              </span>
+              <span class="nav-menu-meta">
+                <span class="nav-menu-title">Analytics</span>
+                <span class="nav-menu-sub">Completion time metrics</span>
+              </span>
+            </a>
+            <a href="sessions.html" class="nav-menu-item is-current" role="menuitem" aria-current="page">
+              <span class="nav-menu-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </span>
+              <span class="nav-menu-meta">
+                <span class="nav-menu-title">Sessions <span class="nav-menu-current-tag">Here</span></span>
+                <span class="nav-menu-sub">Live active users</span>
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="page-head">
+        <div>
+          <div class="page-title-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <h1 class="page-title">Active Sessions</h1>
+          </div>
+          <p class="page-subtitle">
+            Real-time count of open browser tabs and devices signed into Work Pulse, grouped by passcode level. Updates automatically as users log in or close their tabs.
+          </p>
+        </div>
+
+        <div class="controls-bar" role="group" aria-label="Filter active sessions">
+          <button type="button" class="role-filter-btn is-active" data-role="all" onclick="setRoleFilter('all', this)">All Sessions</button>
+          <button type="button" class="role-filter-btn" data-role="view" onclick="setRoleFilter('view', this)">0000 View-Only</button>
+          <button type="button" class="role-filter-btn" data-role="full" onclick="setRoleFilter('full', this)">Full Access</button>
+        </div>
+      </div>
+
+      <section class="summary-row" aria-label="Session counts">
+        <div class="summary-card">
+          <div class="summary-label">Total Active Sessions</div>
+          <div class="summary-value emerald" id="sum-total-sessions">0</div>
+          <div class="summary-unit" id="sum-total-note">across all passcodes</div>
+        </div>
+        <div class="summary-card highlight-view">
+          <div class="summary-label">0000 View-Only</div>
+          <div class="summary-value" id="sum-view-sessions">0</div>
+          <div class="summary-unit" id="sum-view-note">active 0000 logins</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">1903 Full Access</div>
+          <div class="summary-value emerald" id="sum-full-sessions">0</div>
+          <div class="summary-unit" id="sum-full-note">active admin logins</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Presence Status</div>
+          <div class="summary-value" id="sum-live-clock" style="font-size:1.35rem; padding-top:6px;">Live</div>
+          <div class="summary-unit">real-time heartbeat (25s)</div>
+        </div>
+      </section>
+
+      <section class="table-card" aria-label="Live session details">
+        <div class="table-header">
+          <div class="table-title-wrap">
+            <div class="table-title">Connected Sessions</div>
+            <div class="table-hint" id="table-hint">Waiting for realtime presence stream…</div>
+          </div>
+          <div class="passcode-chips-wrap">
+            <span class="passcode-chip is-view" id="chip-view-count">0000: 0 active</span>
+            <span class="passcode-chip is-full" id="chip-full-count">1903: 0 active</span>
+          </div>
+        </div>
+        <div id="sessions-table-body">
+          <div class="empty-state">Connecting to realtime presence…</div>
+        </div>
+      </section>
+
+      <footer class="app-footer">
+        <span class="app-footer-love">Made With Meow Energy</span>
+        <span class="app-version-pill">v1.49.2</span>
+      </footer>
+    </main>
+  </div>
+
+<script>
+  const PASS_HASH = '2a5afdea';
+  const VIEW_PASS_HASH = 'b5edd2d5';
+  const SESSION_KEY = 'workpulse_unlocked';
+  const ROLE_SESSION_KEY = 'workpulse_role';
+  const TAB_SESSION_STORAGE_KEY = 'workpulse_tab_id';
+  const STALE_SESSION_MS = 90000;
+
+  function hashPassword(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(16).padStart(8, '0');
+  }
+
+  function getPasscodeRole(code) {
+    const h = hashPassword(String(code || '').trim());
+    if (h === PASS_HASH) return 'full';
+    if (h === VIEW_PASS_HASH) return 'view';
+    return null;
+  }
+
+  function getSessionRole() {
+    try {
+      const token = sessionStorage.getItem(SESSION_KEY);
+      if (token === PASS_HASH) return 'full';
+      if (token === VIEW_PASS_HASH) return 'view';
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveUnlockedSession(role = 'full') {
+    try {
+      sessionStorage.setItem(SESSION_KEY, role === 'view' ? VIEW_PASS_HASH : PASS_HASH);
+      sessionStorage.setItem(ROLE_SESSION_KEY, role);
+    } catch (e) {}
+  }
+
+  function getOrCreateTabSessionId() {
+    try {
+      let tid = sessionStorage.getItem(TAB_SESSION_STORAGE_KEY);
+      if (!tid) {
+        tid = 'tab_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+        sessionStorage.setItem(TAB_SESSION_STORAGE_KEY, tid);
+      }
+      return tid;
+    } catch (e) {
+      return 'tab_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+    }
+  }
+
+  function detectDeviceLabel() {
+    const ua = navigator.userAgent || '';
+    if (/iPhone/i.test(ua)) return 'iPhone';
+    if (/iPad/i.test(ua)) return 'iPad';
+    if (/Android/i.test(ua)) return /Mobile/i.test(ua) ? 'Android Phone' : 'Android Tablet';
+    if (/Macintosh|Mac OS X/i.test(ua)) return 'Mac';
+    if (/Windows/i.test(ua)) return 'Windows PC';
+    if (/Linux/i.test(ua)) return 'Linux';
+    return 'Browser';
+  }
+
+  function detectBrowserLabel() {
+    const ua = navigator.userAgent || '';
+    if (/Edg\//i.test(ua)) return 'Edge';
+    if (/OPR\//i.test(ua) || /Opera/i.test(ua)) return 'Opera';
+    if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) return 'Chrome';
+    if (/Safari\//i.test(ua) && !/Chrome\//i.test(ua)) return 'Safari';
+    if (/Firefox\//i.test(ua)) return 'Firefox';
+    return 'Web';
+  }
+
+  // ── Firebase Init ──
+  const firebaseConfig = {
+    apiKey: "AIzaSyB6n_Q4AfuJNqLqa6on7fSFglWNBggALNc",
+    authDomain: "task-tracker-c83ed.firebaseapp.com",
+    databaseURL: "https://task-tracker-c83ed-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "task-tracker-c83ed",
+    storageBucket: "task-tracker-c83ed.firebasestorage.app",
+    messagingSenderId: "896706293913",
+    appId: "1:896706293913:web:61d483ad63f510cf0c4808"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const sessionsRef = db.ref('sessions');
+
+  let rawSessionEntries = [];
+  let roleFilter = 'all';
+  let listenersAttached = false;
+  let refreshTimerId = null;
+
+  let presenceConnRef = null;
+  let presenceConnectedRef = null;
+  let presenceConnectedCb = null;
+  let presenceHeartbeatId = null;
+
+  function startSessionPresence(role, pageName) {
+    stopSessionPresence();
+    if (!role || typeof db === 'undefined') return;
+    const tabId = getOrCreateTabSessionId();
+    const startedAtKey = 'workpulse_session_started';
+    let startedAt = Date.now();
+    try {
+      const storedStart = Number(sessionStorage.getItem(startedAtKey));
+      if (storedStart > 0) startedAt = storedStart;
+      else sessionStorage.setItem(startedAtKey, String(startedAt));
+    } catch (e) {}
+
+    const connId = tabId + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+    presenceConnRef = db.ref('sessions/' + connId);
+    presenceConnectedRef = db.ref('.info/connected');
+
+    presenceConnectedCb = (snap) => {
+      if (snap.val() === true && presenceConnRef) {
+        presenceConnRef.onDisconnect().remove().then(() => {
+          if (presenceConnRef) {
+            presenceConnRef.set({
+              tabId,
+              role: role === 'view' ? 'view' : 'full',
+              page: pageName,
+              device: detectDeviceLabel(),
+              browser: detectBrowserLabel(),
+              startedAt,
+              lastActiveAt: Date.now(),
+              serverUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+          }
+        }).catch(() => {});
+      }
+    };
+    presenceConnectedRef.on('value', presenceConnectedCb);
+
+    presenceHeartbeatId = setInterval(() => {
+      if (presenceConnRef) {
+        presenceConnRef.update({
+          lastActiveAt: Date.now(),
+          serverUpdatedAt: firebase.database.ServerValue.TIMESTAMP
+        }).catch(() => {});
+      }
+    }, 25000);
+  }
+
+  function stopSessionPresence() {
+    if (presenceHeartbeatId) {
+      clearInterval(presenceHeartbeatId);
+      presenceHeartbeatId = null;
+    }
+    if (presenceConnectedRef && presenceConnectedCb) {
+      presenceConnectedRef.off('value', presenceConnectedCb);
+    }
+    presenceConnectedRef = null;
+    presenceConnectedCb = null;
+    if (presenceConnRef) {
+      const refToClear = presenceConnRef;
+      presenceConnRef = null;
+      try { refToClear.onDisconnect().cancel().catch(() => {}); } catch (e) {}
+      try { refToClear.remove().catch(() => {}); } catch (e) {}
+    }
+  }
+
+  window.addEventListener('pagehide', stopSessionPresence);
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  function formatRelativePulse(lastMs, nowMs) {
+    if (!lastMs || isNaN(lastMs)) return 'Active';
+    const diffSec = Math.max(0, Math.round((nowMs - lastMs) / 1000));
+    if (diffSec < 8) return 'Just now';
+    if (diffSec < 60) return diffSec + 's ago';
+    const mins = Math.round(diffSec / 60);
+    return mins + 'm ago';
+  }
+
+  function formatDurationAndTime(startedAt, nowMs) {
+    if (!startedAt || isNaN(startedAt)) return 'Active now';
+    const timeStr = new Date(startedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const mins = Math.max(0, Math.floor((nowMs - startedAt) / 60000));
+    if (mins < 1) return timeStr + ' (< 1m)';
+    if (mins < 60) return timeStr + ' (' + mins + 'm)';
+    const hrs = Math.floor(mins / 60);
+    const rem = mins % 60;
+    return timeStr + ' (' + hrs + 'h ' + rem + 'm)';
+  }
+
+  function formatPageLabel(pageKey) {
+    const map = {
+      index: 'Task Board',
+      features: 'Features',
+      analytics: 'Analytics',
+      sessions: 'Active Sessions'
+    };
+    return map[pageKey] || (pageKey ? String(pageKey) : 'Workspace');
+  }
+
+  function aggregateActiveSessions(entries, nowMs = Date.now()) {
+    const byTab = new Map();
+    const staleKeys = [];
+
+    entries.forEach(entry => {
+      if (!entry) return;
+      const lastMs = Number(entry.lastActiveAt || entry.serverUpdatedAt || entry.startedAt || 0);
+      if (lastMs > 0 && (nowMs - lastMs) > STALE_SESSION_MS) {
+        if (entry.key) staleKeys.push(entry.key);
+        return;
+      }
+      const tabKey = entry.tabId || entry.key;
+      const existing = byTab.get(tabKey);
+      const existingLast = existing ? Number(existing.lastActiveAt || existing.serverUpdatedAt || existing.startedAt || 0) : -1;
+      if (!existing || lastMs >= existingLast) {
+        byTab.set(tabKey, entry);
+      }
+    });
+
+    const activeList = Array.from(byTab.values()).sort((a, b) => {
+      const aLast = Number(a.lastActiveAt || a.startedAt || 0);
+      const bLast = Number(b.lastActiveAt || b.startedAt || 0);
+      return bLast - aLast;
+    });
+
+    const viewCount = activeList.filter(s => s.role === 'view').length;
+    const fullCount = activeList.filter(s => s.role !== 'view').length;
+    return { activeList, viewCount, fullCount, totalCount: activeList.length, staleKeys };
+  }
+
+  function setRoleFilter(role, btnEl) {
+    roleFilter = role;
+    document.querySelectorAll('.role-filter-btn').forEach(b => b.classList.remove('is-active'));
+    if (btnEl) btnEl.classList.add('is-active');
+    renderSessions();
+  }
+
+  function renderSessions() {
+    const nowMs = Date.now();
+    const { activeList, viewCount, fullCount, totalCount } = aggregateActiveSessions(rawSessionEntries, nowMs);
+    const myTabId = getOrCreateTabSessionId();
+
+    document.getElementById('sum-total-sessions').textContent = String(totalCount);
+    document.getElementById('sum-total-note').textContent = totalCount === 1 ? '1 active session' : totalCount + ' active sessions';
+
+    document.getElementById('sum-view-sessions').textContent = String(viewCount);
+    document.getElementById('sum-view-note').textContent = viewCount === 1
+      ? '1 active 0000 session'
+      : viewCount + ' active 0000 sessions';
+
+    document.getElementById('sum-full-sessions').textContent = String(fullCount);
+    document.getElementById('sum-full-note').textContent = fullCount === 1
+      ? '1 active admin session'
+      : fullCount + ' active admin sessions';
+
+    document.getElementById('chip-view-count').textContent = '0000: ' + viewCount + ' active';
+    document.getElementById('chip-full-count').textContent = '1903: ' + fullCount + ' active';
+
+    const visibleList = roleFilter === 'all'
+      ? activeList
+      : activeList.filter(s => roleFilter === 'view' ? s.role === 'view' : s.role !== 'view');
+
+    document.getElementById('table-hint').textContent =
+      'Showing ' + visibleList.length + ' of ' + totalCount + ' live session' + (totalCount === 1 ? '' : 's') + ' · auto-updated in real time';
+
+    const container = document.getElementById('sessions-table-body');
+    if (visibleList.length === 0) {
+      container.innerHTML = '<div class="empty-state">No active sessions match this filter right now.</div>';
+      return;
+    }
+
+    const rowsHtml = visibleList.map(s => {
+      const isView = s.role === 'view';
+      const isSelf = (s.tabId && s.tabId === myTabId);
+      const deviceText = [s.device || 'Browser', s.browser || 'Web'].filter(Boolean).join(' · ');
+      const screenLabel = formatPageLabel(s.page);
+      const startedText = formatDurationAndTime(Number(s.startedAt), nowMs);
+      const pulseText = formatRelativePulse(Number(s.lastActiveAt || s.startedAt), nowMs);
+
+      return `
+        <tr>
+          <td>
+            <span class="session-role-badge ${isView ? 'role-view' : 'role-full'}">
+              ${isView ? '0000 · View-Only' : '1903 · Full Access'}
+            </span>
+            ${isSelf ? '<span class="this-tab-tag">This Tab</span>' : ''}
+          </td>
+          <td>${escapeHtml(deviceText)}</td>
+          <td><span class="screen-pill">${escapeHtml(screenLabel)}</span></td>
+          <td class="col-started"><span class="mono-muted">${escapeHtml(startedText)}</span></td>
+          <td class="right">
+            <span class="pulse-live-badge">
+              <span class="pulse-live-dot" aria-hidden="true"></span>
+              <span>${escapeHtml(pulseText)}</span>
+            </span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Passcode &amp; Role</th>
+              <th>Device &amp; Browser</th>
+              <th>Screen</th>
+              <th class="col-started">Started</th>
+              <th class="right">Pulse</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function startSessionsApp(role = 'full') {
+    if (role !== 'full') return;
+    document.getElementById('sessions-auth-gate').classList.add('hidden');
+    document.getElementById('sessions-shell').classList.remove('hidden');
+
+    startSessionPresence('full', 'sessions');
+
+    if (listenersAttached) return;
+    listenersAttached = true;
+
+    const syncStatusEl = document.getElementById('sync-status');
+    const syncPillEl = document.getElementById('sync-pill');
+
+    db.ref('.info/connected').on('value', snap => {
+      if (snap.val() === true) {
+        syncStatusEl.textContent = 'Synced';
+        syncPillEl.className = 'sync-status-pill';
+      } else {
+        syncStatusEl.textContent = 'Offline';
+        syncPillEl.className = 'sync-status-pill disconnected';
+      }
+    });
+
+    sessionsRef.on('value', snapshot => {
+      rawSessionEntries = [];
+      snapshot.forEach(child => {
+        rawSessionEntries.push({ key: child.key, ...child.val() });
+      });
+      const { staleKeys } = aggregateActiveSessions(rawSessionEntries, Date.now());
+      staleKeys.forEach(k => {
+        sessionsRef.child(k).remove().catch(() => {});
+      });
+      const clockEl = document.getElementById('sum-live-clock');
+      if (clockEl) {
+        clockEl.textContent = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+      }
+      renderSessions();
+    });
+
+    refreshTimerId = setInterval(renderSessions, 10000);
+  }
+
+  function showSessionsAuthError(message) {
+    const input = document.getElementById('sessions-passcode');
+    const errEl = document.getElementById('sessions-auth-error');
+    const card = document.getElementById('sessions-auth-card');
+    if (errEl) {
+      errEl.textContent = message;
+      errEl.classList.add('visible');
+    }
+    if (card) {
+      card.classList.remove('shake');
+      void card.offsetWidth;
+      card.classList.add('shake');
+    }
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+  }
+
+  function verifySessionsPasscode(event) {
+    if (event) event.preventDefault();
+    const input = document.getElementById('sessions-passcode');
+    const errEl = document.getElementById('sessions-auth-error');
+    const role = getPasscodeRole(input.value);
+
+    if (role === 'full') {
+      errEl.classList.remove('visible');
+      saveUnlockedSession('full');
+      startSessionsApp('full');
+    } else if (role === 'view') {
+      showSessionsAuthError('Active Sessions is not available with View-Only (0000) access.');
+    } else {
+      showSessionsAuthError('Incorrect passcode. Please try again.');
+    }
+  }
+
+  const passInputEl = document.getElementById('sessions-passcode');
+  if (passInputEl) {
+    passInputEl.addEventListener('input', () => {
+      document.getElementById('sessions-auth-error').classList.remove('visible');
+      const role = getPasscodeRole(passInputEl.value);
+      if (role === 'full') {
+        saveUnlockedSession('full');
+        startSessionsApp('full');
+      } else if (role === 'view') {
+        showSessionsAuthError('Active Sessions is not available with View-Only (0000) access.');
+      }
+    });
+  }
+
+  function closeHeaderMenu() {
+    const wrap = document.getElementById('header-nav-menu');
+    const btn = document.getElementById('header-nav-menu-btn');
+    if (wrap) wrap.classList.remove('is-open');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleHeaderMenu(event) {
+    if (event) event.stopPropagation();
+    const wrap = document.getElementById('header-nav-menu');
+    const btn = document.getElementById('header-nav-menu-btn');
+    if (!wrap || !btn) return;
+    const open = wrap.classList.toggle('is-open');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  document.addEventListener('click', e => {
+    const wrap = document.getElementById('header-nav-menu');
+    if (wrap && !wrap.contains(e.target)) closeHeaderMenu();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeHeaderMenu();
+  });
+
+  const initialRole = getSessionRole();
+  if (initialRole === 'full') {
+    startSessionsApp('full');
+  } else {
+    document.getElementById('sessions-auth-gate').classList.remove('hidden');
+    if (initialRole === 'view') {
+      const subEl = document.getElementById('sessions-auth-subtitle');
+      if (subEl) {
+        subEl.textContent = 'View-Only (0000) sessions cannot open Active Sessions. Enter full-access passcode.';
+      }
+    }
+  }
+</script>
+
+</body>
+</html>
