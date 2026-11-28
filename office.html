@@ -1043,7 +1043,217 @@
         min-height: 390px;
         height: 390px;
       }
+      .ai-chat-panel {
+        width: calc(100% - 24px) !important;
+        right: 12px !important;
+        bottom: 52px !important;
+      }
     }
+
+    /* ── Work Pulse AI Chat Widget ── */
+    .cam-btn-ai.is-open {
+      border-color: #38bdf8;
+      background: rgba(14, 116, 144, 0.55);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+    }
+
+    .ai-chat-panel {
+      position: absolute;
+      right: 14px;
+      bottom: 42px;
+      z-index: 45;
+      width: 356px;
+      max-height: 430px;
+      display: flex;
+      flex-direction: column;
+      background: rgba(6, 24, 38, 0.94);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 16px;
+      box-shadow: 0 20px 54px rgba(2, 10, 18, 0.78), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+      pointer-events: auto;
+    }
+
+    .ai-chat-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px;
+      background: rgba(10, 38, 60, 0.92);
+      border-bottom: 1px solid rgba(137, 170, 230, 0.22);
+    }
+
+    .ai-chat-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .ai-chat-title {
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: #f0f9ff;
+      letter-spacing: -0.01em;
+    }
+
+    .ai-mode-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 9999px;
+      background: rgba(56, 189, 248, 0.16);
+      color: #7dd3fc;
+      border: 1px solid rgba(56, 189, 248, 0.42);
+      white-space: nowrap;
+    }
+
+    .ai-mode-pill.is-gemini {
+      background: rgba(52, 211, 153, 0.16);
+      color: #34d399;
+      border-color: rgba(52, 211, 153, 0.45);
+    }
+
+    .ai-head-actions {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .ai-mini-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: var(--nx-muted);
+      background: rgba(15, 39, 60, 0.85);
+      border: 1px solid rgba(137, 170, 230, 0.28);
+      border-radius: 7px;
+      padding: 3px 7px;
+      cursor: pointer;
+    }
+
+    .ai-mini-btn:hover { color: #ffffff; border-color: #38bdf8; }
+
+    .ai-key-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      background: rgba(4, 18, 30, 0.92);
+      border-bottom: 1px solid rgba(137, 170, 230, 0.18);
+    }
+
+    .ai-key-input {
+      flex: 1;
+      min-width: 0;
+      background: rgba(7, 30, 48, 0.9);
+      border: 1px solid rgba(137, 170, 230, 0.3);
+      border-radius: 7px;
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.66rem;
+      padding: 5px 8px;
+      outline: none;
+    }
+
+    .ai-key-input:focus { border-color: #38bdf8; }
+
+    .ai-chips {
+      display: flex;
+      gap: 5px;
+      padding: 7px 10px;
+      overflow-x: auto;
+      border-bottom: 1px solid rgba(137, 170, 230, 0.14);
+      scrollbar-width: none;
+    }
+    .ai-chips::-webkit-scrollbar { display: none; }
+
+    .ai-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      font-weight: 600;
+      color: #bae6fd;
+      background: rgba(14, 52, 82, 0.72);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      border-radius: 9999px;
+      padding: 3px 9px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .ai-chip:hover { border-color: #38bdf8; background: rgba(14, 116, 144, 0.45); }
+
+    .ai-chat-msgs {
+      flex: 1;
+      min-height: 170px;
+      max-height: 250px;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ai-msg {
+      max-width: 90%;
+      padding: 8px 10px;
+      border-radius: 11px;
+      font-size: 0.74rem;
+      line-height: 1.42;
+      white-space: pre-line;
+      word-break: break-word;
+    }
+
+    .ai-msg.user {
+      align-self: flex-end;
+      background: rgba(14, 116, 144, 0.48);
+      border: 1px solid rgba(56, 189, 248, 0.42);
+      color: #f0f9ff;
+    }
+
+    .ai-msg.bot {
+      align-self: flex-start;
+      background: rgba(11, 35, 54, 0.9);
+      border: 1px solid rgba(137, 170, 230, 0.22);
+      color: #e2e8f0;
+    }
+
+    .ai-chat-form {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      border-top: 1px solid rgba(137, 170, 230, 0.2);
+      background: rgba(7, 30, 48, 0.85);
+    }
+
+    .ai-chat-input {
+      flex: 1;
+      min-width: 0;
+      background: rgba(4, 19, 31, 0.92);
+      border: 1px solid rgba(137, 170, 230, 0.3);
+      border-radius: 9px;
+      color: #ffffff;
+      font-size: 0.74rem;
+      padding: 7px 10px;
+      outline: none;
+    }
+    .ai-chat-input:focus { border-color: #38bdf8; }
+
+    .ai-send-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #061826;
+      background: #38bdf8;
+      border: none;
+      border-radius: 9px;
+      padding: 7px 12px;
+      cursor: pointer;
+    }
+    .ai-send-btn:hover { background: #7dd3fc; }
   </style>
 </head>
 <body>
@@ -1194,9 +1404,40 @@
 
           <div class="hud-camera-bar" role="group" aria-label="Camera controls">
             <button type="button" class="cam-btn" onclick="focusOnCat()" title="Jump camera to Mochi the Office Cat" style="color:#fdba74;">Find Cat</button>
+            <button type="button" id="btn-ai-toggle" class="cam-btn cam-btn-ai" onclick="toggleAiChat()" aria-expanded="false" title="Ask Work Pulse AI about tasks, team status, or 3D office" style="color:#7dd3fc;">Ask AI</button>
           </div>
 
           <div class="hud-hint-bottom-right">PC: drag orbit · 2× tap+drag / right-drag pan · Touch: 1-finger pan</div>
+
+          <div id="ai-chat-panel" class="ai-chat-panel hidden" role="dialog" aria-label="Work Pulse AI Assistant" onpointerdown="event.stopPropagation()" onwheel="event.stopPropagation()">
+            <div class="ai-chat-head">
+              <div class="ai-chat-title-wrap">
+                <span class="ai-chat-title">Work Pulse AI</span>
+                <span id="ai-mode-pill" class="ai-mode-pill">Local Smart</span>
+              </div>
+              <div class="ai-head-actions">
+                <button type="button" class="ai-mini-btn" onclick="toggleAiKeyBar()" title="Optional free Gemini API key (saved locally)">Key</button>
+                <button type="button" class="ai-mini-btn" onclick="toggleAiChat(false)" aria-label="Close AI chat">×</button>
+              </div>
+            </div>
+            <div id="ai-key-bar" class="ai-key-bar hidden">
+              <input type="password" id="ai-gemini-key" class="ai-key-input" placeholder="Paste Gemini API key (optional, saved locally)" aria-label="Gemini API Key" />
+              <button type="button" class="ai-mini-btn" onclick="saveAiGeminiKey()">Save</button>
+              <button type="button" class="ai-mini-btn" onclick="clearAiGeminiKey()">Clear</button>
+            </div>
+            <div class="ai-chips">
+              <button type="button" class="ai-chip" onclick="askAiQuick('Overdue tasks?')">Overdue?</button>
+              <button type="button" class="ai-chip" onclick="askAiQuick('VP follow-ups?')">VP Follow-ups</button>
+              <button type="button" class="ai-chip" onclick="askAiQuick('Who is busiest?')">Who's busy?</button>
+              <button type="button" class="ai-chip" onclick="askAiQuick('Office summary')">Summary</button>
+              <button type="button" class="ai-chip" onclick="askAiQuick('Find Mochi')">Find Mochi</button>
+            </div>
+            <div id="ai-chat-msgs" class="ai-chat-msgs"></div>
+            <form class="ai-chat-form" onsubmit="sendAiChatMessage(event)">
+              <input type="text" id="ai-chat-input" class="ai-chat-input" placeholder="Ask about tasks, people, or camera…" autocomplete="off" />
+              <button type="submit" class="ai-send-btn">Send</button>
+            </form>
+          </div>
 
           <div id="office-tooltip" class="office-tooltip hidden" role="status">
             <div class="tt-eyebrow" id="tt-eyebrow">CUBICLE</div>
@@ -7024,6 +7265,246 @@
     startOfficeApp(initialRole);
   } else {
     document.getElementById('office-auth-gate').classList.remove('hidden');
+  }
+
+  // ── Work Pulse AI Chatbot (Option 1 Free Local Smart Engine + Option 2 Optional Gemini Key) ──
+  const AI_KEY_STORAGE = 'wp_gemini_api_key';
+  let aiChatWelcomed = false;
+
+  function getSavedGeminiKey() {
+    try { return (localStorage.getItem(AI_KEY_STORAGE) || '').trim(); } catch (e) { return ''; }
+  }
+
+  function syncAiModeBadge() {
+    const pill = document.getElementById('ai-mode-pill');
+    const keyInput = document.getElementById('ai-gemini-key');
+    const hasKey = Boolean(getSavedGeminiKey());
+    if (pill) {
+      pill.textContent = hasKey ? 'Gemini Live' : 'Local Smart';
+      pill.classList.toggle('is-gemini', hasKey);
+    }
+    if (keyInput && hasKey && !keyInput.value) {
+      keyInput.value = getSavedGeminiKey();
+    }
+  }
+
+  function appendAiMessage(role, text) {
+    const box = document.getElementById('ai-chat-msgs');
+    if (!box) return null;
+    const div = document.createElement('div');
+    div.className = `ai-msg ${role === 'user' ? 'user' : 'bot'}`;
+    div.textContent = String(text || '');
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
+  }
+
+  function toggleAiChat(forceOpen) {
+    const panel = document.getElementById('ai-chat-panel');
+    const btn = document.getElementById('btn-ai-toggle');
+    if (!panel || !btn) return;
+    const open = (typeof forceOpen === 'boolean') ? forceOpen : panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !open);
+    btn.classList.toggle('is-open', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    syncAiModeBadge();
+    if (open && !aiChatWelcomed) {
+      aiChatWelcomed = true;
+      const st = getLiveTaskSummary(rawTasks);
+      appendAiMessage(
+        'bot',
+        `Hi! I can inspect your live ${st.total} tasks (${st.inprog} active, ${st.overdue} overdue) and jump the 3D camera.\nWorks 100% free locally — or click "Key" to plug in an optional Gemini API key.`
+      );
+    }
+    if (open) {
+      const inp = document.getElementById('ai-chat-input');
+      if (inp) setTimeout(() => inp.focus(), 40);
+    }
+  }
+
+  function toggleAiKeyBar() {
+    const bar = document.getElementById('ai-key-bar');
+    if (!bar) return;
+    bar.classList.toggle('hidden');
+    syncAiModeBadge();
+  }
+
+  function saveAiGeminiKey() {
+    const inp = document.getElementById('ai-gemini-key');
+    const val = inp ? inp.value.trim() : '';
+    try {
+      if (val) localStorage.setItem(AI_KEY_STORAGE, val);
+      else localStorage.removeItem(AI_KEY_STORAGE);
+    } catch (e) {}
+    syncAiModeBadge();
+    const bar = document.getElementById('ai-key-bar');
+    if (bar) bar.classList.add('hidden');
+    appendAiMessage('bot', val ? 'Gemini API key saved locally in this browser. Live LLM mode active!' : 'API key cleared. Switched back to free Local Smart mode.');
+  }
+
+  function clearAiGeminiKey() {
+    const inp = document.getElementById('ai-gemini-key');
+    if (inp) inp.value = '';
+    try { localStorage.removeItem(AI_KEY_STORAGE); } catch (e) {}
+    syncAiModeBadge();
+    appendAiMessage('bot', 'Gemini API key cleared. Using free Local Smart mode.');
+  }
+
+  function askAiQuick(promptText) {
+    const inp = document.getElementById('ai-chat-input');
+    if (inp) inp.value = promptText;
+    sendAiChatMessage();
+  }
+
+  function runOptional3dSideEffects(qLower) {
+    if (qLower.includes('mochi') || qLower.includes('cat')) {
+      focusOnCat();
+      return 'Focused camera on Mochi!';
+    }
+    if (qLower.includes('boss') || qLower.includes('karishma')) {
+      focusBossCabin();
+    }
+    const { allList } = buildWorkerBuckets(rawTasks);
+    const matched = allList.find(w => {
+      const full = w.name.toLowerCase();
+      const first = full.split(' ')[0];
+      return qLower.includes(full) || (first.length >= 3 && new RegExp(`\\b${first}\\b`, 'i').test(qLower));
+    });
+    if (matched) {
+      selectedPerson = matched.name;
+      selectedTaskId = null;
+      updateSelectionRings(true);
+      renderDossierPanel();
+      focusCubicleByName(matched.name, 9.0);
+    }
+    return '';
+  }
+
+  function answerOfficeQueryLocal(question) {
+    const q = String(question || '').trim().toLowerCase();
+    const st = getLiveTaskSummary(rawTasks);
+    const { allList } = buildWorkerBuckets(rawTasks);
+    const clock = getOfficeClockState();
+
+    if (q.includes('mochi') || (q.includes('cat') && !q.includes('category'))) {
+      focusOnCat();
+      return `Jumped camera to Mochi! Mode right now: ${catState.mode || 'patrol'}.`;
+    }
+    if (q.includes('hayden') && (q.includes('run') || q.includes('road') || q.includes('weekend'))) {
+      if (weekendRunner) {
+        camState.goalX = weekendRunner.x;
+        camState.goalZ = weekendRunner.z;
+        camState.goalDistance = 10;
+        return `Hayden is currently jogging his weekend 5K loop outside at (${weekendRunner.x.toFixed(1)}, ${weekendRunner.z.toFixed(1)})!`;
+      }
+    }
+
+    const matched = allList.find(w => {
+      const full = w.name.toLowerCase();
+      const first = full.split(' ')[0];
+      return q.includes(full) || (first.length >= 3 && new RegExp(`\\b${first}\\b`, 'i').test(q));
+    });
+    if (matched) {
+      selectedPerson = matched.name;
+      selectedTaskId = null;
+      updateSelectionRings(true);
+      renderDossierPanel();
+      focusCubicleByName(matched.name, 9.0);
+      const od = matched.openTasks.filter(isTaskOverdue).length;
+      const top = matched.openTasks.slice(0, 3).map(t => `• [${t.status === 'inprogress' ? 'Active' : 'To Do'}] ${t.title || 'Untitled'}`).join('\n');
+      return `${matched.name}: ${matched.inprogress.length} active, ${matched.todo.length} to-do, ${matched.done.length} done (${od} overdue).` + (top ? `\n${top}` : '\nDesk is completely clear!');
+    }
+
+    if (q.includes('overdue') || q.includes('late') || q.includes('missed')) {
+      const odList = rawTasks.filter(t => t.status !== 'done' && isTaskOverdue(t));
+      if (odList.length === 0) return 'Zero overdue tasks right now — everything is on schedule!';
+      const lines = odList.slice(0, 5).map(t => `• ${t.title || 'Untitled'} (${t.person || 'Unassigned'}, due ${t.date || 'n/a'})`).join('\n');
+      return `There are ${odList.length} overdue tasks:\n${lines}${odList.length > 5 ? `\n…and ${odList.length - 5} more.` : ''}`;
+    }
+
+    if (q.includes('vp') || q.includes('follow') || q.includes('urgent') || q.includes('hard')) {
+      const vpList = rawTasks.filter(t => t.status !== 'done' && (t.vpFollowup || t.hardDeadline));
+      if (vpList.length === 0) return 'No open VP follow-up or hard-deadline tasks right now.';
+      const lines = vpList.slice(0, 5).map(t => `• ${t.title || 'Untitled'} (${t.person || 'Unassigned'})`).join('\n');
+      return `Priority VP / Hard Deadline tasks (${vpList.length}):\n${lines}`;
+    }
+
+    if (q.includes('busy') || q.includes('busiest') || q.includes('workload') || q.includes('most')) {
+      const ranked = [...allList].sort((a, b) => b.openCount - a.openCount).slice(0, 4);
+      const lines = ranked.map(w => `• ${w.name}: ${w.openCount} open (${w.inprogress.length} active)`).join('\n');
+      return `Busiest desks right now:\n${lines}`;
+    }
+
+    if (q.includes('free') || q.includes('sleep') || q.includes('idle') || q.includes('available')) {
+      const free = allList.filter(w => w.openCount === 0).map(w => w.name.split(' ')[0]);
+      return free.length > 0
+        ? `Free / sleeping desks (${free.length}): ${free.join(', ')}.`
+        : 'Everyone on the roster currently has open tasks!';
+    }
+
+    const shiftInfo = clock.isWeekend
+      ? `Weekend mode (Cleaning Crew: ${cleaningCrew.length}, Hayden jogging outside!)`
+      : (clock.afterHours ? `After hours (Cleaning Crew: ${cleaningCrew.length}, back ${clock.returnShort})` : 'Regular daytime shift');
+    return `Work Pulse Summary: ${st.total} total tasks — ${st.inprog} active, ${st.todo} to-do, ${st.done} done (${st.donePct}%), ${st.overdue} overdue, ${st.vpCount} VP follow-ups.\nOffice: ${shiftInfo}.\nTry asking: "overdue?", "VP follow-ups?", "who is busiest?", or any person's name.`;
+  }
+
+  async function queryGeminiWithTasks(question, apiKey) {
+    const st = getLiveTaskSummary(rawTasks);
+    const { allList } = buildWorkerBuckets(rawTasks);
+    const clock = getOfficeClockState();
+    const teamBrief = allList.map(w => `${w.name}:${w.inprogress.length}act/${w.todo.length}todo/${w.done.length}done`).join('; ');
+    const topTasks = st.openQueue.slice(0, 12).map(({ task, isOd }) =>
+      `- [${task.status}${isOd ? ',OVERDUE' : ''}${task.vpFollowup ? ',VP' : ''}] ${task.title} (${task.person || 'Unassigned'}${task.date ? ', due ' + task.date : ''})`
+    ).join('\n');
+
+    const systemContext = `You are Work Pulse AI inside a 3D office task tracker. Answer concisely (under 90 words) using ONLY the live board data below.
+Stats: total=${st.total}, active=${st.inprog}, todo=${st.todo}, done=${st.done} (${st.donePct}%), overdue=${st.overdue}, vp=${st.vpCount}.
+Office clock: ${clock.isWeekend ? 'Weekend' : (clock.afterHours ? 'After Hours' : 'Workday')}.
+Team: ${teamBrief}
+Top open tasks:\n${topTasks}`;
+
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: `${systemContext}\n\nUser question: ${question}` }] }],
+        generationConfig: { temperature: 0.35, maxOutputTokens: 220 }
+      })
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    const out = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim();
+    if (!out) throw new Error('Empty response');
+    return out;
+  }
+
+  async function sendAiChatMessage(event) {
+    if (event) event.preventDefault();
+    const inp = document.getElementById('ai-chat-input');
+    const q = inp ? inp.value.trim() : '';
+    if (!q) return;
+    inp.value = '';
+    appendAiMessage('user', q);
+
+    const apiKey = getSavedGeminiKey();
+    if (apiKey) {
+      const pendingEl = appendAiMessage('bot', 'Thinking…');
+      runOptional3dSideEffects(q.toLowerCase());
+      try {
+        const reply = await queryGeminiWithTasks(q, apiKey);
+        if (pendingEl) pendingEl.textContent = reply;
+        const box = document.getElementById('ai-chat-msgs');
+        if (box) box.scrollTop = box.scrollHeight;
+        return;
+      } catch (err) {
+        const localFallback = answerOfficeQueryLocal(q);
+        if (pendingEl) pendingEl.textContent = `Gemini unavailable (${err.message}) — local answer:\n${localFallback}`;
+        return;
+      }
+    }
+
+    const reply = answerOfficeQueryLocal(q);
+    appendAiMessage('bot', reply);
   }
 </script>
 </body>
