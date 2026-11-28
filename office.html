@@ -1756,6 +1756,7 @@
   let wakeSpriteTex = null;
   let pantryBubbleTextures = [];
   let cleanerBubbleTextures = [];
+  let runnerBubbleTextures = [];
   let pantrySignTexture = null;
   let meetingSignTexture = null;
   let phoneSignTexture = null;
@@ -1951,6 +1952,8 @@
 
   let aisleGraph = { xs: [], zs: [], blockedNodes: null };
   const officePlaces = { boss: null, pantry: null, meeting: null, phone: null, sleepingSpots: [] };
+  let exteriorRoadLoop = null;
+  let weekendRunner = null;
 
   function makeNamelessWorker(idx) {
     const states = [
@@ -2258,6 +2261,11 @@
       makePixelBubbleTex('#2dd4bf', 'mug', '#facc15', 'SWEEP!', '#ccfbf1'),
       makePixelBubbleTex('#60a5fa', 'laugh', '#34d399', 'CLEAN~', '#dbeafe'),
       makePixelBubbleTex('#facc15', 'laugh', '#38bdf8', 'SHINE!', '#fef9c3')
+    ];
+    runnerBubbleTextures = [
+      makePixelBubbleTex('#f97316', 'laugh', '#facc15', '5K RUN!', '#ffedd5'),
+      makePixelBubbleTex('#34d399', 'laugh', '#38bdf8', 'PACE~', '#d1fae5'),
+      makePixelBubbleTex('#fbbf24', 'laugh', '#fb7185', 'WKND!', '#fef9c3')
     ];
 
     meetingSignTexture = makeCrispTextTexture(512, 128, (ctx, w, h) => {
@@ -2874,6 +2882,14 @@
       const legRMesh = makeBox(0.18, 0.42, 0.18, 0x1e293b);
       legRMesh.position.y = -0.21;
       legR.add(legRMesh);
+      if (opts.runner) {
+        const shoeL = makeBox(0.20, 0.10, 0.24, 0xf8fafc, { castShadow: false });
+        shoeL.position.set(0, -0.39, -0.03);
+        legL.add(shoeL);
+        const shoeR = makeBox(0.20, 0.10, 0.24, 0xf8fafc, { castShadow: false });
+        shoeR.position.set(0, -0.39, -0.03);
+        legR.add(shoeR);
+      }
     }
     charRoot.add(legL);
     charRoot.add(legR);
@@ -2913,6 +2929,11 @@
       const hairBack = makeBox(0.48, 0.34, 0.1, hairColor);
       hairBack.position.set(0, 0.06, 0.2);
       headGroup.add(hairBack);
+      if (opts.runner) {
+        const headband = makeBox(0.50, 0.08, 0.48, 0xf97316, { castShadow: false });
+        headband.position.set(0, 0.13, -0.01);
+        headGroup.add(headband);
+      }
     }
 
     const eyeL = makeBox(0.07, 0.07, 0.04, 0x0f172a);
@@ -2995,7 +3016,7 @@
           }
           armRGroup.add(toolGroup);
         }
-      } else {
+      } else if (!opts.runner) {
         const breakMug = makeBox(0.13, 0.14, 0.13, opts.mugColor || 0xfbbf24);
         breakMug.position.set(0, -0.01, -0.5);
         armRGroup.add(breakMug);
@@ -4288,6 +4309,8 @@
     const { allList, filtered } = buildWorkerBuckets(rawTasks);
     cubicleWorkersCache = filtered;
     cleaningCrew = [];
+    weekendRunner = null;
+    exteriorRoadLoop = null;
     updateToolbarStats(allList);
     renderDossierPanel();
 
@@ -4579,6 +4602,12 @@
     cooler.position.set(propMaxX, 0, propTopZ);
     propsGroup.add(cooler);
 
+    // Exterior Perimeter Running Road + Weekend Hayden Runner
+    buildExteriorRoad(leftEdgeX, rightEdgeX, topEdgeZ, outerBotZ);
+    if (getOfficeClockState().isWeekend) {
+      initWeekendRunner(allList);
+    }
+
     // Spawn Mochi the Office Cat on the aisle grid!
     catVisual = buildOfficeCat();
     const needsCatReset = !catState.initialized
@@ -4614,11 +4643,11 @@
     catVisual.root.position.set(catState.x, catState.y || 0, catState.z);
     catVisual.root.rotation.y = catState.heading;
 
-    // Frame whole office grid + Boss Cabin + Meeting Room nicely
-    const span = Math.max(floorW, floorD);
+    // Frame whole office grid + Boss Cabin + Meeting Room + Exterior Road nicely
+    const span = Math.max(floorW + 7.5, floorD + 7.5);
     camState.homeX = floorCenterX;
     camState.homeZ = 0;
-    camState.initialSpanDistance = Math.min(64, Math.max(22, span * 1.1));
+    camState.initialSpanDistance = Math.min(68, Math.max(24, span * 1.06));
     if (!worldGroup.datasetHasFramedOnce) {
       camState.targetX = camState.homeX;
       camState.goalX = camState.homeX;
@@ -4902,6 +4931,17 @@
       subEl.textContent = hitData.cleaner.mode === 'clean'
         ? `Sweeping & polishing the empty office floor until ${clock.returnShort}!`
         : 'Heading to the next sector with cleaning gear';
+    } else if (hitData.hitType === 'runner') {
+      eyebrowEl.textContent = 'WEEKEND JOG · PERIMETER ROAD';
+      titleEl.textContent = (hitData.worker && hitData.worker.name) ? hitData.worker.name : 'Hayden Pereira';
+      subEl.textContent = 'Running weekend laps around the office road · Click to cheer!';
+    } else if (hitData.hitType === 'road') {
+      const clock = getOfficeClockState();
+      eyebrowEl.textContent = 'EXTERIOR TRACK · RUNNING LOOP';
+      titleEl.textContent = 'Office Perimeter Road';
+      subEl.textContent = clock.isWeekend
+        ? 'Hayden is out here running weekend laps!'
+        : 'Quiet weekday road · Hayden runs here on weekends';
     } else if (hitData.hitType === 'pantry') {
       const clock = getOfficeClockState();
       const afterHours = clock.afterHours;
@@ -5195,6 +5235,15 @@
             if (cleanerBubbleTextures.length > 0 && ud.cleaner.bubbleMat) {
               ud.cleaner.bubbleMat.map = cleanerBubbleTextures[Math.floor(Math.random() * cleanerBubbleTextures.length)];
               ud.cleaner.bubbleMat.needsUpdate = true;
+            }
+            return;
+          }
+          if (ud.hitType === 'runner' && weekendRunner) {
+            weekendRunner.bubbleTimer = 2.8;
+            weekendRunner.boostTimer = 2.2;
+            if (runnerBubbleTextures.length > 0 && weekendRunner.bubbleMat) {
+              weekendRunner.bubbleMat.map = runnerBubbleTextures[Math.floor(Math.random() * runnerBubbleTextures.length)];
+              weekendRunner.bubbleMat.needsUpdate = true;
             }
             return;
           }
@@ -6330,6 +6379,209 @@
     }
   }
 
+  function buildExteriorRoad(leftEdgeX, rightEdgeX, topEdgeZ, outerBotZ) {
+    const roadGap = 1.15;
+    const roadW = 2.6;
+    const rxMin = leftEdgeX - roadGap - roadW / 2;
+    const rxMax = rightEdgeX + roadGap + roadW / 2;
+    const rzMin = topEdgeZ - roadGap - roadW / 2;
+    const rzMax = outerBotZ + roadGap + roadW / 2;
+    const spanX = rxMax - rxMin + roadW;
+    const spanZ = rzMax - rzMin + roadW;
+    const sideLenZ = Math.max(1, spanZ - 2 * roadW);
+    const centerX = (rxMin + rxMax) / 2;
+    const centerZ = (rzMin + rzMax) / 2;
+    const roadMatColor = 0x1b2432;
+    const curbColor = 0x334155;
+    const dashColor = 0xfacc15;
+
+    const addRoadSeg = (w, d, x, z) => {
+      const m = makeBox(w, 0.12, d, roadMatColor, { castShadow: false });
+      m.position.set(x, -0.18, z);
+      m.userData = { hitType: 'road' };
+      propsGroup.add(m);
+      interactables.push(m);
+    };
+    addRoadSeg(spanX, roadW, centerX, rzMin);
+    addRoadSeg(spanX, roadW, centerX, rzMax);
+    addRoadSeg(roadW, sideLenZ, rxMin, centerZ);
+    addRoadSeg(roadW, sideLenZ, rxMax, centerZ);
+
+    // Outer & inner sidewalk curbs framing the perimeter track
+    const outerCurbH = getSharedBoxGeo(spanX + 0.36, 0.14, 0.18);
+    const outerCurbV = getSharedBoxGeo(0.18, 0.14, spanZ + 0.36);
+    const curbMat = getSharedLambertMat(curbColor);
+    [[centerX, rzMin - roadW / 2 - 0.09], [centerX, rzMax + roadW / 2 + 0.09]].forEach(([cx, cz]) => {
+      const c = new THREE.Mesh(outerCurbH, curbMat);
+      c.position.set(cx, -0.16, cz);
+      propsGroup.add(c);
+    });
+    [[rxMin - roadW / 2 - 0.09, centerZ], [rxMax + roadW / 2 + 0.09, centerZ]].forEach(([cx, cz]) => {
+      const c = new THREE.Mesh(outerCurbV, curbMat);
+      c.position.set(cx, -0.16, cz);
+      propsGroup.add(c);
+    });
+
+    // Yellow dashed centerlines around all 4 sides
+    const dashHGeo = getSharedBoxGeo(1.1, 0.02, 0.14);
+    const dashVGeo = getSharedBoxGeo(0.14, 0.02, 1.1);
+    const dashMat = getSharedLambertMat(dashColor);
+    for (let dx = rxMin + 1.0; dx <= rxMax - 1.0; dx += 2.6) {
+      [rzMin, rzMax].forEach(dz => {
+        const d = new THREE.Mesh(dashHGeo, dashMat);
+        d.position.set(dx, -0.115, dz);
+        propsGroup.add(d);
+      });
+    }
+    for (let dz = rzMin + 1.0; dz <= rzMax - 1.0; dz += 2.6) {
+      [rxMin, rxMax].forEach(dx => {
+        const d = new THREE.Mesh(dashVGeo, dashMat);
+        d.position.set(dx, -0.115, dz);
+        propsGroup.add(d);
+      });
+    }
+
+    // Roadside trees along outer corners for outdoor atmosphere
+    const treeSpots = [
+      [rxMin - 1.85, rzMax + 1.85],
+      [centerX, rzMax + 2.05],
+      [rxMax + 1.85, rzMax + 1.85],
+      [rxMax + 1.85, rzMin - 1.85],
+      [rxMin - 1.85, rzMin - 1.85]
+    ];
+    treeSpots.forEach(([tx, tz], idx) => {
+      const tree = buildPottedPlant(20 + idx);
+      tree.scale.set(1.25, 1.35, 1.25);
+      tree.position.set(tx, -0.18, tz);
+      propsGroup.add(tree);
+    });
+
+    exteriorRoadLoop = { rxMin, rxMax, rzMin, rzMax, y: -0.12 };
+  }
+
+  function initWeekendRunner(allList) {
+    if (!exteriorRoadLoop) return;
+    const hayden = (allList || []).find(w => String(w.name || '').toLowerCase().includes('hayden'))
+      || { name: 'Hayden Pereira' };
+
+    const rigParts = buildWorkerCharacterParts(hayden, {
+      isBoss: false,
+      seated: false,
+      hitType: 'runner',
+      runner: true
+    });
+    const root = new THREE.Group();
+    root.add(rigParts.charRoot);
+
+    const bubTex = runnerBubbleTextures.length > 0 ? runnerBubbleTextures[0] : meowSpriteTex;
+    const bubbleMat = new THREE.SpriteMaterial({ map: bubTex, transparent: true, opacity: 0, depthWrite: false });
+    const bubbleSprite = new THREE.Sprite(bubbleMat);
+    bubbleSprite.position.set(0, 2.08, 0);
+    bubbleSprite.scale.set(0.96, 0.48, 1);
+    bubbleSprite.visible = false;
+    root.add(bubbleSprite);
+
+    const nameTex = getNameplateTexture(hayden.name, true, false, 'HAYDEN · 5K');
+    const nameMat = new THREE.SpriteMaterial({ map: nameTex, transparent: true, opacity: 1, depthWrite: false });
+    const nameSprite = new THREE.Sprite(nameMat);
+    nameSprite.position.set(0, 1.68, 0);
+    nameSprite.scale.set(1.52, 0.38, 1);
+    nameSprite.userData = { hitType: 'runner', worker: hayden };
+    root.add(nameSprite);
+    interactables.push(nameSprite);
+
+    const { rxMin, rxMax, rzMin, rzMax, y } = exteriorRoadLoop;
+    const corners = [
+      { x: rxMax, z: rzMax },
+      { x: rxMax, z: rzMin },
+      { x: rxMin, z: rzMin },
+      { x: rxMin, z: rzMax }
+    ];
+    const startX = (rxMin + rxMax) * 0.2;
+    const startZ = rzMax;
+
+    weekendRunner = {
+      worker: hayden,
+      root,
+      rig: rigParts.charRoot,
+      upperBody: rigParts.upperBody,
+      headGroup: rigParts.headGroup,
+      armLGroup: rigParts.armLGroup,
+      armRGroup: rigParts.armRGroup,
+      legL: rigParts.legL,
+      legR: rigParts.legR,
+      bubbleSprite,
+      bubbleMat,
+      nameSprite,
+      nameMat,
+      corners,
+      cornerIdx: 0,
+      x: startX,
+      y,
+      z: startZ,
+      heading: Math.PI / 2,
+      runSpeed: 4.8,
+      bubbleTimer: 3.0,
+      boostTimer: 0
+    };
+
+    if (rigParts.hitBox) rigParts.hitBox.userData = { hitType: 'runner', worker: hayden };
+    root.position.set(startX, y, startZ);
+    root.rotation.y = weekendRunner.heading;
+    propsGroup.add(root);
+  }
+
+  function updateWeekendRunner(t, dt) {
+    const r = weekendRunner;
+    if (!r || !r.corners || r.corners.length === 0) return;
+
+    if (r.bubbleTimer > 0) r.bubbleTimer = Math.max(0, r.bubbleTimer - dt);
+    if (r.boostTimer > 0) r.boostTimer = Math.max(0, r.boostTimer - dt);
+
+    const target = r.corners[r.cornerIdx];
+    const dx = target.x - r.x;
+    const dz = target.z - r.z;
+    const dist = Math.hypot(dx, dz);
+    const speed = r.runSpeed * (r.boostTimer > 0 ? 1.45 : 1.0);
+    const step = speed * dt;
+
+    if (dist <= step + 0.05) {
+      r.x = target.x;
+      r.z = target.z;
+      r.cornerIdx = (r.cornerIdx + 1) % r.corners.length;
+    } else {
+      r.x += (dx / dist) * step;
+      r.z += (dz / dist) * step;
+      const desiredH = Math.atan2(dx, dz);
+      const hDiff = Math.atan2(Math.sin(desiredH - r.heading), Math.cos(desiredH - r.heading));
+      r.heading += hDiff * Math.min(1, dt * 14);
+    }
+
+    // Energetic jogging stride!
+    const runT = t * (r.boostTimer > 0 ? 19 : 14.5);
+    const swing = Math.sin(runT) * 0.85;
+    r.legL.rotation.x = swing;
+    r.legR.rotation.x = -swing;
+    r.armLGroup.rotation.x = -swing * 0.92;
+    r.armRGroup.rotation.x = swing * 0.92;
+    r.upperBody.rotation.x = -0.24;
+    r.headGroup.rotation.y = Math.sin(t * 2.1) * 0.1;
+    r.rig.position.y = Math.abs(Math.sin(runT)) * 0.11;
+
+    if (r.bubbleTimer <= 0 && Math.random() < dt * 0.18) {
+      r.bubbleTimer = 2.6;
+      if (runnerBubbleTextures.length > 0 && r.bubbleMat) {
+        r.bubbleMat.map = runnerBubbleTextures[Math.floor(Math.random() * runnerBubbleTextures.length)];
+        r.bubbleMat.needsUpdate = true;
+      }
+    }
+    r.bubbleSprite.visible = r.bubbleTimer > 0;
+    if (r.bubbleSprite.visible) r.bubbleMat.opacity = Math.min(1, r.bubbleTimer * 2);
+
+    r.root.position.set(r.x, r.y, r.z);
+    r.root.rotation.y = r.heading;
+  }
+
   let lastFrameMs = performance.now();
 
   function startAnimLoop() {
@@ -6356,6 +6608,7 @@
       updateOfficeCat(t, dt);
       updatePantryVisitors(t, dt);
       updateCleaningCrew(t, dt);
+      updateWeekendRunner(t, dt);
 
       // Frame-rate independent smooth damped camera orbit, pan & zoom
       camState.azimuth += (camState.goalAzimuth - camState.azimuth) * camLerp;
