@@ -4602,7 +4602,8 @@
     cooler.position.set(propMaxX, 0, propTopZ);
     propsGroup.add(cooler);
 
-    // Exterior Perimeter Running Road + Weekend Hayden Runner
+    // Exterior Architectural Walls + Perimeter Running Road + Weekend Hayden Runner
+    buildExteriorWalls(leftEdgeX, rightEdgeX, topEdgeZ, upperBotZ, outerBotZ, annexRightX, hasRightCutout);
     buildExteriorRoad(leftEdgeX, rightEdgeX, topEdgeZ, outerBotZ);
     if (getOfficeClockState().isWeekend) {
       initWeekendRunner(allList);
@@ -6376,6 +6377,101 @@
       c.y += ((c.targetY || 0) - c.y) * Math.min(1, dt * 10);
       c.root.position.set(c.x, c.y, c.z);
       c.root.rotation.y = c.heading;
+    }
+  }
+
+  function buildExteriorWalls(leftEdgeX, rightEdgeX, topEdgeZ, upperBotZ, outerBotZ, annexRightX, hasRightCutout) {
+    const wallHex = 0x16324d;
+    const capHex = 0x38bdf8;
+    const pilasterHex = 0x1e4c70;
+    const glassMat = new THREE.MeshLambertMaterial({
+      color: 0x7dd3fc,
+      transparent: true,
+      opacity: 0.22,
+      depthWrite: false
+    });
+
+    const addBackWall = (len, isHoriz, cx, cz) => {
+      const h = 2.32;
+      const t = 0.24;
+      const w = isHoriz ? len : t;
+      const d = isHoriz ? t : len;
+      const body = makeBox(w, h, d, wallHex);
+      body.position.set(cx, h / 2, cz);
+      propsGroup.add(body);
+      const cap = makeBox(isHoriz ? len + 0.12 : t + 0.06, 0.08, isHoriz ? t + 0.06 : len + 0.12, capHex, { castShadow: false });
+      cap.position.set(cx, h + 0.04, cz);
+      propsGroup.add(cap);
+      // Architectural pilasters along the wall
+      const step = 4.6;
+      const count = Math.floor(len / step);
+      for (let i = 0; i <= count; i++) {
+        const off = -len / 2 + (i * len) / Math.max(1, count);
+        const pil = makeBox(isHoriz ? 0.26 : 0.30, h + 0.06, isHoriz ? 0.30 : 0.26, pilasterHex, { castShadow: false });
+        pil.position.set(isHoriz ? (cx + off) : cx, (h + 0.06) / 2, isHoriz ? cz : (cz + off));
+        propsGroup.add(pil);
+      }
+    };
+
+    const addFrontGlassWall = (len, isHoriz, cx, cz) => {
+      if (len <= 0.3) return;
+      const baseH = 0.42;
+      const glassH = 0.56;
+      const t = 0.20;
+      const w = isHoriz ? len : t;
+      const d = isHoriz ? t : len;
+      const base = makeBox(w, baseH, d, wallHex, { castShadow: false });
+      base.position.set(cx, baseH / 2, cz);
+      propsGroup.add(base);
+      const glass = new THREE.Mesh(
+        getSharedBoxGeo(isHoriz ? len : t * 0.55, glassH, isHoriz ? t * 0.55 : len),
+        glassMat
+      );
+      glass.position.set(cx, baseH + glassH / 2, cz);
+      propsGroup.add(glass);
+      const rail = makeBox(isHoriz ? len + 0.06 : t + 0.04, 0.07, isHoriz ? t + 0.04 : len + 0.06, capHex, { castShadow: false });
+      rail.position.set(cx, baseH + glassH + 0.035, cz);
+      propsGroup.add(rail);
+    };
+
+    const floorCenterX = (leftEdgeX + rightEdgeX) / 2;
+    const floorW = rightEdgeX - leftEdgeX;
+    const floorD = outerBotZ - topEdgeZ;
+    const floorCenterZ = (topEdgeZ + outerBotZ) / 2;
+
+    // Back North (-Z) & West (-X) tall exterior walls (frame background cleanly without blocking view)
+    addBackWall(floorW + 0.24, true, floorCenterX, topEdgeZ);
+    addBackWall(floorD + 0.24, false, leftEdgeX, floorCenterZ);
+
+    // Front South (+Z) & East (+X) cutaway panoramic glass walls + Main Entrance Doorway
+    const botRight = hasRightCutout ? annexRightX : rightEdgeX;
+    const botSpan = botRight - leftEdgeX;
+    const doorX = (leftEdgeX + botRight) / 2;
+    const doorHalf = 1.4;
+    const leftSegLen = (doorX - doorHalf) - leftEdgeX;
+    const rightSegLen = botRight - (doorX + doorHalf);
+    addFrontGlassWall(leftSegLen, true, leftEdgeX + leftSegLen / 2, outerBotZ);
+    addFrontGlassWall(rightSegLen, true, doorX + doorHalf + rightSegLen / 2, outerBotZ);
+
+    // Main Entrance Door Posts + Welcome Mat
+    [-doorHalf, doorHalf].forEach(dx => {
+      const post = makeBox(0.24, 1.48, 0.24, capHex, { castShadow: false });
+      post.position.set(doorX + dx, 0.74, outerBotZ);
+      propsGroup.add(post);
+    });
+    const welcomeMat = makeBox(2.5, 0.03, 0.9, 0x0ea5e9, { castShadow: false });
+    welcomeMat.position.set(doorX, 0.015, outerBotZ + 0.35);
+    propsGroup.add(welcomeMat);
+
+    if (hasRightCutout) {
+      const upperD = upperBotZ - topEdgeZ;
+      addFrontGlassWall(upperD, false, rightEdgeX, (topEdgeZ + upperBotZ) / 2);
+      const stepW = rightEdgeX - annexRightX;
+      addFrontGlassWall(stepW, true, (annexRightX + rightEdgeX) / 2, upperBotZ);
+      const lowerD = outerBotZ - upperBotZ;
+      addFrontGlassWall(lowerD, false, annexRightX, (upperBotZ + outerBotZ) / 2);
+    } else {
+      addFrontGlassWall(floorD, false, rightEdgeX, floorCenterZ);
     }
   }
 
